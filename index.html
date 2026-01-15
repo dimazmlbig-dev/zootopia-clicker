@@ -3,36 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Dachshund Detective Web3</title>
+    <title>Zootopia: Level System</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
     <style>
-        :root { 
-            --accent: #ff9800; --bg: #0f0f0f; --text: #ffffff;
-            --glass: rgba(255, 255, 255, 0.05);
-        }
+        :root { --accent: #ff9800; --bg: #0f0f0f; --text: #ffffff; --glass: rgba(255, 255, 255, 0.05); }
         body { margin: 0; background: var(--bg); font-family: 'Inter', sans-serif; color: var(--text); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         
-        #header { padding: 20px; background: rgba(0,0,0,0.6); backdrop-filter: blur(15px); text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
-        #balance { font-size: 42px; font-weight: 900; display: flex; align-items: center; justify-content: center; gap: 12px; }
-        
-        .page { display: none; flex-direction: column; align-items: center; justify-content: center; flex-grow: 1; width: 100%; padding: 20px; box-sizing: border-box; }
+        #header { padding: 15px; background: rgba(0,0,0,0.6); backdrop-filter: blur(15px); text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        #balance { font-size: 32px; font-weight: 900; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        #rank-display { font-size: 10px; letter-spacing: 2px; color: var(--accent); text-transform: uppercase; margin-top: 5px; font-weight: bold; }
+
+        .page { display: none; flex-direction: column; align-items: center; flex-grow: 1; width: 100%; padding: 20px; box-sizing: border-box; overflow-y: auto; }
         .page.active { display: flex; }
 
-        /* Карточка героя */
-        .hero-card { background: var(--glass); border: 1px solid rgba(255,255,255,0.1); border-radius: 40px; padding: 30px; width: 85%; display: flex; flex-direction: column; align-items: center; }
-        .hero-img { width: 260px; height: 260px; object-fit: contain; cursor: pointer; transition: transform 0.1s; }
-        .hero-img:active { transform: scale(0.95); }
+        /* Прогресс-бары */
+        .stat-box { width: 100%; margin-top: 15px; }
+        .bar-label { display: flex; justify-content: space-between; font-size: 11px; opacity: 0.6; margin-bottom: 4px; }
+        .bar-bg { width: 100%; height: 8px; background: rgba(255,255,255,0.05); border-radius: 10px; overflow: hidden; margin-bottom: 10px; border: 1px solid rgba(255,255,255,0.05); }
+        .bar-fill { height: 100%; transition: width 0.3s ease; }
+        #energy-fill { background: var(--accent); }
+        #level-fill { background: #4caf50; box-shadow: 0 0 10px rgba(76, 175, 80, 0.3); }
 
-        /* Кошелек и VIP статус */
-        .wallet-status { background: rgba(76, 175, 80, 0.1); border: 1px solid #4caf50; padding: 15px; border-radius: 20px; width: 100%; margin-top: 15px; display: none; }
-        .address-text { color: #4caf50; font-family: monospace; font-size: 14px; margin-top: 5px; }
+        /* Герой */
+        .hero-container { position: relative; margin: 20px 0; cursor: pointer; }
+        .hero-img { width: 240px; height: 240px; object-fit: contain; transition: transform 0.1s; }
+        .hero-img:active { transform: scale(0.92); }
+
+        /* Квесты */
+        .quest-card { background: var(--glass); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 15px; width: 100%; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+        .quest-btn { background: var(--accent); border: none; color: #000; padding: 8px 15px; border-radius: 12px; font-weight: bold; cursor: pointer; }
+        .quest-btn.done { background: rgba(255,255,255,0.1); color: #fff; cursor: default; }
 
         /* Навигация */
-        #nav { width: 90%; margin: 10px auto 30px; display: flex; background: var(--glass); border-radius: 25px; padding: 8px; backdrop-filter: blur(10px); }
-        .nav-btn { flex: 1; text-align: center; font-size: 10px; font-weight: 700; color: white; opacity: 0.4; cursor: pointer; padding: 12px 0; border-radius: 18px; }
+        #nav { width: 90%; margin: 10px auto 30px; display: flex; background: var(--glass); border-radius: 25px; padding: 5px; backdrop-filter: blur(10px); }
+        .nav-btn { flex: 1; text-align: center; font-size: 10px; font-weight: bold; color: white; opacity: 0.4; cursor: pointer; padding: 12px 0; border-radius: 18px; }
         .nav-btn.active { opacity: 1; background: var(--accent); color: #000; }
-        
+
         .floating-num { position: absolute; font-size: 32px; font-weight: 900; color: #fff; pointer-events: none; animation: floatUp 0.6s ease-out; text-shadow: 0 0 10px var(--accent); }
         @keyframes floatUp { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-120px); } }
     </style>
@@ -40,122 +47,181 @@
 <body>
 
     <div id="header">
-        <div style="font-size: 10px; letter-spacing: 2px; color: var(--accent); margin-bottom: 5px;">DETECTIVE STATUS</div>
         <div id="balance">🦴 <span id="coins">0</span></div>
+        <div id="rank-display">Звание: <span id="rank-name">Стажер</span></div>
     </div>
 
     <div id="tab-game" class="page active">
-        <div class="hero-card">
-            <img src="dachshund.png" class="hero-img" onclick="handleTap(event)" onerror="this.src='https://i.ibb.co/XfXfXfX/dachshund.png'">
-            <div style="width: 100%; margin-top: 20px;">
-                <div style="display: flex; justify-content: space-between; font-size: 11px; opacity: 0.5;"><span>ENERGY</span><span id="energy-text">1000/1000</span></div>
-                <div style="width: 100%; height: 6px; background: rgba(255,255,255,0.05); border-radius: 10px; margin-top: 5px; overflow: hidden;">
-                    <div id="energy-fill" style="height: 100%; background: var(--accent); width: 100%;"></div>
-                </div>
-            </div>
+        <div class="hero-container" onclick="handleTap(event)">
+            <img src="dachshund.png" class="hero-img" onerror="this.src='https://i.ibb.co/XfXfXfX/dachshund.png'">
+        </div>
+        
+        <div class="stat-box">
+            <div class="bar-label"><span>УРОВЕНЬ <span id="level-num">1</span></span><span id="level-text">0/1000 XP</span></div>
+            <div class="bar-bg"><div id="level-fill" class="bar-fill" style="width: 0%"></div></div>
+
+            <div class="bar-label"><span>ЭНЕРГИЯ</span><span id="energy-text">1000/1000</span></div>
+            <div class="bar-bg"><div id="energy-fill" class="bar-fill" style="width: 100%"></div></div>
+        </div>
+    </div>
+
+    <div id="tab-tasks" class="page">
+        <h2 style="margin-top:0">ЗАДАНИЯ</h2>
+        <div class="quest-card">
+            <div><b>Канал Zootopia</b><br><small>+5,000 🦴</small></div>
+            <button id="q-sub" class="quest-btn" onclick="doQuest('sub', 5000, 'https://t.me/zootopiaclik')">JOIN</button>
+        </div>
+        <div class="quest-card">
+            <div><b>Пригласить друзей</b><br><small>+15,000 🦴</small></div>
+            <button id="q-frens" class="quest-btn" onclick="inviteFrens()">INVITE</button>
         </div>
     </div>
 
     <div id="tab-wallet" class="page">
-        <div class="hero-card" style="text-align: center;">
-            <h3 style="margin: 0;">WEB3 ИДЕНТИФИКАЦИЯ</h3>
-            
-            <div id="wallet-off">
-                <p style="font-size: 13px; opacity: 0.6; margin: 15px 0;">Подключите кошелек TON, чтобы активировать статус Спецагента и получать +5 🦴/сек бонусом.</p>
-                <div id="ton-connect-button"></div>
-            </div>
-
-            <div id="wallet-on" class="wallet-status">
-                <div style="font-weight: bold;">✅ СТАТУС: СПЕЦАГЕНТ</div>
-                <div class="address-text" id="wallet-address">UQ...</div>
-                <div style="font-size: 11px; margin-top: 10px; opacity: 0.8;">Бонус за лояльность активирован: +5/сек</div>
-            </div>
-        </div>
+        <div id="ton-connect-button"></div>
     </div>
 
     <div id="nav">
-        <div class="nav-btn active" onclick="showTab(0)">CENTRAL</div>
+        <div class="nav-btn active" onclick="showTab(0)">ГЛАВНАЯ</div>
+        <div class="nav-btn" onclick="showTab(1)">ЗАДАНИЯ</div>
         <div class="nav-btn" onclick="showTab(3)">WALLET</div>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
-        tg.headerColor = "#0f0f0f";
+
+        // 1. КОНФИГУРАЦИЯ УРОВНЕЙ
+        const RANKS = [
+            { name: "Стажер", xp: 0, power: 1 },
+            { name: "Патрульный", xp: 5000, power: 2 },
+            { name: "Детектив", xp: 20000, power: 4 },
+            { name: "Инспектор", xp: 100000, power: 8 },
+            { name: "Шеф Полиции", xp: 500000, power: 15 },
+            { name: "Легенда", xp: 1000000, power: 50 }
+        ];
 
         const userId = tg.initDataUnsafe?.user?.id || "guest";
-        let gameData = JSON.parse(localStorage.getItem(`noir_${userId}`)) || { balance: 0, energy: 1000, pps: 0 };
+        let gameData = JSON.parse(localStorage.getItem(`zootopia_v2_${userId}`)) || { 
+            balance: 0, 
+            totalEarned: 0, // Это наш опыт (XP)
+            energy: 1000, 
+            completedQuests: [] 
+        };
+
+        function saveData() { localStorage.setItem(`zootopia_v2_${userId}`, JSON.stringify(gameData)); }
+
+        // 2. ЛОГИКА ТАПА С УЧЕТОМ СИЛЫ
+        let lastTap = 0;
+        function handleTap(e) {
+            const now = Date.now();
+            if (now - lastTap < 30) return; // Анти-чит
+            if (gameData.energy <= 0) return;
+
+            const currentRank = getCurrentRank();
+            const power = currentRank.power;
+
+            gameData.balance += power;
+            gameData.totalEarned += power;
+            gameData.energy -= 1;
+            
+            lastTap = now;
+            tg.HapticFeedback.impactOccurred('light');
+            updateUI();
+            
+            showFloatingText(e.clientX, e.clientY, `+${power}`);
+        }
+
+        function getCurrentRank() {
+            let rank = RANKS[0];
+            for (let i = RANKS.length - 1; i >= 0; i--) {
+                if (gameData.totalEarned >= RANKS[i].xp) {
+                    rank = RANKS[i];
+                    rank.level = i + 1;
+                    break;
+                }
+            }
+            return rank;
+        }
+
+        function updateUI() {
+            const rank = getCurrentRank();
+            const nextRank = RANKS[rank.level] || rank;
+            
+            document.getElementById('coins').innerText = Math.floor(gameData.balance).toLocaleString();
+            document.getElementById('rank-name').innerText = rank.name;
+            document.getElementById('level-num').innerText = rank.level;
+            
+            // Расчет прогресса уровня
+            const xpInCurrentLevel = gameData.totalEarned - rank.xp;
+            const xpRequiredForNext = nextRank.xp - rank.xp;
+            const progress = rank.name === "Легенда" ? 100 : (xpInCurrentLevel / xpRequiredForNext) * 100;
+            
+            document.getElementById('level-fill').style.width = progress + '%';
+            document.getElementById('level-text').innerText = `${Math.floor(gameData.totalEarned).toLocaleString()} XP`;
+            
+            document.getElementById('energy-text').innerText = `${gameData.energy}/1000`;
+            document.getElementById('energy-fill').style.width = (gameData.energy / 10) + '%';
+        }
+
+        function showFloatingText(x, y, text) {
+            const el = document.createElement('div');
+            el.className = 'floating-num';
+            el.innerText = text;
+            el.style.left = x + 'px';
+            el.style.top = y + 'px';
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 600);
+        }
+
+        function doQuest(id, reward, url) {
+            if (gameData.completedQuests.includes(id)) return;
+            if (url) tg.openTelegramLink(url);
+            const btn = document.getElementById(`q-${id}`);
+            btn.innerText = "⏳";
+            setTimeout(() => {
+                gameData.balance += reward;
+                gameData.completedQuests.push(id);
+                saveData();
+                updateUI();
+                renderQuests();
+            }, 3000);
+        }
+
+        function renderQuests() {
+            gameData.completedQuests.forEach(id => {
+                const btn = document.getElementById(`q-${id}`);
+                if (btn) { btn.innerText = "DONE"; btn.className = "quest-btn done"; btn.onclick = null; }
+            });
+        }
+
+        function showTab(index) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            const tabs = {0: 'tab-game', 1: 'tab-tasks', 3: 'tab-wallet'};
+            document.getElementById(tabs[index]).classList.add('active');
+            const btnMap = {0:0, 1:1, 3:2};
+            document.querySelectorAll('.nav-btn')[btnMap[index]].classList.add('active');
+        }
+
+        function inviteFrens() {
+            const text = "Стань лучшим детективом в Zootopia Clicker! 🐾";
+            const url = `https://t.me/share/url?url=https://t.me/your_bot_name?start=${userId}&text=${text}`;
+            tg.openTelegramLink(url);
+        }
 
         const tonConnectUI = new TONConnectUI.TonConnectUI({
             manifestUrl: 'https://dimazmlbig-dev.github.io/zootopia-clicker/tonconnect-manifest.json',
             buttonRootId: 'ton-connect-button'
         });
 
-        // МОНИТОРИНГ КОШЕЛЬКА
-        tonConnectUI.onStatusChange(wallet => {
-            if (wallet) {
-                const addr = wallet.account.address;
-                const shortAddr = addr.substring(0, 4) + "..." + addr.substring(addr.length - 4);
-                
-                document.getElementById('wallet-off').style.display = 'none';
-                document.getElementById('wallet-on').style.display = 'block';
-                document.getElementById('wallet-address').innerText = shortAddr;
-                
-                // Даем бонус за подключение (если его еще нет)
-                if (gameData.pps < 5) gameData.pps = 5; 
-                saveData();
-            } else {
-                document.getElementById('wallet-off').style.display = 'block';
-                document.getElementById('wallet-on').style.display = 'none';
-                gameData.pps = 0;
-            }
-        });
-
-        function handleTap(e) {
-            if (gameData.energy <= 0) return;
-            gameData.balance++; gameData.energy--;
-            tg.HapticFeedback.impactOccurred('medium');
-            updateUI();
-            
-            const num = document.createElement('div');
-            num.className = 'floating-num';
-            num.innerText = '+1';
-            num.style.left = e.clientX + 'px';
-            num.style.top = e.clientY + 'px';
-            document.body.appendChild(num);
-            setTimeout(() => num.remove(), 600);
-        }
-
-        function updateUI() {
-            document.getElementById('coins').innerText = Math.floor(gameData.balance).toLocaleString();
-            document.getElementById('energy-text').innerText = `${gameData.energy}/1000`;
-            document.getElementById('energy-fill').style.width = (gameData.energy / 10) + '%';
-        }
-
-        function showTab(index) {
-            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-            if(index === 0) document.getElementById('tab-game').classList.add('active');
-            if(index === 3) document.getElementById('tab-wallet').classList.add('active');
-            const btnIdx = index === 3 ? 1 : index;
-            document.querySelectorAll('.nav-btn')[btnIdx].classList.add('active');
-        }
-
-        function saveData() { localStorage.setItem(`noir_${userId}`, JSON.stringify(gameData)); }
-
+        updateUI();
+        renderQuests();
         setInterval(() => {
-            gameData.balance += (gameData.pps / 10);
             if (gameData.energy < 1000) gameData.energy++;
             updateUI();
             saveData();
-        }, 100);
-
-        updateUI();
+        }, 1500);
     </script>
 </body>
 </html>
-
-
-
-
-

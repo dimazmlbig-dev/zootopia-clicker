@@ -4,26 +4,37 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Zootopia Crypto</title>
+    
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    
     <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+    
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Poppins:wght@400;600&display=swap');
         :root { --gold: #FFD700; --accent: #00FFFF; --bg: #0A0A12; --card: #1C1C2E; }
+        
         body { font-family: 'Poppins', sans-serif; background: var(--bg); color: white; margin: 0; overflow: hidden; touch-action: none; }
         .header { text-align: center; padding: 15px; background: rgba(0,0,0,0.5); border-bottom: 1px solid #333; }
         .balance { font-family: 'Orbitron'; font-size: 32px; color: var(--gold); }
+        
         .tab-content { display: none; height: calc(100vh - 160px); overflow-y: auto; padding: 20px; }
         .tab-content.active { display: block; }
+        
         .card { background: var(--card); border-radius: 12px; padding: 15px; margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.1); }
-        .click-area { display: flex; justify-content: center; align-items: center; height: 260px; }
-        .pet-image { width: 180px; transition: 0.05s; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+        
+        .click-area { display: flex; justify-content: center; align-items: center; height: 260px; position: relative; }
+        .pet-image { width: 180px; cursor: pointer; transition: 0.1s; -webkit-tap-highlight-color: transparent; z-index: 10; }
         .pet-image:active { transform: scale(0.92); }
+        
         .nav { position: fixed; bottom: 0; width: 100%; display: flex; background: #111; padding: 12px 0; border-top: 1px solid #333; }
         .nav-item { flex: 1; text-align: center; color: #666; font-size: 11px; cursor: pointer; }
         .nav-item.active { color: var(--accent); }
+        
         #loading { position: fixed; top:0; left:0; width:100%; height:100%; background:var(--bg); z-index:999; display:flex; align-items:center; justify-content:center; flex-direction: column; }
     </style>
 </head>
@@ -31,7 +42,7 @@
 
 <div id="loading">
     <h2 style="font-family:'Orbitron'; color:var(--gold)">ZOOTOPIA</h2>
-    <p id="status-text">Синхронизация данных...</p>
+    <p id="status-text">Загрузка данных...</p>
 </div>
 
 <div class="header">
@@ -40,7 +51,9 @@
 </div>
 
 <div id="tab-game" class="tab-content active">
-    <div class="click-area"><img src="dachshund.png" class="pet-image" id="pet"></div>
+    <div class="click-area">
+        <img src="dachshund.png" class="pet-image" id="pet" alt="pet">
+    </div>
     <p style="text-align:center">⚡ Энергия: <span id="energy">1000</span>/1000</p>
 </div>
 
@@ -59,6 +72,7 @@
 </div>
 
 <script>
+    // 1. Конфигурация Firebase
     const firebaseConfig = {
         apiKey: "AIzaSyAT4Qt--BNvqA953AQNUbbpiDHbSvO3BfE",
         authDomain: "zootopia-f046d.firebaseapp.com",
@@ -68,50 +82,72 @@
         appId: "1:531125789476:web:7e504c4d855fd397fa49b1"
     };
     
+    // Инициализация Firebase
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
     const tg = window.Telegram.WebApp;
+    tg.expand();
+
     const uid = tg.initDataUnsafe?.user?.id?.toString() || "dev_user";
-    
-    let state = { bones: 0, zoo: 0, energy: 1000, tapPower: 1 };
+    let state = { bones: 0, zoo: 0, energy: 1000, tapPower: 1, wallet: null };
 
-    const tonConnectUI = new TONConnectUI.TonConnectUI({
-        manifestUrl: 'https://dimazmlbig-dev.github.io/zootopia-clicker/tonconnect-manifest.json',
-        buttonRootId: 'ton-connect-btn'
-    });
+    // 2. Логика TON Connect
+    let tonConnectUI;
+    try {
+        tonConnectUI = new TONConnectUI.TonConnectUI({
+            manifestUrl: 'https://dimazmlbig-dev.github.io/zootopia-clicker/tonconnect-manifest.json',
+            buttonRootId: 'ton-connect-btn'
+        });
 
-    async function init() {
-        try {
-            const doc = await db.collection("users").doc(uid).get();
-            if (doc.exists) {
-                state = doc.data();
-            } else {
-                await db.collection("users").doc(uid).set(state);
+        tonConnectUI.onStatusChange(wallet => {
+            if (wallet) {
+                state.wallet = wallet.account.address;
+                saveToDb();
             }
-            document.getElementById('loading').style.display = 'none';
-            update();
-        } catch (e) {
-            document.getElementById('status-text').innerText = "Ошибка базы данных!";
-            console.error(e);
-        }
+        });
+    } catch (e) {
+        console.error("TON Connect Error:", e);
     }
 
-    function update() {
+    // 3. Функции игры
+    function updateUI() {
         document.getElementById('bones').innerText = Math.floor(state.bones);
         document.getElementById('zoo').innerText = state.zoo.toFixed(4);
         document.getElementById('energy').innerText = state.energy;
     }
 
-    function handleTap() {
+    async function init() {
+        try {
+            const doc = await db.collection("users").doc(uid).get();
+            if (doc.exists) {
+                state = { ...state, ...doc.data() };
+            } else {
+                await db.collection("users").doc(uid).set(state);
+            }
+        } catch (e) {
+            console.warn("Database sync failed, using local state");
+        }
+        document.getElementById('loading').style.display = 'none';
+        updateUI();
+    }
+
+    function handleTap(e) {
         if (state.energy >= state.tapPower) {
             state.bones += state.tapPower;
             state.zoo += (0.0001 * state.tapPower);
             state.energy -= state.tapPower;
-            update();
+            updateUI();
+            tg.HapticFeedback.impactOccurred('light');
         }
     }
 
-    async function save() { await db.collection("users").doc(uid).set(state); }
+    async function saveToDb() {
+        try {
+            await db.collection("users").doc(uid).set(state);
+        } catch(e) {
+            console.error("Save error:", e);
+        }
+    }
 
     function switchTab(id, el) {
         document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
@@ -120,10 +156,21 @@
         el.classList.add('active');
     }
 
-    tonConnectUI.onStatusChange(wallet => { if(wallet) { state.wallet = wallet.account.address; save(); } });
+    // Слушатели событий
     document.getElementById('pet').addEventListener('pointerdown', handleTap);
-    setInterval(() => { if (state.energy < 1000) { state.energy = Math.min(1000, state.energy + 2); update(); } }, 2000);
-    setInterval(save, 10000);
+    
+    // Энергия восстанавливается каждые 2 секунды
+    setInterval(() => { 
+        if (state.energy < 1000) { 
+            state.energy = Math.min(1000, state.energy + 2); 
+            updateUI(); 
+        } 
+    }, 2000);
+
+    // Автосохранение каждые 15 секунд
+    setInterval(saveToDb, 15000);
+
+    // Запуск
     init();
 </script>
 </body>

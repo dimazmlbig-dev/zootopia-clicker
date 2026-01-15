@@ -3,312 +3,152 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Zootopia Clicker - Telegram Game</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&family=Nunito:wght@300;400;600&display=swap" rel="stylesheet">
-    <link rel="manifest" href="manifest.json">
-    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🦊</text></svg>">
-    
-    <!-- TonConnect UI -->
+    <title>Zootopia Clicker</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;900&family=Orbitron:wght@400;900&display=swap');
+        :root { --gold: #FFD700; --accent: #00FFFF; --bg: #0A0A12; }
+        body { font-family: 'Poppins', sans-serif; background: var(--bg); color: white; margin: 0; overflow: hidden; user-select: none; }
+        
+        .header { text-align: center; padding: 20px; border-bottom: 1px solid #333; }
+        .balance { font-family: 'Orbitron', sans-serif; font-size: 48px; color: var(--gold); text-shadow: 0 0 20px rgba(255,215,0,0.5); }
+        
+        .click-area { display: flex; justify-content: center; align-items: center; height: 350px; position: relative; }
+        .pet-card { width: 250px; height: 250px; position: relative; display: flex; justify-content: center; align-items: center; }
+        .pet-image { width: 100%; cursor: pointer; transition: transform 0.05s; z-index: 10; -webkit-user-drag: none; }
+        .pet-image:active { transform: scale(0.95); }
+
+        .energy-box { padding: 20px; }
+        .energy-bar { height: 10px; background: #222; border-radius: 5px; margin-top: 8px; overflow: hidden; }
+        .energy-fill { height: 100%; background: linear-gradient(90deg, #00FF88, #0088FF); width: 100%; transition: width 0.2s; }
+
+        .nav { position: fixed; bottom: 0; width: 100%; display: flex; background: rgba(20,20,30,0.95); padding: 15px 0; border-top: 1px solid #333; }
+        .nav-item { flex: 1; text-align: center; color: #666; font-size: 12px; cursor: pointer; }
+        .nav-item.active { color: var(--accent); }
+        .tab-content { display: none; padding: 20px; text-align: center; }
+        .tab-content.active { display: block; }
+
+        /* Эффект вылетающих цифр */
+        .floating-text { position: absolute; color: var(--gold); font-family: 'Orbitron'; font-weight: bold; font-size: 24px; pointer-events: none; animation: floatUp 0.8s ease-out forwards; z-index: 100; }
+        @keyframes floatUp { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-100px); } }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <!-- Шапка игры -->
-        <header class="game-header">
-            <div class="title-section">
-                <h1><i class="fas fa-paw"></i> ZOOTOPIA</h1>
-                <p class="subtitle">Elite Clicker Game</p>
-            </div>
-            <div class="player-level">
-                <div class="level-badge">
-                    <i class="fas fa-star"></i>
-                    <span>Ур. <span id="player-level">1</span></span>
-                </div>
-            </div>
-        </header>
 
-        <!-- Блок энергии -->
-        <section class="energy-section">
-            <div class="energy-header">
-                <h2><i class="fas fa-bolt"></i> ЭНЕРГИЯ</h2>
-                <span id="energy-display">1000/1000</span>
-            </div>
-            <div class="energy-bar-container">
-                <div class="energy-bar" id="energy-bar"></div>
-            </div>
-            <div class="energy-stats">
-                <div class="stat-item">
-                    <i class="fas fa-tachometer-alt"></i>
-                    <span>Восст.: <span id="regen-rate">10</span>/сек</span>
-                </div>
-                <div class="stat-item">
-                    <i class="far fa-clock"></i>
-                    <span>Полное: <span id="regen-time">1:40</span></span>
-                </div>
-            </div>
-        </section>
+    <div class="header">
+        <div style="font-size: 12px; color: #aaa;">Bones Balance</div>
+        <div class="balance" id="bones">0</div>
+        <div style="color: var(--accent);">$ZOO: <span id="zoo">0.0000</span></div>
+    </div>
 
-        <!-- Основной кликер -->
-        <section class="clicker-section">
-            <div class="click-stats">
-                <div class="stat-box">
-                    <div class="stat-label">
-                        <i class="fas fa-mouse-pointer"></i> Всего кликов
-                    </div>
-                    <div class="stat-value" id="total-clicks">0</div>
-                </div>
-                <div class="stat-box">
-                    <div class="stat-label">
-                        <i class="fas fa-fist-raised"></i> Сила клика
-                    </div>
-                    <div class="stat-value" id="click-power">1</div>
-                </div>
-                <div class="stat-box">
-                    <div class="stat-label">
-                        <i class="fas fa-crown"></i> Кликов/сек
-                    </div>
-                    <div class="stat-value" id="clicks-per-second">0</div>
-                </div>
-            </div>
-
-            <div class="click-area">
-                <button id="click-button" class="click-button">
-                    <div class="button-icon">
-                        <i class="fas fa-paw"></i>
-                    </div>
-                    <div class="button-text">КЛИКНИ!</div>
-                    <div class="button-subtext">+<span id="click-power-display">1</span> энергии</div>
-                </button>
-                
-                <div class="auto-clicker">
-                    <i class="fas fa-robot"></i>
-                    <span>Автокликеры: <span id="auto-clickers">0</span></span>
-                </div>
-            </div>
-        </section>
-
-        <!-- Улучшения -->
-        <section class="upgrades-section">
-            <div class="section-header">
-                <h2><i class="fas fa-arrow-up"></i> УЛУЧШЕНИЯ</h2>
-                <div class="balance">
-                    <i class="fas fa-coins"></i>
-                    <span id="balance">0</span> $
-                </div>
-            </div>
-
-            <div class="upgrades-grid">
-                <!-- Мощный удар -->
-                <div class="upgrade-card" id="upgrade-power">
-                    <div class="upgrade-icon power">
-                        <i class="fas fa-fist-raised"></i>
-                    </div>
-                    <div class="upgrade-info">
-                        <h3>Мощный удар</h3>
-                        <p>+1 к силе клика</p>
-                        <div class="upgrade-level">
-                            Ур. <span id="power-level">0</span>
-                        </div>
-                    </div>
-                    <div class="upgrade-action">
-                        <div class="upgrade-cost" id="power-cost">1,000</div>
-                        <button class="buy-button" data-upgrade="power">Купить</button>
-                    </div>
-                </div>
-
-                <!-- Большая батарея -->
-                <div class="upgrade-card" id="upgrade-battery">
-                    <div class="upgrade-icon battery">
-                        <i class="fas fa-car-battery"></i>
-                    </div>
-                    <div class="upgrade-info">
-                        <h3>Большая батарея</h3>
-                        <p>+100 к максимуму энергии</p>
-                        <div class="upgrade-level">
-                            Ур. <span id="battery-level">0</span>
-                        </div>
-                    </div>
-                    <div class="upgrade-action">
-                        <div class="upgrade-cost" id="battery-cost">5,000</div>
-                        <button class="buy-button" data-upgrade="battery">Купить</button>
-                    </div>
-                </div>
-
-                <!-- Автокликер -->
-                <div class="upgrade-card" id="upgrade-auto">
-                    <div class="upgrade-icon auto">
-                        <i class="fas fa-robot"></i>
-                    </div>
-                    <div class="upgrade-info">
-                        <h3>Автокликер</h3>
-                        <p>1 клик/сек автоматически</p>
-                        <div class="upgrade-level">
-                            Ур. <span id="auto-level">0</span>
-                        </div>
-                    </div>
-                    <div class="upgrade-action">
-                        <div class="upgrade-cost" id="auto-cost">10,000</div>
-                        <button class="buy-button" data-upgrade="auto">Купить</button>
-                    </div>
-                </div>
-
-                <!-- Ускорение -->
-                <div class="upgrade-card" id="upgrade-speed">
-                    <div class="upgrade-icon speed">
-                        <i class="fas fa-tachometer-alt"></i>
-                    </div>
-                    <div class="upgrade-info">
-                        <h3>Ускорение</h3>
-                        <p>+20% к скорости регенерации</p>
-                        <div class="upgrade-level">
-                            Ур. <span id="speed-level">0</span>
-                        </div>
-                    </div>
-                    <div class="upgrade-action">
-                        <div class="upgrade-cost" id="speed-cost">25,000</div>
-                        <button class="buy-button" data-upgrade="speed">Купить</button>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Токены и прогресс -->
-        <section class="tokens-section">
-            <div class="section-header">
-                <h2><i class="fas fa-gem"></i> ТОКЕНЫ SZOO</h2>
-                <div class="token-balance">
-                    <span id="tokens">0.0000</span> SZOO
-                </div>
-            </div>
-
-            <div class="progress-container">
-                <div class="progress-info">
-                    <span>Прогресс до листинга</span>
-                    <span id="progress-percent">0.0%</span>
-                </div>
-                <div class="progress-bar">
-                    <div class="progress-fill" id="progress-fill"></div>
-                </div>
-                <div class="progress-required">
-                    Требуется: <span id="required-tokens">1,000,000</span> SZOO
-                </div>
-            </div>
-
-            <div class="community-stats">
-                <div class="community-stat">
-                    <i class="fas fa-users"></i>
-                    <div>
-                        <div class="stat-label">Игроков онлайн</div>
-                        <div class="stat-value" id="players-online">1,247</div>
-                    </div>
-                </div>
-                <div class="community-stat">
-                    <i class="fas fa-globe"></i>
-                    <div>
-                        <div class="stat-label">Всего кликов</div>
-                        <div class="stat-value" id="global-clicks">12.5M</div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Кошелек и кнопки -->
-        <section class="wallet-section">
-            <button id="connect-wallet" class="wallet-button">
-                <i class="fas fa-wallet"></i>
-                <span>Подключить TON кошелёк</span>
-            </button>
-            
-            <div class="action-buttons">
-                <button class="action-button" id="shop-button">
-                    <i class="fas fa-shopping-cart"></i>
-                    <span>Магазин</span>
-                </button>
-                <button class="action-button" id="achievements-button">
-                    <i class="fas fa-trophy"></i>
-                    <span>Достижения</span>
-                </button>
-                <button class="action-button" id="boost-button">
-                    <i class="fas fa-rocket"></i>
-                    <span>Буст</span>
-                </button>
-            </div>
-        </section>
-
-        <!-- Модальные окна -->
-        <div id="shop-modal" class="modal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3><i class="fas fa-shopping-cart"></i> Магазин</h3>
-                    <button class="modal-close">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <div class="shop-items">
-                        <div class="shop-item">
-                            <div class="shop-item-icon">
-                                <i class="fas fa-bolt"></i>
-                            </div>
-                            <div class="shop-item-info">
-                                <h4>Энергетик</h4>
-                                <p>+1000 энергии</p>
-                                <div class="shop-item-price">50 SZOO</div>
-                            </div>
-                            <button class="buy-item-button" data-item="energy">Купить</button>
-                        </div>
-                        
-                        <div class="shop-item">
-                            <div class="shop-item-icon">
-                                <i class="fas fa-rocket"></i>
-                            </div>
-                            <div class="shop-item-info">
-                                <h4>Буст x2 (24ч)</h4>
-                                <p>Удваивает силу клика</p>
-                                <div class="shop-item-price">500 SZOO</div>
-                            </div>
-                            <button class="buy-item-button" data-item="boost24">Купить</button>
-                        </div>
-                        
-                        <div class="shop-item">
-                            <div class="shop-item-icon">
-                                <i class="fas fa-crown"></i>
-                            </div>
-                            <div class="shop-item-info">
-                                <h4>VIP статус</h4>
-                                <p>Навсегда +20% к скорости</p>
-                                <div class="shop-item-price">5,000 SZOO</div>
-                            </div>
-                            <button class="buy-item-button" data-item="vip">Купить</button>
-                        </div>
-                    </div>
-                </div>
+    <div id="game-tab" class="tab-content active">
+        <div class="click-area" id="click-area">
+            <div class="pet-card">
+                <img src="dachshund.png" class="pet-image" id="pet" alt="Dachshund">
             </div>
         </div>
-
-        <div id="achievements-modal" class="modal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3><i class="fas fa-trophy"></i> Достижения</h3>
-                    <button class="modal-close">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <div class="achievements-list" id="achievements-list">
-                        <!-- Достижения будут загружены динамически -->
-                    </div>
-                </div>
+        <div class="energy-box">
+            <div style="display: flex; justify-content: space-between;">
+                <span>⚡ Energy</span>
+                <span id="energy-text">1000/1000</span>
             </div>
+            <div class="energy-bar"><div class="energy-fill" id="energy-fill"></div></div>
         </div>
     </div>
 
-    <!-- Уведомления -->
-    <div id="notification-container"></div>
+    <div id="zoo-tab" class="tab-content">
+        <h2>Airdrop Section</h2>
+        <p>Connect your TON wallet to receive $ZOO</p>
+        <div id="ton-connect" style="display:flex; justify-content:center;"></div>
+    </div>
 
-    <!-- Скрипты -->
-    <script src="telegram.js"></script>
-    <script src="wallet.js"></script>
-    <script src="achievements.js"></script>
-    <script src="shop.js"></script>
-    <script src="game.js"></script>
+    <div class="nav">
+        <div class="nav-item active" onclick="switchTab('game-tab', this)"><i class="fas fa-paw"></i><br>Game</div>
+        <div class="nav-item" onclick="switchTab('zoo-tab', this)"><i class="fas fa-gem"></i><br>$ZOO</div>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+
+        let data = {
+            bones: parseInt(localStorage.getItem('bones')) || 0,
+            zoo: parseFloat(localStorage.getItem('zoo')) || 0,
+            energy: parseInt(localStorage.getItem('energy')) || 1000,
+            maxEnergy: 1000
+        };
+
+        function update() {
+            document.getElementById('bones').innerText = data.bones;
+            document.getElementById('zoo').innerText = data.zoo.toFixed(4);
+            document.getElementById('energy-text').innerText = data.energy + '/' + data.maxEnergy;
+            document.getElementById('energy-fill').style.width = (data.energy / data.maxEnergy * 100) + '%';
+            
+            localStorage.setItem('bones', data.bones);
+            localStorage.setItem('zoo', data.zoo);
+            localStorage.setItem('energy', data.energy);
+        }
+
+        const pet = document.getElementById('pet');
+        const clickArea = document.getElementById('click-area');
+
+        function handleTap(e) {
+            if (data.energy <= 0) return;
+
+            // Координаты для анимации цифр
+            const x = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
+            const y = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
+
+            // Логика
+            data.bones += 1;
+            data.zoo += 0.0001;
+            data.energy -= 1;
+
+            // Анимация текста
+            const txt = document.createElement('div');
+            txt.className = 'floating-text';
+            txt.innerText = '+1';
+            txt.style.left = x + 'px';
+            txt.style.top = y + 'px';
+            document.body.appendChild(txt);
+            setTimeout(() => txt.remove(), 800);
+
+            // Вибрация
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+
+            update();
+        }
+
+        // Слушаем и клики мышкой, и тапы пальцем
+        pet.addEventListener('mousedown', handleTap);
+        pet.addEventListener('touchstart', (e) => {
+            e.preventDefault(); // Чтобы не было двойного клика и зума
+            handleTap(e);
+        });
+
+        function switchTab(id, el) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            el.classList.add('active');
+        }
+
+        // Регенерация энергии
+        setInterval(() => {
+            if (data.energy < data.maxEnergy) {
+                data.energy += 1;
+                update();
+            }
+        }, 1500);
+
+        const tonConnectUI = new TONConnectUI.TonConnectUI({
+            manifestUrl: 'https://dimazmlbig-dev.github.io/zootopia-clicker/tonconnect-manifest.json',
+            buttonRootId: 'ton-connect'
+        });
+
+        update();
+    </script>
 </body>
 </html>

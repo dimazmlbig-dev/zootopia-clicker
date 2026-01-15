@@ -8,61 +8,74 @@
     <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
     <style>
         :root { 
-            --primary: #5d4037; --accent: #ff9800; 
+            --accent: #ff9800; 
             --bg: linear-gradient(180deg, #1a1a1a 0%, #2d1f1a 100%); 
             --text: #ffffff;
         }
-        body { margin: 0; background: var(--bg); font-family: 'Segoe UI', sans-serif; color: var(--text); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        body { 
+            margin: 0; background: var(--bg); font-family: 'Segoe UI', sans-serif; 
+            color: var(--text); display: flex; flex-direction: column; height: 100vh; 
+            user-select: none; overflow: hidden; 
+        }
         
         #header { padding: 15px; background: rgba(0,0,0,0.3); text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
-        #balance { font-size: 32px; font-weight: 800; margin: 5px 0; }
+        #balance { font-size: 36px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 10px; }
         
-        .page { display: none; flex-direction: column; align-items: center; justify-content: center; flex-grow: 1; width: 100%; padding: 20px; box-sizing: border-box; }
+        .page { display: none; flex-direction: column; align-items: center; justify-content: center; flex-grow: 1; width: 100%; position: relative; }
         .page.active { display: flex; }
 
-        /* Центрирование кнопки кошелька */
-        #ton-connect-button { 
-            display: flex; 
-            justify-content: center; 
-            min-height: 44px; 
-            width: 100%;
-            margin-top: 20px;
+        /* Игровая зона с таксой и фоном */
+        .game-area { position: relative; width: 100%; height: 300px; display: flex; align-items: center; justify-content: center; }
+        .dachshund { 
+            width: 260px; height: 260px; object-fit: contain; 
+            cursor: pointer; transition: transform 0.05s; z-index: 2; 
         }
+        .dachshund:active { transform: scale(0.92); }
+        .glow { position: absolute; width: 180px; height: 180px; background: var(--accent); filter: blur(60px); opacity: 0.2; border-radius: 50%; }
 
-        .hero-img { width: 220px; height: 220px; object-fit: contain; cursor: pointer; transition: transform 0.05s; }
-        .hero-img:active { transform: scale(0.95); }
+        .stats { width: 80%; margin-top: 20px; }
+        .bar-bg { width: 100%; height: 10px; background: rgba(255,255,255,0.1); border-radius: 5px; overflow: hidden; margin-top: 5px; }
+        .bar-fill { height: 100%; background: var(--accent); transition: width 0.3s; }
 
-        #nav { width: 100%; display: flex; background: rgba(0,0,0,0.5); padding: 10px 0 25px; }
-        .nav-btn { flex: 1; text-align: center; font-size: 11px; opacity: 0.5; color: white; cursor: pointer; }
-        .nav-btn.active { opacity: 1; color: var(--accent); }
+        #ton-connect-button { margin-top: 20px; display: flex; justify-content: center; }
+
+        #nav { width: 100%; display: flex; background: rgba(0,0,0,0.4); padding: 10px 0 25px; border-top: 1px solid rgba(255,255,255,0.1); }
+        .nav-btn { flex: 1; text-align: center; font-size: 11px; opacity: 0.4; color: white; cursor: pointer; }
+        .nav-btn.active { opacity: 1; color: var(--accent); font-weight: bold; }
+
+        .floating-num { position: absolute; font-size: 32px; font-weight: 900; color: var(--accent); pointer-events: none; animation: floatUp 0.6s ease-out forwards; z-index: 100; }
+        @keyframes floatUp { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-120px); } }
     </style>
 </head>
 <body>
 
     <div id="header">
-        <div id="rank-info"><span id="player-name">Детектив</span></div>
+        <div style="font-size: 14px; color: var(--accent); font-weight: bold;" id="player-name">Детектив</div>
         <div id="balance">🦴 <span id="coins">0</span></div>
     </div>
 
     <div id="tab-game" class="page active">
-        <img src="https://i.ibb.co/XfXfXfX/dachshund.png" class="hero-img" onclick="handleTap(event)">
-        <p>⚡ Энергия: <span id="energy-text">1000/1000</span></p>
-    </div>
-
-    <div id="tab-shop" class="page">
-        <h3>Магазин</h3>
-        <button onclick="buyUpgrade(50, 1)">Лупа (50 🦴)</button>
+        <div class="game-area">
+            <div class="glow"></div>
+            <img src="dachshund.png" class="dachshund" onclick="handleTap(event)" onerror="this.src='https://i.ibb.co/XfXfXfX/dachshund.png'">
+        </div>
+        <div class="stats">
+            <div style="display: flex; justify-content: space-between; font-size: 12px;">
+                <span>⚡ Энергия</span>
+                <span id="energy-text">1000/1000</span>
+            </div>
+            <div class="bar-bg"><div id="energy-fill" class="bar-fill" style="width: 100%"></div></div>
+        </div>
     </div>
 
     <div id="tab-wallet" class="page">
-        <h3>Кошелек</h3>
-        <p>Подключите TON кошелек для выплат</p>
+        <h3>Крипто-кошелек</h3>
+        <p style="font-size: 14px; opacity: 0.7;">Подключи TON для выплат</p>
         <div id="ton-connect-button"></div>
     </div>
 
     <div id="nav">
-        <div class="nav-btn active" onclick="showTab(0)">🏠 Игра</div>
-        <div class="nav-btn" onclick="showTab(1)">🛠 Лаборатория</div>
+        <div class="nav-btn active" onclick="showTab(0)">🏠 Главная</div>
         <div class="nav-btn" onclick="showTab(3)">💎 Кошелек</div>
     </div>
 
@@ -71,54 +84,76 @@
         tg.expand();
 
         const user = tg.initDataUnsafe?.user;
-        const accountKey = user ? `user_${user.id}` : "guest_account";
+        const accountKey = user ? `user_${user.id}` : "guest_user";
         document.getElementById('player-name').innerText = user ? user.first_name : "Детектив";
 
-        let balance = 0, energy = 1000, pps = 0;
+        // Загрузка данных аккаунта
+        let gameData = JSON.parse(localStorage.getItem(accountKey)) || {
+            balance: 0,
+            energy: 1000,
+            lastBonus: ""
+        };
 
-        // Инициализация TON Connect UI
-        const tonConnectUI = new TonConnectUI.TonConnectUI({
-            manifestUrl: 'https://dimazmlbig-dev.github.io/zootopia-clicker/tonconnect-manifest.json',
-            buttonRootId: 'ton-connect-button'
-        });
+        function saveData() {
+            localStorage.setItem(accountKey, JSON.stringify(gameData));
+        }
 
-        function handleTap(e) {
-            if (energy > 0) {
-                balance++; energy--;
-                tg.HapticFeedback.impactOccurred('medium');
-                updateUI();
+        // Ежедневный бонус
+        function checkDailyBonus() {
+            const today = new Date().toDateString();
+            if (gameData.lastBonus !== today) {
+                gameData.balance += 500;
+                gameData.lastBonus = today;
+                saveData();
+                tg.showPopup({ title: 'Бонус!', message: 'Ты получил 500 🦴 за вход сегодня!' });
             }
         }
 
+        function handleTap(e) {
+            if (gameData.energy <= 0) { tg.HapticFeedback.notificationOccurred('error'); return; }
+            
+            gameData.balance++;
+            gameData.energy--;
+            tg.HapticFeedback.impactOccurred('medium');
+            updateUI();
+            
+            const text = document.createElement('div');
+            text.className = 'floating-num';
+            text.innerText = '+1';
+            text.style.left = e.clientX + 'px';
+            text.style.top = e.clientY + 'px';
+            document.body.appendChild(text);
+            setTimeout(() => text.remove(), 600);
+        }
+
         function updateUI() {
-            document.getElementById('coins').innerText = Math.floor(balance);
-            document.getElementById('energy-text').innerText = `${energy}/1000`;
+            document.getElementById('coins').innerText = Math.floor(gameData.balance);
+            document.getElementById('energy-text').innerText = `${gameData.energy}/1000`;
+            document.getElementById('energy-fill').style.width = (gameData.energy / 10 * 1) + '%';
         }
 
         function showTab(index) {
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
             
-            const tabs = ['tab-game', 'tab-shop', '', 'tab-wallet'];
-            const activeTabId = tabs[index];
-            if(activeTabId) document.getElementById(activeTabId).classList.add('active');
+            if(index === 0) document.getElementById('tab-game').classList.add('active');
+            if(index === 3) document.getElementById('tab-wallet').classList.add('active');
             
-            const btnIdx = index === 3 ? 2 : index;
+            const btnIdx = index === 3 ? 1 : index;
             document.querySelectorAll('.nav-btn')[btnIdx].classList.add('active');
         }
 
-        function saveData() {
-            localStorage.setItem(accountKey, JSON.stringify({balance, energy, pps}));
-        }
+        const tonConnectUI = new TONConnectUI.TonConnectUI({
+            manifestUrl: 'https://dimazmlbig-dev.github.io/zootopia-clicker/tonconnect-manifest.json',
+            buttonRootId: 'ton-connect-button'
+        });
 
-        setInterval(() => {
-            balance += pps;
-            if (energy < 1000) energy++;
-            updateUI();
-            saveData();
-        }, 1000);
-
+        checkDailyBonus();
         updateUI();
+        setInterval(() => {
+            if (gameData.energy < 1000) { gameData.energy++; updateUI(); }
+            saveData();
+        }, 3000);
     </script>
 </body>
 </html>

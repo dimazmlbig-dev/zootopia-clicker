@@ -4,9 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>🦴 Zootopia Clicker | Фарми $ZOO</title>
-    <meta name="description" content="Запусти ферму кликов в Telegram! Качай питомца, зарабатывай кости и готовься к аирдропу токенов $ZOO в сети TON.">
-    
-    <!-- Telegram Web App SDK -->
+    <meta name="description" content="Запусти ферму кликов в Telegram! Качай питомца, зарабатывай кости и готовься к аирдропу токенов $ZOO.">
+    <!-- Telegram Web App SDK (ОБЯЗАТЕЛЬНО) -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <!-- TON Connect -->
     <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
@@ -14,8 +13,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Шрифты -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;800;900&family=Orbitron:wght@400;500;700;900&display=swap" rel="stylesheet">
-    
-    <!-- ПОДКЛЮЧЕНИЕ ВАШИХ ФАЙЛОВ -->
+    <!-- Наш основной стиль -->
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -31,7 +29,7 @@
         </div>
     </div>
 
-    <!-- Основной интерфейс (скрыт до загрузки) -->
+    <!-- Основной интерфейс -->
     <div class="container" id="mainApp" style="display: none;">
         <!-- Хедер с балансом -->
         <header class="app-header">
@@ -47,9 +45,6 @@
                 <div class="balance-token">
                     <span class="token-icon">💎</span>
                     <span id="zooTokenCount">0.0000</span> $ZOO
-                </div>
-                <div class="balance-rate">
-                    <small>Фарминг: <span id="tokenRate">0.01</span>/ч</small>
                 </div>
             </div>
         </header>
@@ -91,11 +86,6 @@
                             <div class="stat-value" id="totalClicksStat">0</div>
                             <div class="stat-label">Всего кликов</div>
                         </div>
-                        <div class="stat-card">
-                            <div class="stat-icon"><i class="fas fa-tachometer-alt"></i></div>
-                            <div class="stat-value" id="cpsStat">0.0</div>
-                            <div class="stat-label">Кликов/сек</div>
-                        </div>
                     </div>
                 </div>
                 
@@ -107,7 +97,7 @@
                             <div class="upgrade-details">
                                 <div class="upgrade-title">Мощный удар</div>
                                 <div class="upgrade-desc">+1 к силе клика</div>
-                                <div class="upgrade-price">💎 1,000</div>
+                                <div class="upgrade-price">🦴 1,000</div>
                             </div>
                             <div class="upgrade-level">Ур. <span id="clickPowerLvl">0</span></div>
                         </div>
@@ -116,7 +106,7 @@
                             <div class="upgrade-details">
                                 <div class="upgrade-title">Большая батарея</div>
                                 <div class="upgrade-desc">+100 к максимуму энергии</div>
-                                <div class="upgrade-price">💎 5,000</div>
+                                <div class="upgrade-price">🦴 5,000</div>
                             </div>
                             <div class="upgrade-level">Ур. <span id="energyMaxLvl">0</span></div>
                         </div>
@@ -142,146 +132,35 @@
 
                 <div class="wallet-section">
                     <h3><i class="fas fa-wallet"></i> Кошелёк TON</h3>
-                    <p>Подключите кошелёк, чтобы увеличить фарминг в 2 раза и участвовать в аирдропе!</p>
+                    <p>Подключите кошелёк, чтобы увеличить фарминг в 2 раза!</p>
                     <!-- Контейнер для кнопки TON Connect -->
                     <div id="ton-connect-button"></div>
                     <div class="wallet-status" id="walletStatus">
                         <i class="fas fa-times-circle"></i> Не подключен
                     </div>
                 </div>
-
-                <div class="quests-section">
-                    <h3><i class="fas fa-tasks"></i> Задания для листинга</h3>
-                    <div class="quest-list">
-                        <div class="quest-item" id="questWallet">
-                            <div class="quest-checkbox"><i class="fas fa-check"></i></div>
-                            <div class="quest-info">
-                                <div class="quest-title">Подключить кошелёк TON</div>
-                                <div class="quest-reward">Награда: x2 к фармингу</div>
-                            </div>
-                        </div>
-                        <div class="quest-item" id="questReferrals">
-                            <div class="quest-checkbox"><i class="far fa-circle"></i></div>
-                            <div class="quest-info">
-                                <div class="quest-title">Пригласить 5 друзей</div>
-                                <div class="quest-progress">0/5</div>
-                                <div class="quest-reward">Награда: 1,000 $ZOO</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <button class="btn-withdraw" onclick="showWithdrawModal()" disabled>
-                    <i class="fas fa-paper-plane"></i> Вывести токены (скоро)
-                </button>
-            </section>
-
-            <!-- Вкладка 3: Рефералы -->
-            <section id="tabReferral" class="tab-pane">
-                <div class="referral-hero">
-                    <h2><i class="fas fa-user-friends"></i> Приглашайте друзей</h2>
-                    <p>Получайте <strong>500 $ZOO</strong> за каждого приглашённого друга!</p>
-                </div>
-                
-                <div class="referral-stats">
-                    <div class="ref-stat">
-                        <div class="ref-value" id="refCount">0</div>
-                        <div class="ref-label">Друзей приглашено</div>
-                    </div>
-                    <div class="ref-stat">
-                        <div class="ref-value" id="refEarned">0</div>
-                        <div class="ref-label">Заработано $ZOO</div>
-                    </div>
-                    <div class="ref-stat">
-                        <div class="ref-value" id="refBonus">x1.0</div>
-                        <div class="ref-label">Ваш бонус</div>
-                    </div>
-                </div>
-                
-                <div class="referral-link-box">
-                    <label>Ваша реферальная ссылка:</label>
-                    <div class="link-input-group">
-                        <input type="text" id="referralLinkInput" readonly value="Загрузка...">
-                        <button class="btn-copy" onclick="copyReferralLink()">
-                            <i class="fas fa-copy"></i> Копировать
-                        </button>
-                    </div>
-                    <small>Поделитесь этой ссылкой с друзьями в Telegram</small>
-                </div>
             </section>
         </main>
 
         <!-- Навигация внизу -->
         <nav class="app-navigation">
-            <button class="nav-btn active" onclick="switchTab('Game')" data-tab="game">
+            <button class="nav-btn active" onclick="switchTab('game')" data-tab="game">
                 <i class="fas fa-gamepad"></i>
                 <span>Игра</span>
             </button>
-            <button class="nav-btn" onclick="switchTab('Airdrop')" data-tab="airdrop">
+            <button class="nav-btn" onclick="switchTab('airdrop')" data-tab="airdrop">
                 <i class="fas fa-gem"></i>
                 <span>$ZOO</span>
-            </button>
-            <button class="nav-btn" onclick="switchTab('Referral')" data-tab="referral">
-                <i class="fas fa-user-plus"></i>
-                <span>Друзья</span>
-            </button>
-            <button class="nav-btn" onclick="switchTab('Stats')" data-tab="stats">
-                <i class="fas fa-chart-bar"></i>
-                <span>Статистика</span>
             </button>
         </nav>
     </div>
 
-    <!-- Модальное окно для капчи (reCAPTCHA v2) -->
-<div class="modal" id="captchaModal">
-    <div class="modal-content">
-        <h3><i class="fas fa-robot"></i> Проверка безопасности</h3>
-        <p>Пожалуйста, подтвердите что вы не робот:</p>
-        
-        <!-- Контейнер для reCAPTCHA -->
-        <div class="captcha-container">
-            <div class="g-recaptcha" 
-                 id="recaptchaWidget" 
-                 data-sitekey="6Lc6BpApAAAAAJKd3bJd2QwQkXQ7QYQwQwQwQwQwQ"
-                 data-callback="onCaptchaSuccess"
-                 data-size="normal"
-                 data-theme="dark">
-            </div>
-        </div>
-        
-        <div class="captcha-info">
-            <i class="fas fa-info-circle"></i>
-            <small>Защита от ботов. Показывается каждые 100 кликов.</small>
-        </div>
-        
-        <div class="modal-actions">
-            <button class="btn-secondary" onclick="hideCaptchaModal()">
-                <i class="fas fa-times"></i> Отмена
-            </button>
-            <button class="btn-primary" onclick="verifyRecaptcha()" id="verifyCaptchaBtn" disabled>
-                <i class="fas fa-check"></i> Подтвердить
-            </button>
-        </div>
-        
-        <!-- Альтернативный вариант для тестирования -->
-        <div class="captcha-fallback" id="captchaFallback" style="display: none;">
-            <div class="simple-captcha">
-                <div class="captcha-question" id="simpleCaptchaQuestion">Сколько лап у собаки?</div>
-                <input type="text" id="simpleCaptchaAnswer" placeholder="Ваш ответ" class="simple-captcha-input">
-                <button class="btn-secondary" onclick="verifySimpleCaptcha()">Проверить</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-    <!-- Всплывающее уведомление -->
+    <!-- Всплывающее уведомление (оставлено для обратной связи) -->
     <div class="notification" id="globalNotification"></div>
 
-    <!-- ПОДКЛЮЧЕНИЕ ВАШИХ JS-МОДУЛЕЙ -->
+    <!-- ПОДКЛЮЧЕНИЕ НАШИХ JS-МОДУЛЕЙ (БЕЗ anti-bot.js) -->
     <script src="ton-connect.js"></script>
-    <script src="game.js"></script>
-    <script src="anti-bot.js"></script>
     <script src="script.js"></script>
+    <!-- Файл game.js можно подключить позже, когда он будет готов -->
 </body>
 </html>
-

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Zootopia: Ultimate</title>
+    <title>Zootopia: NFT Wear</title>
     
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
@@ -12,71 +12,41 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&family=Orbitron:wght@700&display=swap');
         
-        :root { 
-            --blue-bg: #1A5CC7; --gold: #FFD700; --bubble-text: #E57373;
-        }
+        :root { --blue-bg: #1A5CC7; --gold: #FFD700; --bubble-text: #E57373; }
 
-        body { 
-            font-family: 'Fredoka', sans-serif; background: var(--blue-bg);
-            color: white; margin: 0; height: 100vh; width: 100vw;
-            overflow: hidden; display: flex; flex-direction: column;
-        }
+        body { font-family: 'Fredoka', sans-serif; background: var(--blue-bg); color: white; margin: 0; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
 
-        /* --- ГЛАВНЫЙ ЭКРАН (из прошлого кода) --- */
+        /* ГЛАВНЫЙ ЭКРАН */
         .header { text-align: center; padding-top: calc(env(safe-area-inset-top) + 15px); z-index: 10; }
         .main-score { font-family: 'Orbitron'; font-size: 42px; }
         .sub-score { font-family: 'Orbitron'; font-size: 14px; color: var(--gold); }
 
         .main-view { flex-grow: 1; position: relative; display: flex; align-items: center; justify-content: center; }
         
-        .bubble {
-            position: absolute; background: white; border-radius: 30px;
-            padding: 10px 15px; color: var(--bubble-text); font-weight: 600;
-            box-shadow: 4px 4px 0px rgba(0,0,0,0.1); font-size: 13px; text-align: center;
-            animation: floatBubble 3s ease-in-out infinite; cursor: pointer; z-index: 20;
-        }
-        @keyframes floatBubble { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-10px); } }
+        /* Персонаж и NFT слои */
+        .character-container { position: relative; width: 200px; height: 200px; }
+        .pet-img { width: 100%; height: 100%; object-fit: contain; z-index: 5; position: relative; }
+        .nft-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; pointer-events: none; display: none; }
+        .nft-layer.active { display: block; }
 
-        .b-top-left { top: 10%; left: 5%; }
-        .b-mid-left { top: 35%; left: 2%; }
-        .b-bot-left { bottom: 20%; left: 5%; }
-        .b-top-right { top: 10%; right: 5%; }
-        .b-mid-right { top: 35%; right: 2%; }
-        .b-bot-right { bottom: 20%; right: 5%; }
+        .bubble { position: absolute; background: white; border-radius: 30px; padding: 10px 15px; color: var(--bubble-text); font-weight: 600; box-shadow: 4px 4px 0px rgba(0,0,0,0.1); font-size: 13px; text-align: center; cursor: pointer; z-index: 20; animation: float 3s infinite ease-in-out; }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
 
-        .character-container { text-align: center; }
-        .pet-img { width: 50vw; max-width: 200px; filter: drop-shadow(0 10px 10px rgba(0,0,0,0.3)); }
+        .b-top-left { top: 10%; left: 5%; } .b-bot-left { bottom: 20%; left: 5%; }
+        .b-top-right { top: 10%; right: 5%; } .b-bot-right { bottom: 20%; right: 5%; }
 
-        /* --- МОДАЛЬНЫЕ ОКНА --- */
-        .modal {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.85);
-            display: none; z-index: 1000; flex-direction: column;
-            padding: 40px 20px; backdrop-filter: blur(10px);
-        }
+        /* МОДАЛКА NFT */
+        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: none; z-index: 1000; flex-direction: column; padding: 40px 20px; backdrop-filter: blur(10px); }
         .modal.active { display: flex; }
-        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .close-btn { font-size: 30px; color: white; cursor: pointer; }
+        .nft-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
+        .nft-card { background: rgba(255,255,255,0.1); border-radius: 20px; padding: 15px; text-align: center; border: 1px solid rgba(255,255,255,0.1); }
+        .nft-card img { width: 60px; height: 60px; margin-bottom: 10px; }
+        .btn-buy { background: var(--gold); color: black; border: none; padding: 8px 15px; border-radius: 10px; font-weight: bold; width: 100%; cursor: pointer; }
+        .btn-owned { background: #4CAF50; color: white; }
 
-        /* --- НОВОСТИ --- */
-        .news-item { background: rgba(255,255,255,0.1); padding: 15px; border-radius: 15px; margin-bottom: 10px; border-left: 4px solid var(--gold); }
-        .news-date { font-size: 10px; opacity: 0.6; }
-
-        /* --- ТРИ В РЯД (Упрощенная) --- */
-        .game-grid { 
-            display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; 
-            background: rgba(255,255,255,0.1); padding: 10px; border-radius: 15px;
-        }
-        .cell { 
-            aspect-ratio: 1; background: rgba(255,255,255,0.2); 
-            display: flex; align-items: center; justify-content: center; 
-            font-size: 24px; border-radius: 10px; cursor: pointer;
-        }
-
-        /* --- ЭНЕРГИЯ И НАВ --- */
-        .energy-section { padding: 15px; z-index: 10; }
-        .energy-bar-cont { width: 100%; height: 30px; background: rgba(0,0,0,0.3); border-radius: 15px; position: relative; overflow: hidden; }
+        .energy-section { padding: 15px; }
+        .energy-bar-cont { width: 100%; height: 25px; background: rgba(0,0,0,0.3); border-radius: 15px; overflow: hidden; position: relative; }
         .energy-fill { height: 100%; width: 100%; background: linear-gradient(90deg, #FFE082, #FFB74D); transition: 0.3s; }
-        .energy-text { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -87,115 +57,87 @@
 </header>
 
 <main class="main-view">
-    <div class="bubble b-top-left">топ<br>участников</div>
-    <div class="bubble b-mid-left" onclick="openModal('news-modal')">новости</div>
-    <div class="bubble b-bot-left" onclick="openModal('game-modal')">3 в ряд</div>
+    <div class="bubble b-top-left">топ</div>
+    <div class="bubble b-bot-left">3 в ряд</div>
 
-    <div class="character-container">
-        <img src="dachshund.png" class="pet-img" id="pet" onclick="handleTap()">
+    <div class="character-container" id="pet-area" onclick="handleTap()">
+        <img src="nft_glasses.png" id="layer-glasses" class="nft-layer">
+        <img src="nft_hat.png" id="layer-hat" class="nft-layer">
+        <img src="dachshund.png" class="pet-img">
     </div>
 
-    <div class="bubble b-top-right">NFT</div>
-    <div class="bubble b-mid-right" onclick="tonConnectUI.openModal()">мой<br>кошелек</div>
+    <div class="bubble b-top-right" onclick="openModal('nft-modal')">NFT 👕</div>
     <div class="bubble b-bot-right">магазин</div>
 </main>
 
-<div id="news-modal" class="modal">
-    <div class="modal-header">
-        <h2>НОВОСТИ 🐾</h2>
-        <div class="close-btn" onclick="closeModal('news-modal')">&times;</div>
+<div id="nft-modal" class="modal">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h2>NFT МАРКЕТ 🦴</h2>
+        <div style="font-size:30px" onclick="closeModal('nft-modal')">&times;</div>
     </div>
-    <div class="news-item">
-        <div class="news-date">16 Января 2026</div>
-        <b>Запуск обновленного дизайна!</b>
-        <p>Мы обновили интерфейс. Теперь управлять таксой стало еще удобнее.</p>
-    </div>
-    <div class="news-item">
-        <div class="news-date">14 Января 2026</div>
-        <b>Интеграция TON Connect</b>
-        <p>Теперь вы можете привязать свой кошелек прямо в приложении.</p>
-    </div>
-</div>
-
-<div id="game-modal" class="modal">
-    <div class="modal-header">
-        <div>
-            <h2>Zootopia Match</h2>
-            <small>Нажимай на группы от 3-х элементов!</small>
+    <div class="nft-grid">
+        <div class="nft-card">
+            <img src="nft_glasses.png" alt="Очки">
+            <div>Очки Cyber</div>
+            <p style="font-size:12px; color:var(--gold)">+5 к тапу</p>
+            <button id="buy-glasses" class="btn-buy" onclick="buyNFT('glasses', 5, 10)">10 $ZOO</button>
         </div>
-        <div class="close-btn" onclick="closeModal('game-modal')">&times;</div>
-    </div>
-    <div id="grid" class="game-grid"></div>
-    <div style="margin-top: 20px; text-align: center;">
-        Вы выиграли: <span id="game-reward" style="color:var(--gold)">0</span> $ZOO
+        <div class="nft-card">
+            <img src="nft_hat.png" alt="Шляпа">
+            <div>Шляпа Шерифа</div>
+            <p style="font-size:12px; color:var(--gold)">+10 к тапу</p>
+            <button id="buy-hat" class="btn-buy" onclick="buyNFT('hat', 10, 25)">25 $ZOO</button>
+        </div>
     </div>
 </div>
 
 <section class="energy-section">
     <div class="energy-bar-cont">
         <div class="energy-fill" id="energy-fill"></div>
-        <div class="energy-text">⚡ <span id="en-cur">1000</span> / 1000</div>
     </div>
 </section>
 
 <script>
     const tg = window.Telegram.WebApp;
-    tg.expand();
-
-    const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-        manifestUrl: 'https://raw.githubusercontent.com/ton-connect/demo-dapp-with-react-ui/master/public/tonconnect-manifest.json',
-    });
-
-    let state = { bones: 0, zoo: 0, energy: 1000 };
+    let state = { bones: 0, zoo: 50, energy: 1000, tapPower: 1, ownedNFTs: [] };
 
     function handleTap() {
         if (state.energy > 0) {
-            state.bones += 1;
+            state.bones += state.tapPower;
             state.zoo += 0.0001;
-            state.energy -= 1;
+            state.energy -= 2;
             updateUI();
-            tg.HapticFeedback.impactOccurred('light');
+            tg.HapticFeedback.impactOccurred('medium');
+        }
+    }
+
+    function buyNFT(id, power, price) {
+        if (state.zoo >= price && !state.ownedNFTs.includes(id)) {
+            state.zoo -= price;
+            state.tapPower += power;
+            state.ownedNFTs.push(id);
+            document.getElementById('layer-' + id).classList.add('active');
+            document.getElementById('buy-' + id).innerText = "НАДЕТО";
+            document.getElementById('buy-' + id).classList.add('btn-owned');
+            updateUI();
+            tg.showAlert("Вы надели новый предмет!");
+        } else if (state.ownedNFTs.includes(id)) {
+            tg.showAlert("У вас уже есть этот предмет!");
+        } else {
+            tg.showAlert("Недостаточно $ZOO!");
         }
     }
 
     function updateUI() {
         document.getElementById('bones').innerText = Math.floor(state.bones).toLocaleString();
         document.getElementById('zoo-val').innerText = state.zoo.toFixed(4);
-        document.getElementById('en-cur').innerText = state.energy;
         document.getElementById('energy-fill').style.width = (state.energy / 10) + '%';
     }
 
-    // --- МОДАЛКИ ---
-    function openModal(id) { 
-        document.getElementById(id).classList.add('active'); 
-        if(id === 'game-modal') initGame();
-    }
+    function openModal(id) { document.getElementById(id).classList.add('active'); }
     function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 
-    // --- ЛОГИКА ИГРЫ (Match 3 Simplified) ---
-    function initGame() {
-        const grid = document.getElementById('grid');
-        grid.innerHTML = '';
-        const icons = ['🦴', '🐾', '🐶', '🎾', '🥩'];
-        for (let i = 0; i < 25; i++) {
-            const cell = document.createElement('div');
-            cell.className = 'cell';
-            cell.innerText = icons[Math.floor(Math.random() * icons.length)];
-            cell.onclick = () => {
-                state.zoo += 0.005;
-                cell.innerText = icons[Math.floor(Math.random() * icons.length)];
-                document.getElementById('game-reward').innerText = (parseFloat(document.getElementById('game-reward').innerText) + 0.005).toFixed(3);
-                updateUI();
-                tg.HapticFeedback.notificationOccurred('success');
-            };
-            grid.appendChild(cell);
-        }
-    }
-
-    setInterval(() => {
-        if (state.energy < 1000) { state.energy = Math.min(1000, state.energy + 2); updateUI(); }
-    }, 1500);
-
+    setInterval(() => { if (state.energy < 1000) { state.energy = Math.min(1000, state.energy + 5); updateUI(); } }, 2000);
     updateUI();
 </script>
 </body>

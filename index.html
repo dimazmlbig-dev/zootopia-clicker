@@ -1,29 +1,36 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Dachshund Detective</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+    
     <style>
         :root { --primary: #5d4037; --accent: #ff9800; --bg: #f8f9fa; }
-        body { margin: 0; background: var(--bg); font-family: 'Segoe UI', sans-serif; color: var(--primary); display: flex; flex-direction: column; align-items: center; height: 100vh; user-select: none; }
-        #header { width: 100%; padding: 15px; text-align: center; background: white; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        body { margin: 0; background: var(--bg); font-family: 'Segoe UI', sans-serif; color: var(--primary); display: flex; flex-direction: column; align-items: center; height: 100vh; user-select: none; overflow: hidden; }
+        
+        #header { width: 100%; padding: 15px; text-align: center; background: white; box-shadow: 0 2px 10px rgba(0,0,0,0.05); z-index: 10; }
         #user-info { font-size: 14px; color: #555; margin-bottom: 5px; }
         #balance { font-size: 38px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        
         #game-container { flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; position: relative; }
-        .main-hero { width: 240px; height: 240px; border-radius: 50%; background: white; border: 8px solid white; box-shadow: 0 15px 35px rgba(0,0,0,0.1); cursor: pointer; transition: transform 0.05s; }
+        
+        .main-hero { width: 240px; height: 240px; border-radius: 50%; background: white; border: 8px solid white; box-shadow: 0 15px 35px rgba(0,0,0,0.1); cursor: pointer; transition: transform 0.05s; z-index: 2; }
         .main-hero:active { transform: scale(0.92); }
         .main-hero img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
-        #energy-container { width: 80%; margin-top: 20px; }
-        #energy-bar { width: 100%; height: 10px; background: #ddd; border-radius: 5px; overflow: hidden; }
+        
+        #energy-container { width: 80%; margin-top: 20px; text-align: center; }
+        #energy-bar { width: 100%; height: 10px; background: #ddd; border-radius: 5px; overflow: hidden; margin-bottom: 5px; }
         #energy-fill { width: 100%; height: 100%; background: linear-gradient(90deg, #ff9800, #ffeb3b); transition: width 0.2s; }
-        .floating-text { position: absolute; font-size: 24px; font-weight: 900; color: var(--accent); pointer-events: none; animation: floatUp 0.6s ease-out forwards; }
-        @keyframes floatUp { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-100px); } }
-        #nav-menu { width: 100%; display: flex; background: white; padding: 10px 0; border-top: 1px solid #eee; }
-        .nav-item { flex: 1; text-align: center; font-size: 11px; opacity: 0.6; }
-        .nav-item.active { opacity: 1; color: var(--accent); }
+        
+        .floating-text { position: absolute; font-size: 28px; font-weight: 900; color: var(--accent); pointer-events: none; animation: floatUp 0.6s ease-out forwards; z-index: 100; }
+        @keyframes floatUp { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-120px); } }
+        
+        #nav-menu { width: 100%; display: flex; background: white; padding: 12px 0; border-top: 1px solid #eee; z-index: 10; }
+        .nav-item { flex: 1; text-align: center; font-size: 11px; opacity: 0.5; cursor: pointer; transition: 0.2s; }
+        .nav-item.active { opacity: 1; color: var(--accent); font-weight: bold; }
     </style>
 </head>
 <body>
@@ -53,27 +60,42 @@
 
     <script>
         const tg = window.Telegram.WebApp;
-        tg.expand(); // Разворачиваем на весь экран
+        tg.expand();
 
         let userId = tg.initDataUnsafe?.user?.id || "local_user";
         let userName = tg.initDataUnsafe?.user?.first_name || "Детектив";
-        
         document.getElementById('username').innerText = userName;
 
-        // Загрузка данных
+        // Данные
         let balance = parseFloat(localStorage.getItem(`balance_${userId}`)) || 0;
         let energy = parseInt(localStorage.getItem(`energy_${userId}`)) || 1000;
         const maxEnergy = 1000;
+
+        // Сохраняем HTML игрового экрана для переключения
+        const originalGameHTML = `
+            <div class="main-hero" onclick="handleTap(event)">
+                <img src="https://i.ibb.co/XfXfXfX/dachshund.png" alt="Такса">
+            </div>
+            <div id="energy-container">
+                <div id="energy-bar"><div id="energy-fill"></div></div>
+                <div id="energy-text">⚡ <span id="cur-energy">1000</span> / 1000</div>
+            </div>
+        `;
+
+        // Инициализация TON Connect
+        const tonConnectUI = new TONConnectUI.TonConnectUI({
+            manifestUrl: 'https://ВАШ-ЛОГИН.github.io/zootopia-clicker/tonconnect-manifest.json',
+            buttonRootId: 'ton-connect-button' 
+        });
 
         function handleTap(e) {
             if (energy <= 0) {
                 tg.HapticFeedback.notificationOccurred('error');
                 return;
             }
-
             balance += 1;
             energy -= 1;
-            tg.HapticFeedback.impactOccurred('medium'); // Вибрация при клике
+            tg.HapticFeedback.impactOccurred('medium');
             updateUI();
             saveData();
             
@@ -87,9 +109,13 @@
         }
 
         function updateUI() {
-            document.getElementById('coins').innerText = Math.floor(balance);
-            document.getElementById('cur-energy').innerText = energy;
-            document.getElementById('energy-fill').style.width = (energy / maxEnergy * 100) + '%';
+            const coinsEl = document.getElementById('coins');
+            const energyEl = document.getElementById('cur-energy');
+            const fillEl = document.getElementById('energy-fill');
+            
+            if (coinsEl) coinsEl.innerText = Math.floor(balance);
+            if (energyEl) energyEl.innerText = energy;
+            if (fillEl) fillEl.style.width = (energy / maxEnergy * 100) + '%';
         }
 
         function saveData() {
@@ -97,7 +123,33 @@
             localStorage.setItem(`energy_${userId}`, energy);
         }
 
-        // Восстановление энергии
+        function showTab(tabIndex) {
+            const items = document.querySelectorAll('.nav-item');
+            items.forEach(item => item.classList.remove('active'));
+            items[tabIndex].classList.add('active');
+
+            const container = document.getElementById('game-container');
+
+            if (tabIndex === 0) { 
+                container.innerHTML = originalGameHTML;
+                updateUI();
+            } else if (tabIndex === 3) { 
+                container.innerHTML = `
+                    <div style="padding: 20px; text-align: center;">
+                        <h2>Крипто-кошелек</h2>
+                        <p>Привяжи свой TON кошелек для получения наград!</p>
+                        <div id="ton-connect-button" style="display: flex; justify-content: center; margin-top:20px;"></div>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = `<div style="padding:50px; text-align:center;">Раздел "${items[tabIndex].innerText}" в разработке 🛠</div>`;
+            }
+        }
+
+        document.querySelectorAll('.nav-item').forEach((item, index) => {
+            item.onclick = () => showTab(index);
+        });
+
         setInterval(() => {
             if (energy < maxEnergy) {
                 energy += 1;
@@ -110,4 +162,5 @@
     </script>
 </body>
 </html>
+
 

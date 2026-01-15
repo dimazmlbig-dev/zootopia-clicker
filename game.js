@@ -1,294 +1,224 @@
-// ============================================
-// ZOOTOPIA CLICKER — FINAL (HTML COMPATIBLE)
-// ============================================
-
-const Game = {
-  state: {
+// ================== СОСТОЯНИЕ ИГРЫ ==================
+const game = {
     energy: 1000,
     maxEnergy: 1000,
+    regen: 10,
 
+    clicks: 0,
     totalClicks: 0,
+
+    clickPower: 1,
+    autoClickers: 0,
+
     balance: 0,
     tokens: 0,
 
-    baseClickPower: 1,
-    clickMultiplier: 1,
-
-    autoClickers: 0,
-    regenerationRate: 10,
-
-    progress: 0,
-    requiredTokens: 1_000_000,
+    level: 1,
 
     upgrades: {
-      power:   { level: 0, base: 1000, cost: 1000, mult: 1.5 },
-      battery: { level: 0, base: 5000, cost: 5000, mult: 1.5 },
-      auto:    { level: 0, base: 10000, cost: 10000, mult: 1.8 },
-      speed:   { level: 0, base: 25000, cost: 25000, mult: 1.6 }
+        power: { level: 0, cost: 1000 },
+        battery: { level: 0, cost: 5000 },
+        auto: { level: 0, cost: 10000 },
+        speed: { level: 0, cost: 25000 }
     },
 
-    level: 1,
-    exp: 0,
-
-    boostActive: false,
-    boostEnd: 0
-  },
-
-  get clickPower() {
-    return this.state.baseClickPower * this.state.clickMultiplier;
-  },
-
-  // ================= INIT =================
-  init() {
-    this.cacheDOM();
-    this.load();
-    this.bindEvents();
-    this.startLoops();
-    this.initTelegram();
-    this.updateUI();
-    this.notify("Добро пожаловать в Zootopia Clicker!", "success");
-  },
-
-  cacheDOM() {
-    this.el = {
-      clickBtn: document.getElementById("click-button"),
-      energyBar: document.getElementById("energy-bar"),
-      energyText: document.getElementById("energy-display"),
-      regenRate: document.getElementById("regen-rate"),
-      regenTime: document.getElementById("regen-time"),
-
-      totalClicks: document.getElementById("total-clicks"),
-      clickPower: document.getElementById("click-power"),
-      clickPowerDisplay: document.getElementById("click-power-display"),
-      cps: document.getElementById("clicks-per-second"),
-      autoClickers: document.getElementById("auto-clickers"),
-
-      balance: document.getElementById("balance"),
-      tokens: document.getElementById("tokens"),
-
-      level: document.getElementById("player-level"),
-
-      progress: document.getElementById("progress-fill"),
-      progressText: document.getElementById("progress-percent"),
-      required: document.getElementById("required-tokens"),
-
-      powerLevel: document.getElementById("power-level"),
-      powerCost: document.getElementById("power-cost"),
-      batteryLevel: document.getElementById("battery-level"),
-      batteryCost: document.getElementById("battery-cost"),
-      autoLevel: document.getElementById("auto-level"),
-      autoCost: document.getElementById("auto-cost"),
-      speedLevel: document.getElementById("speed-level"),
-      speedCost: document.getElementById("speed-cost"),
-
-      boostBtn: document.getElementById("boost-button"),
-      boostConfirm: document.getElementById("activate-boost"),
-
-      walletBtn: document.getElementById("connect-wallet"),
-      walletModal: document.getElementById("wallet-modal"),
-      boostModal: document.getElementById("boost-modal"),
-
-      notify: document.getElementById("notification-container")
-    };
-  },
-
-  bindEvents() {
-    this.el.clickBtn.onclick = e => this.handleClick(e);
-
-    document.querySelectorAll(".buy-button").forEach(btn =>
-      btn.onclick = () => this.buyUpgrade(btn.dataset.upgrade)
-    );
-
-    this.el.boostBtn.onclick = () => this.openModal(this.el.boostModal);
-    this.el.boostConfirm.onclick = () => this.activateBoost();
-
-    this.el.walletBtn.onclick = () => this.openModal(this.el.walletModal);
-
-    document.querySelectorAll(".modal-close").forEach(b =>
-      b.onclick = () => this.closeModals()
-    );
-
-    document.querySelectorAll(".modal").forEach(m =>
-      m.onclick = e => e.target === m && this.closeModals()
-    );
-
-    window.addEventListener("beforeunload", () => this.save());
-  },
-
-  // ================= GAMEPLAY =================
-  handleClick(e) {
-    if (this.state.energy < this.clickPower) return;
-
-    this.state.energy -= this.clickPower;
-    this.state.totalClicks += this.clickPower;
-    this.state.balance += this.clickPower;
-    this.state.tokens += this.clickPower * 0.001;
-
-    this.state.progress = Math.min(
-      100,
-      this.state.progress + this.clickPower * 0.0001
-    );
-
-    this.gainExp(this.clickPower);
-    this.updateUI();
-  },
-
-  gainExp(amount) {
-    this.state.exp += amount;
-    const need = this.state.level * 1000;
-    if (this.state.exp >= need) {
-      this.state.exp -= need;
-      this.state.level++;
-      this.notify(`Новый уровень: ${this.state.level}`, "success");
+    boost: {
+        active: false,
+        endTime: 0
     }
-  },
-
-  // ================= UPGRADES =================
-  buyUpgrade(type) {
-    const u = this.state.upgrades[type];
-    if (this.state.balance < u.cost) return;
-
-    this.state.balance -= u.cost;
-    u.level++;
-
-    if (type === "power") this.state.baseClickPower++;
-    if (type === "battery") this.state.maxEnergy += 100;
-    if (type === "auto") this.state.autoClickers++;
-    if (type === "speed") this.state.regenerationRate += 2;
-
-    u.cost = Math.floor(u.base * Math.pow(u.mult, u.level));
-    this.updateUI();
-  },
-
-  // ================= BOOST =================
-  activateBoost() {
-    if (this.state.boostActive || this.state.tokens < 500) return;
-
-    this.state.tokens -= 500;
-    this.state.boostActive = true;
-    this.state.clickMultiplier = 2;
-    this.state.boostEnd = Date.now() + 3600000;
-
-    this.closeModals();
-    this.notify("Буст x2 активирован!", "success");
-  },
-
-  // ================= LOOPS =================
-  startLoops() {
-    // regen
-    setInterval(() => {
-      this.state.energy = Math.min(
-        this.state.maxEnergy,
-        this.state.energy + this.state.regenerationRate
-      );
-      this.updateUI();
-    }, 1000);
-
-    // auto click
-    setInterval(() => {
-      const max = Math.floor(this.state.energy / this.clickPower);
-      const clicks = Math.min(this.state.autoClickers, max);
-      if (clicks <= 0) return;
-
-      this.state.energy -= clicks * this.clickPower;
-      this.state.totalClicks += clicks;
-      this.state.balance += clicks;
-      this.state.tokens += clicks * 0.0005;
-      this.state.progress = Math.min(
-        100,
-        this.state.progress + clicks * 0.00005
-      );
-
-      this.gainExp(clicks);
-      this.updateUI();
-    }, 1000);
-
-    // boost end
-    setInterval(() => {
-      if (this.state.boostActive && Date.now() >= this.state.boostEnd) {
-        this.state.boostActive = false;
-        this.state.clickMultiplier = 1;
-        this.notify("Буст закончился", "info");
-      }
-    }, 1000);
-  },
-
-  // ================= UI =================
-  updateUI() {
-    this.el.energyBar.style.width =
-      (this.state.energy / this.state.maxEnergy) * 100 + "%";
-    this.el.energyText.textContent =
-      `${this.state.energy}/${this.state.maxEnergy}`;
-
-    const need = this.state.maxEnergy - this.state.energy;
-    const sec = Math.ceil(need / this.state.regenerationRate);
-    this.el.regenTime.textContent =
-      `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
-
-    this.el.regenRate.textContent = this.state.regenerationRate;
-
-    this.el.totalClicks.textContent = this.format(this.state.totalClicks);
-    this.el.clickPower.textContent = this.clickPower;
-    this.el.clickPowerDisplay.textContent = this.clickPower;
-    this.el.cps.textContent = this.state.autoClickers;
-    this.el.autoClickers.textContent = this.state.autoClickers;
-
-    this.el.balance.textContent = this.format(this.state.balance);
-    this.el.tokens.textContent = this.state.tokens.toFixed(4);
-    this.el.level.textContent = this.state.level;
-
-    this.el.progress.style.width = this.state.progress + "%";
-    this.el.progressText.textContent = this.state.progress.toFixed(1) + "%";
-    this.el.required.textContent = this.format(this.state.requiredTokens);
-
-    this.el.powerLevel.textContent = this.state.upgrades.power.level;
-    this.el.powerCost.textContent = this.format(this.state.upgrades.power.cost);
-    this.el.batteryLevel.textContent = this.state.upgrades.battery.level;
-    this.el.batteryCost.textContent = this.format(this.state.upgrades.battery.cost);
-    this.el.autoLevel.textContent = this.state.upgrades.auto.level;
-    this.el.autoCost.textContent = this.format(this.state.upgrades.auto.cost);
-    this.el.speedLevel.textContent = this.state.upgrades.speed.level;
-    this.el.speedCost.textContent = this.format(this.state.upgrades.speed.cost);
-  },
-
-  // ================= MODALS =================
-  openModal(m) {
-    m.style.display = "flex";
-    document.body.style.overflow = "hidden";
-  },
-
-  closeModals() {
-    document.querySelectorAll(".modal").forEach(m => m.style.display = "none");
-    document.body.style.overflow = "auto";
-  },
-
-  // ================= UTIL =================
-  notify(text, type = "info") {
-    const n = document.createElement("div");
-    n.className = `notification ${type}`;
-    n.textContent = text;
-    this.el.notify.appendChild(n);
-    setTimeout(() => n.remove(), 3000);
-  },
-
-  format(n) {
-    if (n >= 1e6) return (n / 1e6).toFixed(1) + "M";
-    if (n >= 1e3) return (n / 1e3).toFixed(1) + "K";
-    return Math.floor(n);
-  },
-
-  save() {
-    localStorage.setItem("zootopia_save", JSON.stringify(this.state));
-  },
-
-  load() {
-    const s = localStorage.getItem("zootopia_save");
-    if (s) Object.assign(this.state, JSON.parse(s));
-  },
-
-  initTelegram() {
-    if (window.Telegram?.WebApp) Telegram.WebApp.expand();
-  }
 };
 
-document.addEventListener("DOMContentLoaded", () => Game.init());
+// ================== DOM ==================
+const el = id => document.getElementById(id);
+
+// ================== ЗАГРУЗКА / СОХРАНЕНИЕ ==================
+function saveGame() {
+    localStorage.setItem("zootopiaSave", JSON.stringify(game));
+}
+
+function loadGame() {
+    const save = localStorage.getItem("zootopiaSave");
+    if (save) Object.assign(game, JSON.parse(save));
+}
+
+// ================== УВЕДОМЛЕНИЯ ==================
+function notify(text, type = "info") {
+    const n = document.createElement("div");
+    n.className = `notification ${type}`;
+    n.innerHTML = `<i class="fas fa-info-circle"></i>${text}`;
+    el("notification-container").appendChild(n);
+
+    setTimeout(() => {
+        n.style.animation = "fadeOut 0.5s";
+        setTimeout(() => n.remove(), 500);
+    }, 2500);
+}
+
+// ================== ОБНОВЛЕНИЕ UI ==================
+function updateUI() {
+    el("energy-display").textContent = `${Math.floor(game.energy)}/${game.maxEnergy}`;
+    el("energy-bar").style.width = `${(game.energy / game.maxEnergy) * 100}%`;
+
+    el("regen-rate").textContent = game.regen;
+    el("total-clicks").textContent = game.totalClicks;
+    el("click-power").textContent = game.clickPower;
+    el("click-power-display").textContent = game.clickPower;
+    el("auto-clickers").textContent = game.autoClickers;
+    el("clicks-per-second").textContent = game.autoClickers;
+
+    el("balance").textContent = Math.floor(game.balance);
+    el("tokens").textContent = game.tokens.toFixed(4);
+    el("player-level").textContent = game.level;
+
+    updateUpgrades();
+    updateProgress();
+}
+
+// ================== КЛИК ==================
+el("click-button").addEventListener("click", () => {
+    if (game.energy < game.clickPower) return;
+
+    const power = game.boost.active ? game.clickPower * 2 : game.clickPower;
+
+    game.energy -= power;
+    game.balance += power;
+    game.tokens += power * 0.0001;
+
+    game.totalClicks += 1;
+    game.clicks += 1;
+
+    el("click-button").classList.add("pulse");
+    setTimeout(() => el("click-button").classList.remove("pulse"), 200);
+
+    updateLevel();
+    updateUI();
+    saveGame();
+});
+
+// ================== УРОВЕНЬ ==================
+function updateLevel() {
+    game.level = Math.floor(game.totalClicks / 100) + 1;
+}
+
+// ================== РЕГЕН ЭНЕРГИИ ==================
+setInterval(() => {
+    if (game.energy < game.maxEnergy) {
+        game.energy += game.regen / 10;
+        if (game.energy > game.maxEnergy) game.energy = game.maxEnergy;
+        updateUI();
+    }
+}, 100);
+
+// ================== АВТОКЛИКЕР ==================
+setInterval(() => {
+    if (game.autoClickers > 0 && game.energy >= game.autoClickers) {
+        game.energy -= game.autoClickers;
+        game.balance += game.autoClickers;
+        game.tokens += game.autoClickers * 0.0001;
+        game.totalClicks += game.autoClickers;
+        updateUI();
+        saveGame();
+    }
+}, 1000);
+
+// ================== УЛУЧШЕНИЯ ==================
+document.querySelectorAll(".buy-button").forEach(btn => {
+    btn.addEventListener("click", () => {
+        const type = btn.dataset.upgrade;
+        const upg = game.upgrades[type];
+
+        if (game.balance < upg.cost) {
+            notify("Недостаточно средств", "error");
+            return;
+        }
+
+        game.balance -= upg.cost;
+        upg.level++;
+        upg.cost = Math.floor(upg.cost * 1.6);
+
+        switch (type) {
+            case "power":
+                game.clickPower++;
+                break;
+            case "battery":
+                game.maxEnergy += 100;
+                game.energy += 100;
+                break;
+            case "auto":
+                game.autoClickers++;
+                break;
+            case "speed":
+                game.regen = Math.floor(game.regen * 1.2);
+                break;
+        }
+
+        notify("Улучшение куплено!", "success");
+        updateUI();
+        saveGame();
+    });
+});
+
+function updateUpgrades() {
+    el("power-level").textContent = game.upgrades.power.level;
+    el("battery-level").textContent = game.upgrades.battery.level;
+    el("auto-level").textContent = game.upgrades.auto.level;
+    el("speed-level").textContent = game.upgrades.speed.level;
+
+    el("power-cost").textContent = game.upgrades.power.cost.toLocaleString();
+    el("battery-cost").textContent = game.upgrades.battery.cost.toLocaleString();
+    el("auto-cost").textContent = game.upgrades.auto.cost.toLocaleString();
+    el("speed-cost").textContent = game.upgrades.speed.cost.toLocaleString();
+}
+
+// ================== ПРОГРЕСС ==================
+function updateProgress() {
+    const required = 1_000_000;
+    const percent = Math.min((game.tokens / required) * 100, 100);
+    el("progress-fill").style.width = percent + "%";
+    el("progress-percent").textContent = percent.toFixed(2) + "%";
+}
+
+// ================== МОДАЛКИ ==================
+function openModal(id) {
+    el(id).style.display = "flex";
+}
+
+function closeModals() {
+    document.querySelectorAll(".modal").forEach(m => m.style.display = "none");
+}
+
+document.querySelectorAll(".modal-close").forEach(btn =>
+    btn.addEventListener("click", closeModals)
+);
+
+el("connect-wallet").addEventListener("click", () => openModal("wallet-modal"));
+el("boost-button").addEventListener("click", () => openModal("boost-modal"));
+
+// ================== БУСТ ==================
+el("activate-boost").addEventListener("click", () => {
+    if (game.tokens < 500) {
+        notify("Недостаточно SZOO", "error");
+        return;
+    }
+
+    game.tokens -= 500;
+    game.boost.active = true;
+    game.boost.endTime = Date.now() + 3600000;
+
+    notify("Буст x2 активирован на 1 час!", "success");
+    closeModals();
+    updateUI();
+    saveGame();
+});
+
+setInterval(() => {
+    if (game.boost.active && Date.now() > game.boost.endTime) {
+        game.boost.active = false;
+        notify("Буст закончился", "info");
+        saveGame();
+    }
+}, 1000);
+
+// ================== СТАРТ ==================
+loadGame();
+updateUI();

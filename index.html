@@ -7,77 +7,92 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
     <style>
-        :root { --primary: #5d4037; --accent: #ff9800; --bg: #f8f9fa; }
+        :root { --primary: #5d4037; --accent: #ff9800; --bg: #f8f9fa; --card: #ffffff; }
         body { margin: 0; background: var(--bg); font-family: 'Segoe UI', sans-serif; color: var(--primary); display: flex; flex-direction: column; height: 100vh; user-select: none; overflow: hidden; }
-        #header { padding: 15px; text-align: center; background: white; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-        #balance { font-size: 38px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 10px; }
         
-        .page { display: none; flex-direction: column; align-items: center; justify-content: center; flex-grow: 1; width: 100%; position: relative; overflow-y: auto; }
+        /* Шапка с уровнем */
+        #header { padding: 10px 15px; background: white; box-shadow: 0 2px 10px rgba(0,0,0,0.05); text-align: center; }
+        #rank-info { font-size: 14px; font-weight: bold; color: var(--accent); margin-bottom: 5px; text-transform: uppercase; }
+        #balance { font-size: 34px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        
+        .page { display: none; flex-direction: column; align-items: center; justify-content: center; flex-grow: 1; width: 100%; position: relative; overflow-y: auto; padding-bottom: 20px; }
         .page.active { display: flex; }
 
-        .main-hero { width: 240px; height: 240px; border-radius: 50%; background: white; border: 8px solid white; box-shadow: 0 15px 35px rgba(0,0,0,0.1); cursor: pointer; transition: transform 0.05s; }
-        .main-hero:active { transform: scale(0.92); }
-        .main-hero img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
-        
-        #energy-container { width: 80%; margin-top: 20px; text-align: center; }
-        #energy-bar { width: 100%; height: 10px; background: #ddd; border-radius: 5px; overflow: hidden; }
-        #energy-fill { width: 100%; height: 100%; background: linear-gradient(90deg, #ff9800, #ffeb3b); }
+        /* Главный герой */
+        .hero-circle { width: 250px; height: 250px; border-radius: 50%; background: white; border: 10px solid #fff; box-shadow: 0 15px 35px rgba(0,0,0,0.1); cursor: pointer; transition: transform 0.05s; position: relative; }
+        .hero-circle:active { transform: scale(0.94); }
+        .hero-circle img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
 
-        .shop-item { background: white; padding: 15px; border-radius: 12px; margin: 8px; width: 85%; display: flex; justify-content: space-between; align-items: center; border: 1px solid #eee; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .shop-btn { background: var(--accent); border: none; color: white; padding: 10px 15px; border-radius: 8px; font-weight: bold; cursor: pointer; }
-        .shop-btn:disabled { background: #ccc; }
+        /* Энергия и Прогресс */
+        .stats-container { width: 85%; margin-top: 25px; }
+        .bar-label { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px; font-weight: bold; }
+        .bar-bg { width: 100%; height: 12px; background: #eee; border-radius: 6px; overflow: hidden; margin-bottom: 12px; border: 1px solid #ddd; }
+        .bar-fill { height: 100%; transition: width 0.3s; }
+        #energy-fill { background: linear-gradient(90deg, #ff9800, #ffeb3b); }
+        #level-fill { background: linear-gradient(90deg, #4caf50, #8bc34a); }
 
-        #nav-menu { width: 100%; display: flex; background: white; padding: 12px 0; border-top: 1px solid #eee; }
-        .nav-item { flex: 1; text-align: center; font-size: 11px; opacity: 0.5; cursor: pointer; }
-        .nav-item.active { opacity: 1; color: var(--accent); font-weight: bold; }
-        
-        .floating-text { position: absolute; font-size: 28px; font-weight: 900; color: var(--accent); pointer-events: none; animation: floatUp 0.6s ease-out forwards; z-index: 100; }
-        @keyframes floatUp { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-120px); } }
+        /* Магазин */
+        .shop-card { background: var(--card); padding: 12px 16px; border-radius: 15px; margin: 6px; width: 88%; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+        .shop-info b { font-size: 15px; display: block; }
+        .shop-info small { color: #888; }
+        .buy-btn { background: var(--accent); border: none; color: white; padding: 10px 18px; border-radius: 10px; font-weight: bold; font-size: 14px; }
+
+        /* Нижнее меню */
+        #nav { width: 100%; display: flex; background: white; padding: 10px 0 25px; border-top: 1px solid #eee; }
+        .nav-btn { flex: 1; text-align: center; font-size: 11px; opacity: 0.4; transition: 0.2s; cursor: pointer; }
+        .nav-btn.active { opacity: 1; color: var(--accent); font-weight: bold; }
+
+        .floating-num { position: absolute; font-size: 32px; font-weight: 900; color: var(--accent); pointer-events: none; animation: floatUp 0.7s ease-out forwards; z-index: 100; text-shadow: 2px 2px 0px white; }
+        @keyframes floatUp { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-140px); } }
     </style>
 </head>
 <body>
 
     <div id="header">
+        <div id="rank-info">Звание: <span id="rank-name">Стажер</span></div>
         <div id="balance">🦴 <span id="coins">0</span></div>
-        <div style="font-size: 12px; color: #888;">+<span id="pps-val">0</span>/сек</div>
+        <div style="font-size: 12px; color: #888; margin-top: 2px;">Доход: +<span id="pps-val">0</span>/сек</div>
     </div>
 
     <div id="tab-game" class="page active">
-        <div class="main-hero" onclick="handleTap(event)">
+        <div class="hero-circle" onclick="handleTap(event)">
             <img src="https://i.ibb.co/XfXfXfX/dachshund.png" alt="Такса">
         </div>
-        <div id="energy-container">
-            <div id="energy-bar"><div id="energy-fill"></div></div>
-            <div id="energy-text">⚡ <span id="cur-energy">1000</span> / 1000</div>
+        <div class="stats-container">
+            <div class="bar-label"><span>Энергия</span><span id="energy-text">1000/1000</span></div>
+            <div class="bar-bg"><div id="energy-fill" class="bar-fill" style="width: 100%"></div></div>
+            
+            <div class="bar-label"><span>Опыт (До след. звания)</span><span id="level-text">0/1000</span></div>
+            <div class="bar-bg"><div id="level-fill" class="bar-fill" style="width: 0%"></div></div>
         </div>
     </div>
 
     <div id="tab-shop" class="page">
-        <h2>Полицейский участок</h2>
-        <div class="shop-item">
-            <div><b>Блокнот</b><br><small>+1 🦴/сек</small></div>
-            <button class="shop-btn" onclick="buyUpgrade(50, 1)">50 🦴</button>
+        <h3 style="margin: 10px 0;">Улучшения агентства</h3>
+        <div class="shop-card">
+            <div class="shop-info"><b>Лупа Шерлока</b><small>+1 🦴/сек</small></div>
+            <button class="buy-btn" onclick="buyUpgrade(50, 1)">50 🦴</button>
         </div>
-        <div class="shop-item">
-            <div><b>Стажёр-кролик</b><br><small>+5 🦴/сек</small></div>
-            <button class="shop-btn" onclick="buyUpgrade(250, 5)">250 🦴</button>
+        <div class="shop-card">
+            <div class="shop-info"><b>Напарник-заяц</b><small>+6 🦴/сек</small></div>
+            <button class="buy-btn" onclick="buyUpgrade(300, 6)">300 🦴</button>
         </div>
-        <div class="shop-item">
-            <div><b>Служебное авто</b><br><small>+20 🦴/сек</small></div>
-            <button class="shop-btn" onclick="buyUpgrade(1000, 20)">1000 🦴</button>
+        <div class="shop-card">
+            <div class="shop-info"><b>Служебный фургон</b><small>+25 🦴/сек</small></div>
+            <button class="buy-btn" onclick="buyUpgrade(1200, 25)">1200 🦴</button>
         </div>
     </div>
 
     <div id="tab-wallet" class="page">
-        <h2>Кошелек</h2>
-        <p>Привяжи свой TON кошелек</p>
+        <h3 style="margin-bottom: 5px;">Кошелек</h3>
+        <p style="font-size: 14px; color: #666; margin-bottom: 20px;">Привяжи TON для получения дропа</p>
         <div id="ton-connect-button"></div>
     </div>
 
-    <div id="nav-menu">
-        <div class="nav-item active" onclick="showTab(0)">🏠 Игра</div>
-        <div class="nav-item" onclick="showTab(1)">🛠 Магазин</div>
-        <div class="nav-item" onclick="showTab(3)">💎 Кошелек</div>
+    <div id="nav">
+        <div class="nav-btn active" onclick="showTab(0)">🏠 Главная</div>
+        <div class="nav-btn" onclick="showTab(1)">🛠 Магазин</div>
+        <div class="nav-btn" onclick="showTab(3)">💎 Кошелек</div>
     </div>
 
     <script>
@@ -86,10 +101,21 @@
 
         const userId = tg.initDataUnsafe?.user?.id || "local_user";
         
-        let balance = parseFloat(localStorage.getItem(`balance_${userId}`)) || 0;
-        let energy = parseInt(localStorage.getItem(`energy_${userId}`)) || 1000;
-        let pps = parseFloat(localStorage.getItem(`pps_${userId}`)) || 0; 
+        // Данные
+        let balance = parseFloat(localStorage.getItem(`bal_${userId}`)) || 0;
+        let totalCapped = parseFloat(localStorage.getItem(`total_${userId}`)) || 0; // Для уровней
+        let energy = parseInt(localStorage.getItem(`en_${userId}`)) || 1000;
+        let pps = parseFloat(localStorage.getItem(`pps_${userId}`)) || 0;
         const maxEnergy = 1000;
+
+        const ranks = [
+            { name: "Стажер", limit: 1000 },
+            { name: "Патрульный", limit: 5000 },
+            { name: "Детектив", limit: 25000 },
+            { name: "Инспектор", limit: 100000 },
+            { name: "Шеф Полиции", limit: 500000 },
+            { name: "Легенда", limit: Infinity }
+        ];
 
         const tonConnectUI = new TONConnectUI.TonConnectUI({
             manifestUrl: 'https://dimazmlbig-dev.github.io/zootopia-clicker/tonconnect-manifest.json',
@@ -98,17 +124,22 @@
 
         function handleTap(e) {
             if (energy <= 0) { tg.HapticFeedback.notificationOccurred('error'); return; }
-            balance++; energy--;
+            
+            let clickPower = 1 + Math.floor(totalCapped / 10000); // Сила клика растет с опытом
+            balance += clickPower;
+            totalCapped += clickPower;
+            energy--;
+            
             tg.HapticFeedback.impactOccurred('medium');
             updateUI();
             
             const text = document.createElement('div');
-            text.className = 'floating-text';
-            text.innerText = '+1';
+            text.className = 'floating-num';
+            text.innerText = `+${clickPower}`;
             text.style.left = e.clientX + 'px';
-            text.style.top = (e.clientY - 20) + 'px';
+            text.style.top = (e.clientY - 30) + 'px';
             document.body.appendChild(text);
-            setTimeout(() => text.remove(), 600);
+            setTimeout(() => text.remove(), 700);
         }
 
         function buyUpgrade(cost, income) {
@@ -119,42 +150,53 @@
                 saveData();
                 updateUI();
             } else {
-                tg.showAlert("Недостаточно косточек! Продолжай патрулировать.");
+                tg.showAlert("Нужно больше косточек!");
             }
         }
 
         function updateUI() {
             document.getElementById('coins').innerText = Math.floor(balance);
-            document.getElementById('cur-energy').innerText = energy;
-            document.getElementById('energy-fill').style.width = (energy / maxEnergy * 100) + '%';
             document.getElementById('pps-val').innerText = pps.toFixed(1);
+            document.getElementById('energy-text').innerText = `${energy}/${maxEnergy}`;
+            document.getElementById('energy-fill').style.width = (energy / maxEnergy * 100) + '%';
+            
+            // Расчет ранга
+            let currentRank = ranks.find(r => totalCapped < r.limit) || ranks[ranks.length-1];
+            let prevLimit = ranks[ranks.indexOf(currentRank)-1]?.limit || 0;
+            let progress = ((totalCapped - prevLimit) / (currentRank.limit - prevLimit)) * 100;
+            
+            document.getElementById('rank-name').innerText = currentRank.name;
+            document.getElementById('level-text').innerText = `${Math.floor(totalCapped)} / ${currentRank.limit === Infinity ? 'MAX' : currentRank.limit}`;
+            document.getElementById('level-fill').style.width = (currentRank.limit === Infinity ? 100 : progress) + '%';
         }
 
         function saveData() {
-            localStorage.setItem(`balance_${userId}`, balance);
-            localStorage.setItem(`energy_${userId}`, energy);
+            localStorage.setItem(`bal_${userId}`, balance);
+            localStorage.setItem(`total_${userId}`, totalCapped);
+            localStorage.setItem(`en_${userId}`, energy);
             localStorage.setItem(`pps_${userId}`, pps);
         }
 
         function showTab(index) {
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-            document.querySelectorAll('.nav-item')[index === 3 ? 2 : index].classList.add('active');
+            document.querySelectorAll('.nav-btn').forEach(i => i.classList.remove('active'));
+            
+            const btnIdx = index === 3 ? 2 : index;
+            document.querySelectorAll('.nav-btn')[btnIdx].classList.add('active');
 
             if(index === 0) document.getElementById('tab-game').classList.add('active');
             else if(index === 1) document.getElementById('tab-shop').classList.add('active');
             else if(index === 3) document.getElementById('tab-wallet').classList.add('active');
-            updateUI();
         }
 
-        // Цикл начисления (раз в секунду)
         setInterval(() => {
-            balance += pps;
-            if (energy < maxEnergy) energy += 1;
+            balance += (pps / 10);
+            totalCapped += (pps / 10);
+            if (energy < maxEnergy) energy++;
             updateUI();
-            saveData();
-        }, 1000);
+        }, 100);
 
+        setInterval(saveData, 3000);
         updateUI();
     </script>
 </body>

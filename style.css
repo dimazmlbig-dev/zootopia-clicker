@@ -1126,3 +1126,155 @@ body {
         transform: none;
     }
 }
+/* ===== reCAPTCHA СТИЛИ ===== */
+.captcha-container {
+    margin: 25px 0;
+    display: flex;
+    justify-content: center;
+    min-height: 78px; /* Высота reCAPTCHA */
+}
+
+/* Стилизация reCAPTCHA для тёмной темы */
+.g-recaptcha {
+    transform: scale(0.95);
+    transform-origin: 0 0;
+}
+
+/* Темная тема для reCAPTCHA */
+.g-recaptcha div div {
+    background-color: #15152b !important;
+    border-radius: 12px !important;
+    border: 1px solid rgba(0, 243, 255, 0.3) !important;
+}
+
+.captcha-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 20px 0;
+    padding: 12px;
+    background: rgba(0, 243, 255, 0.08);
+    border-radius: 10px;
+    border: 1px solid rgba(0, 243, 255, 0.2);
+}
+
+.captcha-info i {
+    color: var(--neon-blue);
+    font-size: 16px;
+}
+
+.captcha-info small {
+    color: var(--text-secondary);
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+/* Простая капча (фолбэк) */
+.simple-captcha {
+    text-align: center;
+    padding: 25px;
+    background: rgba(20, 20, 40, 0.5);
+    border-radius: 16px;
+    border: 1px solid rgba(185, 103, 255, 0.3);
+    margin: 20px 0;
+}
+
+.captcha-question {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--neon-gold);
+    margin-bottom: 20px;
+    font-family: 'Orbitron', monospace;
+}
+
+.simple-captcha-input {
+    width: 100%;
+    padding: 16px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 2px solid rgba(0, 243, 255, 0.3);
+    border-radius: 12px;
+    color: white;
+    font-size: 18px;
+    text-align: center;
+    margin-bottom: 20px;
+    font-family: 'Poppins', sans-serif;
+    transition: var(--transition-smooth);
+}
+
+.simple-captcha-input:focus {
+    outline: none;
+    border-color: var(--neon-blue);
+    box-shadow: var(--glow-blue);
+}
+
+/* Индикатор проверки капчи */
+.captcha-status {
+    display: none;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 18px;
+    border-radius: 12px;
+    margin: 15px 0;
+    font-size: 14px;
+    animation: fadeIn 0.3s ease;
+}
+
+.captcha-status.verifying {
+    display: flex;
+    background: rgba(255, 215, 0, 0.1);
+    border: 1px solid rgba(255, 215, 0, 0.3);
+    color: var(--neon-gold);
+}
+
+.captcha-status.success {
+    display: flex;
+    background: rgba(57, 255, 20, 0.1);
+    border: 1px solid rgba(57, 255, 20, 0.3);
+    color: var(--neon-green);
+}
+
+.captcha-status.error {
+    display: flex;
+    background: rgba(255, 45, 85, 0.1);
+    border: 1px solid rgba(255, 45, 85, 0.3);
+    color: var(--neon-pink);
+}
+
+/* Загрузка reCAPTCHA */
+.recaptcha-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    padding: 30px;
+}
+
+.recaptcha-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(0, 243, 255, 0.2);
+    border-top-color: var(--neon-blue);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+/* Адаптивность reCAPTCHA */
+@media (max-width: 480px) {
+    .g-recaptcha {
+        transform: scale(0.85);
+    }
+    
+    .simple-captcha {
+        padding: 15px;
+    }
+    
+    .captcha-question {
+        font-size: 20px;
+    }
+}
+
+/* Класс для скрытия капчи при успешной проверке */
+.captcha-solved {
+    opacity: 0.5;
+    pointer-events: none;
+}

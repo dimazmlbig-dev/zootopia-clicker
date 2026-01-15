@@ -1,95 +1,198 @@
-<style>
-    /* Стиль для новой вкладки Airdrop */
-    .contract-address {
-        background: #000;
-        color: var(--gold);
-        font-family: monospace;
-        font-size: 10px;
-        padding: 10px;
-        border-radius: 8px;
-        word-break: break-all;
-        border: 1px dashed #444;
-        margin: 10px 0;
-    }
-    .status-connected {
-        color: #00FF88;
-        font-size: 12px;
-        margin-top: 10px;
-        display: none; /* Покажем, когда кошелек подключится */
-    }
-</style>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Zootopia Crypto</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Poppins:wght@400;600&display=swap');
+        :root { --gold: #FFD700; --accent: #00FFFF; --bg: #0A0A12; --card: #1C1C2E; }
+        
+        body { font-family: 'Poppins', sans-serif; background: var(--bg); color: white; margin: 0; overflow: hidden; touch-action: none; }
+        .header { text-align: center; padding: 15px; background: rgba(0,0,0,0.5); border-bottom: 1px solid #333; }
+        .balance { font-family: 'Orbitron'; font-size: 32px; color: var(--gold); }
+        
+        .tab-content { display: none; height: calc(100vh - 160px); overflow-y: auto; padding: 20px; padding-bottom: 100px; }
+        .tab-content.active { display: block; }
+        
+        .card { background: var(--card); border-radius: 12px; padding: 15px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px solid rgba(255,255,255,0.1); }
+        .btn-action { background: var(--gold); color: black; border: none; padding: 10px 15px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 12px; }
+        
+        .click-area { display: flex; justify-content: center; align-items: center; height: 260px; }
+        .pet-image { width: 180px; transition: 0.05s; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+        .pet-image:active { transform: scale(0.92); }
+        
+        .nav { position: fixed; bottom: 0; width: 100%; display: flex; background: #111; padding: 12px 0; border-top: 1px solid #333; z-index: 100; }
+        .nav-item { flex: 1; text-align: center; color: #666; font-size: 11px; cursor: pointer; }
+        .nav-item.active { color: var(--accent); }
+        .nav-item i { font-size: 20px; margin-bottom: 4px; display: block; }
+        
+        #loading { position: fixed; top:0; left:0; width:100%; height:100%; background:var(--bg); z-index:999; display:flex; align-items:center; justify-content:center; flex-direction: column; }
+    </style>
+</head>
+<body>
+
+<div id="loading">
+    <h2 style="font-family:'Orbitron'; color:var(--gold)">ZOOTOPIA</h2>
+    <p>Синхронизация данных...</p>
+</div>
+
+<div class="header">
+    <div class="balance" id="bones">0</div>
+    <div style="color:var(--accent); font-size:14px; font-family:'Orbitron'">$ZOO: <span id="zoo">0.0000</span></div>
+</div>
+
+<div id="tab-game" class="tab-content active">
+    <div class="click-area"><img src="dachshund.png" class="pet-image" id="pet"></div>
+    <p style="text-align:center">⚡ Энергия: <span id="energy">1000</span>/1000</p>
+</div>
+
+<div id="tab-shop" class="tab-content">
+    <h3 style="color:var(--gold)">Магазин</h3>
+    <div class="card">
+        <div><b>Сила тапа</b><br><small id="price-tap">500</small> 🦴</div>
+        <button class="btn-action" onclick="buy('tap')">КУПИТЬ</button>
+    </div>
+</div>
 
 <div id="tab-airdrop" class="tab-content">
     <h3 style="color: var(--gold); font-family: 'Orbitron';">Zootopia Airdrop</h3>
     
     <div class="card" style="display: block; text-align: center; border: 1px solid var(--accent);">
-        <p style="margin: 0; font-size: 12px; color: #888;">Баланс к распределению:</p>
-        <div style="font-size: 28px; color: var(--accent); font-family: 'Orbitron'; margin: 5px 0;">
+        <p style="margin: 0; font-size: 12px; color: #888;">Твой баланс к раздаче:</p>
+        <div style="font-size: 24px; color: var(--accent); font-family: 'Orbitron'; margin: 5px 0;">
             <span id="zoo-drop-val">0.0000</span> $ZOO
         </div>
-        <p style="font-size: 10px; color: #666;">Монеты будут начислены на кошелек после листинга</p>
     </div>
 
-    <div class="card" style="flex-direction: column; align-items: flex-start; background: #1a1a2e;">
-        <small style="color: #888;">Официальный контракт токена:</small>
-        <div class="contract-address" id="contract-text">EQB5RZDUIW3wWLWxACmKhiH6UYEGhpuCVz2BB2KI4Wyj9_8L</div>
-        <button class="btn-action" style="width: 100%; font-size: 11px;" 
+    <div class="card" style="flex-direction: column; align-items: flex-start; background: #000;">
+        <small style="color: #666;">Smart Contract (TON):</small>
+        <code style="font-size: 10px; word-break: break-all; color: var(--gold); margin: 5px 0;">
+            EQB5RZDUIW3wWLWxACmKhiH6UYEGhpuCVz2BB2KI4Wyj9_8L
+        </code>
+        <button class="btn-action" style="width: 100%; font-size: 10px;" 
                 onclick="window.open('https://tonviewer.com/EQB5RZDUIW3wWLWxACmKhiH6UYEGhpuCVz2BB2KI4Wyj9_8L')">
-            ПРОВЕРИТЬ В TONVIEWER
+            ПРОВЕРИТЬ В EXPLORER
         </button>
     </div>
 
-    <div style="margin-top: 25px; text-align: center;">
-        <p style="font-size: 13px; color: #fff; margin-bottom: 15px;">Привяжи кошелек для получения Airdrop</p>
+    <div style="margin-top: 20px;">
+        <p style="font-size: 12px; text-align: center; color: #888; margin-bottom: 10px;">
+            Подключи Tonkeeper, чтобы получить монеты при листинге
+        </p>
         <div id="ton-connect-btn" style="display: flex; justify-content: center;"></div>
-        <div id="wallet-ok" class="status-connected">✅ Кошелек привязан к профилю</div>
     </div>
 </div>
 
+<div class="nav">
+    <div class="nav-item active" onclick="switchTab('tab-game', this)"><i class="fas fa-paw"></i>Игра</div>
+    <div class="nav-item" onclick="switchTab('tab-shop', this)"><i class="fas fa-shopping-cart"></i>Магазин</div>
+    <div class="nav-item" onclick="switchTab('tab-airdrop', this)"><i class="fas fa-wallet"></i>Airdrop</div>
+</div>
+
 <script>
-    // 1. Инициализация TON Connect
+    // Твой конфиг Firebase
+    const firebaseConfig = {
+        apiKey: "AIzaSyAT4Qt--BNvqA953AQNUbbpiDHbSvO3BfE",
+        authDomain: "zootopia-f046d.firebaseapp.com",
+        projectId: "zootopia-f046d",
+        storageBucket: "zootopia-f046d.firebasestorage.app",
+        messagingSenderId: "531125789476",
+        appId: "1:531125789476:web:7e504c4d855fd397fa49b1"
+    };
+    
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const tg = window.Telegram.WebApp;
+    const uid = tg.initDataUnsafe?.user?.id?.toString() || "dev_user";
+    
+    let state = { 
+        bones: 0, 
+        zoo: 0, 
+        energy: 1000, 
+        tapPower: 1, 
+        tapPrice: 500, 
+        walletAddress: null,
+        walletBonusClaimed: false 
+    };
+
+    // Инициализация TON Connect
     const tonConnectUI = new TONConnectUI.TonConnectUI({
         manifestUrl: 'https://dimazmlbig-dev.github.io/zootopia-clicker/tonconnect-manifest.json',
         buttonRootId: 'ton-connect-btn'
     });
 
-    // 2. Логика отслеживания кошелька
+    // Следим за статусом кошелька
     tonConnectUI.onStatusChange(wallet => {
         if (wallet) {
-            const rawAddress = wallet.account.address;
-            // Делаем адрес красивым (сокращаем)
-            const friendlyAddress = rawAddress.slice(0, 4) + "..." + rawAddress.slice(-4);
-            
-            console.log('Кошелек подключен:', rawAddress);
+            console.log('Кошелек подключен:', wallet.account.address);
             tg.HapticFeedback.notificationOccurred('success');
             
-            // Показываем статус в UI
-            document.getElementById('wallet-ok').style.display = 'block';
-            document.getElementById('wallet-ok').innerText = "✅ Подключен: " + friendlyAddress;
-
-            // Сохраняем адрес в нашу базу Firebase
-            state.walletAddress = rawAddress;
+            state.walletAddress = wallet.account.address;
             
-            // Если мы обещали бонус за кошелек:
-            if (!state.walletBonusReceived) {
+            if (!state.walletBonusClaimed) {
                 state.bones += 100000;
-                state.walletBonusReceived = true;
-                tg.showAlert("Поздравляем! +100,000 костей за привязку кошелька!");
+                state.walletBonusClaimed = true;
+                tg.showAlert("Бонус 100,000 костей начислен за привязку кошелька!");
             }
-            save(); // Отправляем данные в облако
-            update(); // Обновляем цифры на экране
+            save();
+            update();
         }
     });
 
-    // Обновляем отображение $ZOO во вкладке Airdrop
-    function updateAirdropUI() {
-        if (document.getElementById('zoo-drop-val')) {
-            document.getElementById('zoo-drop-val').innerText = state.zoo.toFixed(4);
-        }
-        if (state.walletAddress) {
-            document.getElementById('wallet-ok').style.display = 'block';
+    async function init() {
+        const doc = await db.collection("users").doc(uid).get();
+        if (doc.exists) state = { ...state, ...doc.data() };
+        document.getElementById('loading').style.display = 'none';
+        update();
+    }
+
+    function update() {
+        document.getElementById('bones').innerText = Math.floor(state.bones);
+        document.getElementById('zoo').innerText = state.zoo.toFixed(4);
+        document.getElementById('zoo-drop-val').innerText = state.zoo.toFixed(4);
+        document.getElementById('energy').innerText = state.energy;
+        document.getElementById('price-tap').innerText = state.tapPrice;
+    }
+
+    function handleTap() {
+        if (state.energy >= state.tapPower) {
+            state.bones += state.tapPower;
+            state.zoo += (0.0001 * state.tapPower);
+            state.energy -= state.tapPower;
+            tg.HapticFeedback.impactOccurred('light');
+            update();
         }
     }
+
+    function buy(type) {
+        if (state.bones >= state.tapPrice) {
+            state.bones -= state.tapPrice;
+            state.tapPower++;
+            state.tapPrice = Math.floor(state.tapPrice * 1.6);
+            save(); update();
+        }
+    }
+
+    async function save() { await db.collection("users").doc(uid).set(state); }
     
-    // Добавь вызов этой функции в свою основную функцию update()
+    function switchTab(id, el) {
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        el.classList.add('active');
+    }
+
+    document.getElementById('pet').addEventListener('pointerdown', handleTap);
+    setInterval(() => { if (state.energy < 1000) { state.energy = Math.min(1000, state.energy + 2); update(); } }, 2000);
+    setInterval(save, 15000);
+    init();
 </script>
+</body>
+</html>

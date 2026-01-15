@@ -8,90 +8,61 @@
     <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
     <style>
         :root { 
-            --primary: #5d4037; 
-            --accent: #ff9800; 
+            --primary: #5d4037; --accent: #ff9800; 
             --bg: linear-gradient(180deg, #1a1a1a 0%, #2d1f1a 100%); 
-            --card: rgba(255, 255, 255, 0.1); 
             --text: #ffffff;
         }
-        body { 
-            margin: 0; background: var(--bg); font-family: 'Segoe UI', sans-serif; 
-            color: var(--text); display: flex; flex-direction: column; height: 100vh; 
-            user-select: none; overflow: hidden; 
-        }
+        body { margin: 0; background: var(--bg); font-family: 'Segoe UI', sans-serif; color: var(--text); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         
-        #header { padding: 15px; background: rgba(0,0,0,0.3); backdrop-filter: blur(10px); text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
-        #rank-info { font-size: 12px; font-weight: bold; color: var(--accent); letter-spacing: 1px; margin-bottom: 5px; }
-        #balance { font-size: 36px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        #header { padding: 15px; background: rgba(0,0,0,0.3); text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        #balance { font-size: 32px; font-weight: 800; margin: 5px 0; }
         
-        .page { display: none; flex-direction: column; align-items: center; justify-content: center; flex-grow: 1; width: 100%; position: relative; }
+        .page { display: none; flex-direction: column; align-items: center; justify-content: center; flex-grow: 1; width: 100%; padding: 20px; box-sizing: border-box; }
         .page.active { display: flex; }
 
-        /* Такса - замени ссылку на свою dachshund-hero.png когда загрузишь */
-        .hero-container { position: relative; width: 260px; height: 260px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
-        .hero-img { width: 100%; height: 100%; object-fit: contain; transition: transform 0.05s; z-index: 2; }
-        .hero-container:active .hero-img { transform: scale(0.92); }
-        .hero-glow { position: absolute; width: 200px; height: 200px; background: var(--accent); filter: blur(60px); opacity: 0.3; border-radius: 50%; z-index: 1; }
+        /* Центрирование кнопки кошелька */
+        #ton-connect-button { 
+            display: flex; 
+            justify-content: center; 
+            min-height: 44px; 
+            width: 100%;
+            margin-top: 20px;
+        }
 
-        .stats { width: 85%; margin-top: 20px; }
-        .bar-label { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 5px; opacity: 0.8; }
-        .bar-bg { width: 100%; height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; margin-bottom: 15px; }
-        .bar-fill { height: 100%; transition: width 0.3s; }
-        #energy-fill { background: var(--accent); }
-        #level-fill { background: #4caf50; }
+        .hero-img { width: 220px; height: 220px; object-fit: contain; cursor: pointer; transition: transform 0.05s; }
+        .hero-img:active { transform: scale(0.95); }
 
-        .shop-card { background: var(--card); padding: 15px; border-radius: 16px; margin: 8px; width: 88%; display: flex; justify-content: space-between; align-items: center; border: 1px solid rgba(255,255,255,0.05); }
-        .buy-btn { background: var(--accent); border: none; color: white; padding: 10px 16px; border-radius: 10px; font-weight: bold; }
-
-        #nav { width: 100%; display: flex; background: rgba(0,0,0,0.4); padding: 10px 0 20px; border-top: 1px solid rgba(255,255,255,0.1); }
-        .nav-btn { flex: 1; text-align: center; font-size: 11px; opacity: 0.4; color: white; cursor: pointer; }
+        #nav { width: 100%; display: flex; background: rgba(0,0,0,0.5); padding: 10px 0 25px; }
+        .nav-btn { flex: 1; text-align: center; font-size: 11px; opacity: 0.5; color: white; cursor: pointer; }
         .nav-btn.active { opacity: 1; color: var(--accent); }
-
-        .floating-num { position: absolute; font-size: 32px; font-weight: 900; color: var(--accent); pointer-events: none; animation: floatUp 0.6s ease-out forwards; z-index: 100; }
-        @keyframes floatUp { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-120px); } }
     </style>
 </head>
 <body>
 
     <div id="header">
-        <div id="rank-info"><span id="player-name">Детектив</span> • <span id="rank-name">Стажер</span></div>
+        <div id="rank-info"><span id="player-name">Детектив</span></div>
         <div id="balance">🦴 <span id="coins">0</span></div>
-        <div style="font-size: 12px; opacity: 0.6;">Доход: +<span id="pps-val">0</span>/сек</div>
     </div>
 
     <div id="tab-game" class="page active">
-        <div class="hero-container" onclick="handleTap(event)">
-            <div class="hero-glow"></div>
-            <img src="https://i.ibb.co/XfXfXfX/dachshund.png" class="hero-img" id="hero-image" alt="Такса">
-        </div>
-        <div class="stats">
-            <div class="bar-label"><span>⚡ Энергия</span><span id="energy-text">1000/1000</span></div>
-            <div class="bar-bg"><div id="energy-fill" class="bar-fill"></div></div>
-            <div class="bar-label"><span>⭐ Опыт</span><span id="level-text">0/1000</span></div>
-            <div class="bar-bg"><div id="level-fill" class="bar-fill"></div></div>
-        </div>
+        <img src="https://i.ibb.co/XfXfXfX/dachshund.png" class="hero-img" onclick="handleTap(event)">
+        <p>⚡ Энергия: <span id="energy-text">1000/1000</span></p>
     </div>
 
     <div id="tab-shop" class="page">
-        <h3 style="margin-bottom: 15px;">Улучшения</h3>
-        <div class="shop-card">
-            <div><b>Лупа</b><br><small>+1 🦴/сек</small></div>
-            <button class="buy-btn" onclick="buyUpgrade(50, 1)">50 🦴</button>
-        </div>
-        <div class="shop-card">
-            <div><b>Напарник</b><br><small>+6 🦴/сек</small></div>
-            <button class="buy-btn" onclick="buyUpgrade(300, 6)">300 🦴</button>
-        </div>
+        <h3>Магазин</h3>
+        <button onclick="buyUpgrade(50, 1)">Лупа (50 🦴)</button>
     </div>
 
     <div id="tab-wallet" class="page">
         <h3>Кошелек</h3>
+        <p>Подключите TON кошелек для выплат</p>
         <div id="ton-connect-button"></div>
     </div>
 
     <div id="nav">
-        <div class="nav-btn active" onclick="showTab(0)">🏠 Главная</div>
-        <div class="nav-btn" onclick="showTab(1)">🛠 Магазин</div>
+        <div class="nav-btn active" onclick="showTab(0)">🏠 Игра</div>
+        <div class="nav-btn" onclick="showTab(1)">🛠 Лаборатория</div>
         <div class="nav-btn" onclick="showTab(3)">💎 Кошелек</div>
     </div>
 
@@ -103,120 +74,51 @@
         const accountKey = user ? `user_${user.id}` : "guest_account";
         document.getElementById('player-name').innerText = user ? user.first_name : "Детектив";
 
-        // Состояние игры
-        let balance = 0;
-        let totalCapped = 0;
-        let energy = 1000;
-        let pps = 0;
-        let lastBonusDate = "";
-        const maxEnergy = 1000;
+        let balance = 0, energy = 1000, pps = 0;
 
-        const ranks = [
-            { name: "Стажер", limit: 1000 },
-            { name: "Патрульный", limit: 5000 },
-            { name: "Детектив", limit: 25000 },
-            { name: "Шеф", limit: Infinity }
-        ];
-
-        function saveData() {
-            const gameData = {
-                balance, totalCapped, energy, pps, lastBonusDate, 
-                lastSeen: Date.now()
-            };
-            localStorage.setItem(accountKey, JSON.stringify(gameData));
-        }
-
-        function loadData() {
-            const saved = localStorage.getItem(accountKey);
-            if (saved) {
-                const data = JSON.parse(saved);
-                balance = data.balance || 0;
-                totalCapped = data.totalCapped || 0;
-                energy = data.energy || 1000;
-                pps = data.pps || 0;
-                lastBonusDate = data.lastBonusDate || "";
-            }
-            checkDailyBonus();
-        }
-
-        function checkDailyBonus() {
-            const today = new Date().toDateString();
-            if (lastBonusDate !== today) {
-                balance += 1000;
-                lastBonusDate = today;
-                saveData();
-                setTimeout(() => {
-                    tg.showPopup({ title: 'Ежедневный бонус!', message: '+1000 косточек за верную службу!' });
-                }, 1000);
-            }
-        }
+        // Инициализация TON Connect UI
+        const tonConnectUI = new TonConnectUI.TonConnectUI({
+            manifestUrl: 'https://dimazmlbig-dev.github.io/zootopia-clicker/tonconnect-manifest.json',
+            buttonRootId: 'ton-connect-button'
+        });
 
         function handleTap(e) {
-            if (energy <= 0) { tg.HapticFeedback.notificationOccurred('error'); return; }
-            let power = 1 + Math.floor(totalCapped / 5000);
-            balance += power; totalCapped += power; energy--;
-            tg.HapticFeedback.impactOccurred('medium');
-            updateUI();
-            
-            const text = document.createElement('div');
-            text.className = 'floating-num';
-            text.innerText = `+${power}`;
-            text.style.left = e.clientX + 'px';
-            text.style.top = (e.clientY - 40) + 'px';
-            document.body.appendChild(text);
-            setTimeout(() => text.remove(), 600);
-        }
-
-        function buyUpgrade(cost, income) {
-            if (balance >= cost) {
-                balance -= cost; pps += income;
-                tg.HapticFeedback.notificationOccurred('success');
+            if (energy > 0) {
+                balance++; energy--;
+                tg.HapticFeedback.impactOccurred('medium');
                 updateUI();
-                saveData();
-            } else {
-                tg.showAlert("Недостаточно косточек!");
             }
         }
 
         function updateUI() {
             document.getElementById('coins').innerText = Math.floor(balance);
-            document.getElementById('pps-val').innerText = pps.toFixed(1);
-            document.getElementById('energy-text').innerText = `${energy}/${maxEnergy}`;
-            document.getElementById('energy-fill').style.width = (energy / maxEnergy * 100) + '%';
-            
-            let currentRank = ranks.find(r => totalCapped < r.limit) || ranks[ranks.length-1];
-            let prevLimit = ranks[ranks.indexOf(currentRank)-1]?.limit || 0;
-            let progress = ((totalCapped - prevLimit) / (currentRank.limit - prevLimit)) * 100;
-            
-            document.getElementById('rank-name').innerText = currentRank.name;
-            document.getElementById('level-text').innerText = `${Math.floor(totalCapped)} / ${currentRank.limit}`;
-            document.getElementById('level-fill').style.width = (currentRank.limit === Infinity ? 100 : progress) + '%';
+            document.getElementById('energy-text').innerText = `${energy}/1000`;
         }
 
         function showTab(index) {
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            
             const tabs = ['tab-game', 'tab-shop', '', 'tab-wallet'];
-            document.getElementById(tabs[index]).classList.add('active');
-            document.querySelectorAll('.nav-btn')[index === 3 ? 2 : index].classList.add('active');
+            const activeTabId = tabs[index];
+            if(activeTabId) document.getElementById(activeTabId).classList.add('active');
+            
+            const btnIdx = index === 3 ? 2 : index;
+            document.querySelectorAll('.nav-btn')[btnIdx].classList.add('active');
         }
 
-        const tonConnectUI = new TONConnectUI.TonConnectUI({
-            manifestUrl: 'https://dimazmlbig-dev.github.io/zootopia-clicker/tonconnect-manifest.json',
-            buttonRootId: 'ton-connect-button' 
-        });
-
-        loadData();
-        updateUI();
+        function saveData() {
+            localStorage.setItem(accountKey, JSON.stringify({balance, energy, pps}));
+        }
 
         setInterval(() => {
-            balance += (pps / 10);
-            totalCapped += (pps / 10);
-            if (energy < maxEnergy) energy++;
+            balance += pps;
+            if (energy < 1000) energy++;
             updateUI();
-        }, 100);
+            saveData();
+        }, 1000);
 
-        setInterval(saveData, 5000);
+        updateUI();
     </script>
 </body>
 </html>

@@ -18,14 +18,18 @@
         
         body { font-family: 'Poppins', sans-serif; background: var(--bg); color: white; margin: 0; overflow: hidden; touch-action: none; }
         .header { text-align: center; padding: 10px; background: rgba(0,0,0,0.8); border-bottom: 1px solid #333; position: sticky; top: 0; z-index: 100; }
-        .balance { font-family: 'Orbitron'; font-size: 28px; color: var(--gold); }
-        .pnl { color: #00FF88; font-size: 12px; margin-top: 4px; }
         
+        /* Стили лиг */
+        .league-info { font-size: 12px; color: var(--accent); margin-bottom: 5px; font-weight: bold; text-transform: uppercase; }
+        .league-bar-bg { width: 60%; height: 4px; background: #333; margin: 0 auto 10px; border-radius: 2px; }
+        #league-progress { height: 100%; background: var(--gold); width: 0%; border-radius: 2px; transition: 0.5s; }
+
+        .balance { font-family: 'Orbitron'; font-size: 28px; color: var(--gold); }
         .tab-content { display: none; height: calc(100vh - 160px); overflow-y: auto; padding: 20px; padding-bottom: 120px; }
         .tab-content.active { display: block; }
         
         .card { background: var(--card); border-radius: 12px; padding: 15px; margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; }
-        .btn-buy { background: var(--accent); color: black; border: none; padding: 8px 12px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 12px; }
+        .btn-buy { background: var(--accent); color: black; border: none; padding: 8px 12px; border-radius: 8px; font-weight: bold; cursor: pointer; }
         
         .click-area { display: flex; justify-content: center; align-items: center; height: 260px; }
         .pet-image { width: 180px; cursor: pointer; transition: 0.1s; -webkit-tap-highlight-color: transparent; }
@@ -36,29 +40,27 @@
         .nav-item.active { color: var(--accent); }
         .nav-item i { font-size: 20px; margin-bottom: 4px; display: block; }
         
-        #loading { position: fixed; top:0; left:0; width:100%; height:100%; background:var(--bg); z-index:999; display:flex; align-items:center; justify-content:center; flex-direction: column; text-align: center; }
+        #loading { position: fixed; top:0; left:0; width:100%; height:100%; background:var(--bg); z-index:999; display:flex; align-items:center; justify-content:center; flex-direction: column; }
     </style>
 </head>
 <body>
 
 <div id="loading">
     <h2 style="font-family:'Orbitron'; color:var(--gold)">ZOOTOPIA</h2>
-    <p id="loading-status">Синхронизация данных...</p>
+    <p>Загрузка уровней...</p>
 </div>
 
 <div class="header">
+    <div class="league-info" id="league-name">Бронзовая Лига</div>
+    <div class="league-bar-bg"><div id="league-progress"></div></div>
     <div class="balance" id="bones">0</div>
     <div style="font-size:12px; font-family:'Orbitron'">$ZOO: <span id="zoo" style="color:var(--accent)">0.0000</span></div>
-    <div class="pnl">Прибыль в час: +<span id="pnl-val">0</span> 🦴</div>
 </div>
 
 <div id="tab-game" class="tab-content active">
     <div class="click-area"><img src="dachshund.png" class="pet-image" id="pet"></div>
-    <div style="background:rgba(255,255,255,0.05); padding:10px; border-radius:10px; text-align:center;">
+    <div style="text-align:center;">
         <p style="margin:0; font-size:14px;">⚡ Энергия: <span id="energy">1000</span>/1000</p>
-        <div style="width:100%; height:6px; background:#333; border-radius:3px; margin-top:8px;">
-            <div id="energy-bar" style="width:100%; height:100%; background:var(--accent); border-radius:3px; transition:0.3s;"></div>
-        </div>
     </div>
 </div>
 
@@ -66,23 +68,19 @@
     <h3 style="color:var(--gold); font-family:'Orbitron'">UPGRADES</h3>
     <div class="card">
         <div><b>Мульти-тап</b><br><small>Ур. <span id="lvl-tap">1</span></small></div>
-        <button class="btn-buy" onclick="buyUpgrade('tap')">КУПИТЬ</button>
+        <button class="btn-buy" onclick="buyUpgrade('tap')">УЛУЧШИТЬ</button>
     </div>
 </div>
 
-<div id="tab-airdrop" class="tab-content">
-    <h3 style="color:var(--gold); font-family:'Orbitron'">AIRDROP</h3>
-    <div class="card" style="flex-direction:column; text-align:center;">
-        <p style="font-size:12px;">Контракт: <br><b>EQB5RZDUIW3wWLWxACmKhiH6UYEGhpuCVz2BB2KI4Wyj91Vs</b></p>
-        <button class="btn-buy" onclick="window.open('https://tonviewer.com/EQB5RZDUIW3wWLWxACmKhiH6UYEGhpuCVz2BB2KI4Wyj91Vs')">ОТКРЫТЬ В EXPLORER</button>
-    </div>
-    <div id="ton-connect-btn" style="display:flex; justify-content:center; margin-top:20px;"></div>
+<div id="tab-leaderboard" class="tab-content">
+    <h3 style="color:var(--gold); font-family:'Orbitron'; text-align:center;">ТОП ИГРОКОВ</h3>
+    <div id="leaderboard-list"></div>
 </div>
 
 <div class="nav">
     <div class="nav-item active" onclick="switchTab('tab-game', this)"><i class="fas fa-paw"></i>Игра</div>
     <div class="nav-item" onclick="switchTab('tab-upgrades', this)"><i class="fas fa-rocket"></i>Магазин</div>
-    <div class="nav-item" onclick="switchTab('tab-airdrop', this)"><i class="fas fa-wallet"></i>Airdrop</div>
+    <div class="nav-item" onclick="switchTab('tab-leaderboard', this)"><i class="fas fa-trophy"></i>Топ</div>
 </div>
 
 <script>
@@ -101,20 +99,25 @@
     tg.expand();
 
     const uid = tg.initDataUnsafe?.user?.id?.toString() || "dev_user";
-    let state = { bones: 0, zoo: 0, energy: 1000, tapPower: 1, pnl: 0, lastUnix: Date.now(), upgrades: { tap: 1 } };
+    const firstName = tg.initDataUnsafe?.user?.first_name || "Игрок";
 
-    // Принудительное скрытие загрузки через 5 секунд (защита от зависания)
-    const safetyTimeout = setTimeout(() => {
-        document.getElementById('loading').style.display = 'none';
-    }, 5000);
+    // Настройки лиг
+    const leagues = [
+        { name: "Бронзовая Лига", min: 0, max: 50000 },
+        { name: "Серебряная Лига", min: 50000, max: 250000 },
+        { name: "Золотая Лига", min: 250000, max: 1000000 },
+        { name: "Алмазная Лига", min: 1000000, max: 10000000 },
+        { name: "Лига Чемпионов", min: 10000000, max: Infinity }
+    ];
+
+    let state = { bones: 0, zoo: 0, energy: 1000, tapPower: 1, name: firstName, leagueIndex: 0 };
 
     async function init() {
         try {
             const doc = await db.collection("users").doc(uid).get();
             if (doc.exists) { state = { ...state, ...doc.data() }; }
             updateUI();
-        } catch (e) { console.error("Firebase error", e); }
-        clearTimeout(safetyTimeout);
+        } catch (e) {}
         document.getElementById('loading').style.display = 'none';
     }
 
@@ -122,8 +125,21 @@
         document.getElementById('bones').innerText = Math.floor(state.bones).toLocaleString();
         document.getElementById('zoo').innerText = state.zoo.toFixed(4);
         document.getElementById('energy').innerText = state.energy;
-        document.getElementById('energy-bar').style.width = (state.energy / 10) + "%";
-        document.getElementById('lvl-tap').innerText = state.upgrades.tap;
+        document.getElementById('lvl-tap').innerText = state.tapPower;
+
+        // Расчет лиги
+        let currentLeague = leagues[state.leagueIndex];
+        if (state.bones >= currentLeague.max && state.leagueIndex < leagues.length - 1) {
+            state.leagueIndex++;
+            currentLeague = leagues[state.leagueIndex];
+            tg.showAlert(`Поздравляем! Вы перешли в: ${currentLeague.name}`);
+        }
+
+        document.getElementById('league-name').innerText = currentLeague.name;
+        
+        // Прогресс-бар лиги
+        let progress = ((state.bones - currentLeague.min) / (currentLeague.max - currentLeague.min)) * 100;
+        document.getElementById('league-progress').style.width = Math.min(100, progress) + "%";
     }
 
     function handleTap() {
@@ -137,14 +153,27 @@
     }
 
     function buyUpgrade(type) {
-        let price = state.upgrades[type] * 500;
+        let price = state.tapPower * 1000;
         if (state.bones >= price) {
             state.bones -= price;
-            state.upgrades[type]++;
             state.tapPower++;
             updateUI();
             saveToDb();
+        } else {
+            tg.showAlert("Недостаточно костей!");
         }
+    }
+
+    async function loadLeaderboard() {
+        const list = document.getElementById('leaderboard-list');
+        list.innerHTML = 'Загрузка...';
+        const snap = await db.collection("users").orderBy("bones", "desc").limit(10).get();
+        let h = '';
+        snap.forEach(d => {
+            const data = d.data();
+            h += `<div class="card"><span>${data.name}</span><b>${Math.floor(data.bones).toLocaleString()}</b></div>`;
+        });
+        list.innerHTML = h;
     }
 
     async function saveToDb() { try { await db.collection("users").doc(uid).set(state); } catch(e){} }
@@ -154,19 +183,12 @@
         document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
         document.getElementById(id).classList.add('active');
         el.classList.add('active');
+        if (id === 'tab-leaderboard') loadLeaderboard();
     }
 
     document.getElementById('pet').addEventListener('pointerdown', handleTap);
     setInterval(saveToDb, 15000);
-    setInterval(() => { if(state.energy < 1000) { state.energy = Math.min(1000, state.energy + 2); updateUI(); } }, 2000);
-
-    // TON Connect
-    try {
-        const tonConnectUI = new TONConnectUI.TonConnectUI({
-            manifestUrl: 'https://dimazmlbig-dev.github.io/zootopia-clicker/tonconnect-manifest.json',
-            buttonRootId: 'ton-connect-btn'
-        });
-    } catch(e) { console.error("TON Connect failed"); }
+    setInterval(() => { if(state.energy < 1000) { state.energy = Math.min(1000, state.energy + 5); updateUI(); } }, 2000);
 
     init();
 </script>

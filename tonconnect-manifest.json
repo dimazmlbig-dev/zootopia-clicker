@@ -1,4 +1,7 @@
 {
-    "url": "https://dimazmlbig-dev.github.io/zootopia-clicker/",
-    "name": "Zootopia Clicker",
-    "iconUrl": "https://dimazmlbig-dev.github.io/zootopia-clicker/d
+  "url": "https://your-domain.com",
+  "name": "Zootopia Clicker",
+  "iconUrl": "https://your-domain.com/icon.png",
+  "termsOfUseUrl": "https://your-domain.com/terms",
+  "privacyPolicyUrl": "https://your-domain.com/privacy"
+}

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Zootopia Crypto</title>
+    <title>Zootopia Ultimate</title>
     
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -16,48 +16,68 @@
         :root { --gold: #FFD700; --accent: #00FFFF; --bg: #0A0A12; --card: #1C1C2E; }
         
         body { font-family: 'Poppins', sans-serif; background: var(--bg); color: white; margin: 0; overflow: hidden; touch-action: none; user-select: none; }
-        .header { text-align: center; padding: 10px; background: rgba(0,0,0,0.8); border-bottom: 1px solid #333; }
-        .balance { font-family: 'Orbitron'; font-size: 24px; color: var(--gold); }
-        .zoo-balance { color: var(--accent); font-size: 14px; font-family: 'Orbitron'; margin-top: 5px; }
         
-        .tab-content { display: none; height: calc(100vh - 180px); overflow-y: auto; padding: 20px; }
+        /* HEADER */
+        .header { text-align: center; padding: 10px; background: rgba(0,0,0,0.9); border-bottom: 1px solid #333; position: sticky; top: 0; z-index: 1000; }
+        .league-info { font-size: 11px; color: var(--accent); font-weight: bold; text-transform: uppercase; margin-bottom: 5px; }
+        .league-bar { width: 60%; height: 4px; background: #222; margin: 0 auto 10px; border-radius: 2px; overflow: hidden; }
+        #league-progress { height: 100%; background: var(--gold); width: 0%; transition: 0.5s; }
+        .balance { font-family: 'Orbitron'; font-size: 26px; color: var(--gold); }
+        .zoo-balance { color: var(--accent); font-size: 12px; font-family: 'Orbitron'; }
+
+        /* TABS */
+        .tab-content { display: none; height: calc(100vh - 170px); overflow-y: auto; padding: 20px; padding-bottom: 100px; }
         .tab-content.active { display: block; }
-        
-        /* NFT Стили */
-        .nft-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding-bottom: 100px; }
-        .nft-card { background: var(--card); border-radius: 15px; overflow: hidden; border: 1px solid rgba(0, 255, 255, 0.1); position: relative; }
-        .nft-img { width: 100%; height: 120px; object-fit: cover; background: #222; }
-        .nft-info { padding: 10px; text-align: center; }
-        .nft-name { font-size: 11px; font-weight: bold; display: block; }
-        .nft-bonus { font-size: 10px; color: #00FF88; margin: 4px 0; }
-        .nft-price { color: var(--gold); font-size: 12px; font-family: 'Orbitron'; }
-        
-        .btn-nft { background: var(--accent); color: black; border: none; padding: 6px; border-radius: 6px; font-size: 10px; font-weight: bold; width: 100%; margin-top: 8px; cursor: pointer; }
-        .btn-nft.owned { background: #444; color: #888; cursor: default; }
 
-        .click-area { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 60vh; }
-        .pet-image { width: 220px; transition: transform 0.05s; }
-        
-        .energy-container { width: 80%; margin-top: 30px; }
-        .energy-bar-bg { width: 100%; height: 8px; background: #111; border-radius: 10px; overflow: hidden; }
-        #energy-fill { height: 100%; background: var(--accent); width: 100%; transition: 0.3s; }
+        /* GAME TAB */
+        .click-area { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 60vh; position: relative; }
+        .pet-image { width: 250px; filter: drop-shadow(0 0 20px rgba(0,255,255,0.2)); transition: 0.05s; }
+        .energy-container { position: absolute; bottom: 10px; width: 80%; text-align: center; }
+        .energy-bar { width: 100%; height: 10px; background: #111; border-radius: 10px; overflow: hidden; border: 1px solid #333; }
+        #energy-fill { height: 100%; background: var(--accent); width: 100%; transition: 0.2s; }
 
-        .nav { position: fixed; bottom: 0; width: 100%; display: flex; background: #000; padding: 15px 0; border-top: 1px solid #222; }
+        /* CARDS & UI */
+        .card { background: var(--card); border-radius: 15px; padding: 15px; margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center; }
+        .btn-action { background: var(--accent); color: black; border: none; padding: 10px 15px; border-radius: 10px; font-weight: bold; cursor: pointer; }
+        
+        /* NFT & BOXES */
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .nft-card { background: var(--card); border-radius: 12px; overflow: hidden; border: 1px solid rgba(0,255,255,0.1); text-align: center; padding-bottom: 10px; }
+        .nft-img-sm { width: 100%; height: 100px; object-fit: cover; }
+
+        /* UNBOXING OVERLAY */
+        #unboxing { position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 5000; display: none; flex-direction: column; align-items: center; justify-content: center; }
+        .box-anim { font-size: 80px; animation: shake 0.5s infinite; }
+        @keyframes shake { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(5deg); } 75% { transform: rotate(-5deg); } }
+        .reward-pop { transform: scale(0); transition: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); text-align: center; }
+        .reward-pop.show { transform: scale(1); }
+
+        /* NAVIGATION */
+        .nav { position: fixed; bottom: 0; width: 100%; display: flex; background: #000; padding: 12px 0; border-top: 1px solid #222; z-index: 1000; }
         .nav-item { flex: 1; text-align: center; color: #555; font-size: 10px; }
         .nav-item.active { color: var(--accent); }
         .nav-item i { font-size: 20px; display: block; margin-bottom: 4px; }
 
-        #loading { position: fixed; inset: 0; background: var(--bg); z-index: 1000; display: flex; align-items: center; justify-content: center; flex-direction: column; }
+        #loading { position: fixed; inset: 0; background: var(--bg); z-index: 9999; display: flex; align-items: center; justify-content: center; color: var(--gold); }
     </style>
 </head>
 <body>
 
-<div id="loading">
-    <h2 style="font-family:'Orbitron'; color:var(--gold)">ZOOTOPIA</h2>
-    <p>Загрузка маркета...</p>
+<div id="loading"><h2>ZOOTOPIA...</h2></div>
+
+<div id="unboxing">
+    <div id="box-icon" class="box-anim">🎁</div>
+    <div id="reward-info" class="reward-pop">
+        <img id="rew-img" src="" style="width:150px; border-radius:20px; border:3px solid var(--accent);">
+        <h2 id="rew-name" style="margin:10px 0;"></h2>
+        <p id="rew-bonus" style="color:var(--accent);"></p>
+        <button class="btn-action" onclick="closeUnboxing()">ЗАБРАТЬ</button>
+    </div>
 </div>
 
 <div class="header">
+    <div class="league-info" id="league-name">Бронзовая Лига</div>
+    <div class="league-bar"><div id="league-progress"></div></div>
     <div class="balance" id="bones">0</div>
     <div class="zoo-balance">$ZOO: <span id="zoo-val">0.0000</span></div>
 </div>
@@ -65,24 +85,42 @@
 <div id="tab-game" class="tab-content active">
     <div class="click-area">
         <img src="dachshund.png" class="pet-image" id="pet">
-        <div style="margin-top: 20px; font-weight: bold; color: var(--accent);">Клик: +<span id="total-tap">1</span></div>
+        <div style="margin-top:15px; font-weight:bold; color:var(--accent)">Клик: +<span id="tap-val">1</span> | 🦴/час: <span id="pnl-val">0</span></div>
         <div class="energy-container">
-            <div style="font-size: 12px; margin-bottom: 5px;">⚡ <span id="energy-val">1000</span> / 1000</div>
-            <div class="energy-bar-bg"><div id="energy-fill"></div></div>
+            <div style="font-size:12px; margin-bottom:5px;">⚡ <span id="en-cur">1000</span>/1000</div>
+            <div class="energy-bar"><div id="energy-fill"></div></div>
         </div>
     </div>
 </div>
 
-<div id="tab-nft" class="tab-content">
-    <h3 style="color:var(--gold); font-family:'Orbitron';">NFT МАГАЗИН</h3>
-    <p style="font-size: 10px; color: #888; margin-bottom: 15px;">NFT увеличивают силу клика навсегда!</p>
-    <div class="nft-grid" id="nft-market">
+<div id="tab-boost" class="tab-content">
+    <h3 style="color:var(--gold)">УЛУЧШЕНИЯ</h3>
+    <div class="card">
+        <div><b>Сила тапа</b><br><small id="tap-cost">1000 🦴</small></div>
+        <button class="btn-action" onclick="buyUpgrade('tap')">LVL <span id="tap-lvl">1</span></button>
+    </div>
+    <div class="card">
+        <div><b>Авто-кормушка</b><br><small id="pnl-cost">2000 🦴</small></div>
+        <button class="btn-action" onclick="buyUpgrade('pnl')">+50/час</button>
+    </div>
+</div>
+
+<div id="tab-market" class="tab-content">
+    <h3 style="color:var(--gold)">КЕЙСЫ (Lootbox)</h3>
+    <div class="card" style="background: linear-gradient(to right, #1c1c2e, #2a2a4d);">
+        <div><b>Обычный бокс</b><br><small>Цена: 10 $ZOO</small></div>
+        <button class="btn-action" onclick="openBox()">ОТКРЫТЬ</button>
+    </div>
+
+    <h3 style="color:var(--accent); margin-top:20px;">ТВОИ NFT</h3>
+    <div id="nft-inventory" class="grid">
         </div>
 </div>
 
 <nav class="nav">
     <div class="nav-item active" onclick="switchTab('tab-game', this)"><i class="fas fa-paw"></i>Игра</div>
-    <div class="nav-item" onclick="switchTab('tab-nft', this)"><i class="fas fa-shopping-cart"></i>NFT Маркет</div>
+    <div class="nav-item" onclick="switchTab('tab-boost', this)"><i class="fas fa-rocket"></i>Бусты</div>
+    <div class="nav-item" onclick="switchTab('tab-market', this)"><i class="fas fa-box-open"></i>Маркет</div>
 </nav>
 
 <script>
@@ -98,91 +136,109 @@
     const db = firebase.firestore();
     const tg = window.Telegram.WebApp;
 
-    const uid = tg.initDataUnsafe?.user?.id?.toString() || "dev_test";
-    
-    // Список доступных NFT
-    const nftCatalog = [
-        { id: 'n1', name: 'Cyber Collar', price: 10, bonus: 5, img: 'https://img.freepik.com/free-vector/cyber-dog-concept-illustration_114360-18118.jpg' },
-        { id: 'n2', name: 'Neon Glasses', price: 50, bonus: 15, img: 'https://img.freepik.com/free-photo/view-neon-illuminated-dog_23-2150712530.jpg' },
-        { id: 'n3', name: 'Rocket Pack', price: 250, bonus: 50, img: 'https://img.freepik.com/free-vector/dog-space-suit-illustration_114360-7850.jpg' },
-        { id: 'n4', name: 'Zootopia King', price: 1000, bonus: 200, img: 'https://img.freepik.com/free-photo/cool-dog-with-sunglasses-gold-chain_23-2150165917.jpg' }
+    const items = [
+        { id: 'c1', name: 'Cyber Collar', bonus: 10, img: 'https://cdn-icons-png.flaticon.com/512/6065/6065011.png' },
+        { id: 'c2', name: 'Neon Glasses', bonus: 25, img: 'https://cdn-icons-png.flaticon.com/512/3233/3233379.png' },
+        { id: 'c3', name: 'Golden Bone', bonus: 100, img: 'https://cdn-icons-png.flaticon.com/512/2916/2916133.png' }
     ];
 
-    let state = { bones: 0, zoo: 0, energy: 1000, tapPower: 1, nfts: [] };
+    const leagues = [
+        { name: "Бронза", max: 10000 }, { name: "Серебро", max: 100000 }, { name: "Золото", max: 1000000 }
+    ];
+
+    let state = { bones: 0, zoo: 0, energy: 1000, tapLvl: 1, pnl: 0, nfts: [], lastSave: Date.now() };
 
     async function init() {
-        try {
-            const doc = await db.collection("users").doc(uid).get();
-            if (doc.exists) state = { ...state, ...doc.data() };
-            renderNFTs();
-            updateUI();
-        } catch (e) {}
+        const uid = tg.initDataUnsafe?.user?.id?.toString() || "dev";
+        const doc = await db.collection("users").doc(uid).get();
+        if (doc.exists) state = { ...state, ...doc.data() };
+        
+        // Оффлайн доход
+        const passed = (Date.now() - state.lastSave) / 3600000;
+        if (state.pnl > 0) state.bones += (state.pnl * passed);
+
+        updateUI();
+        renderInventory();
         document.getElementById('loading').style.display = 'none';
     }
 
-    function calculateTotalTap() {
-        let nftBonus = 0;
-        state.nfts.forEach(nftId => {
-            const nft = nftCatalog.find(item => item.id === nftId);
-            if (nft) nftBonus += nft.bonus;
-        });
-        return state.tapPower + nftBonus;
-    }
-
     function updateUI() {
-        const totalTap = calculateTotalTap();
+        const nftBonus = state.nfts.reduce((sum, id) => sum + (items.find(i => i.id === id)?.bonus || 0), 0);
+        const totalTap = state.tapLvl + nftBonus;
+
         document.getElementById('bones').innerText = Math.floor(state.bones).toLocaleString();
         document.getElementById('zoo-val').innerText = state.zoo.toFixed(4);
-        document.getElementById('energy-val').innerText = Math.floor(state.energy);
-        document.getElementById('energy-fill').style.width = (state.energy / 10) + "%";
-        document.getElementById('total-tap').innerText = totalTap;
-    }
+        document.getElementById('en-cur').innerText = Math.floor(state.energy);
+        document.getElementById('energy-fill').style.width = (state.energy/10) + "%";
+        document.getElementById('tap-val').innerText = totalTap;
+        document.getElementById('tap-lvl').innerText = state.tapLvl;
+        document.getElementById('pnl-val').innerText = state.pnl;
 
-    function renderNFTs() {
-        const container = document.getElementById('nft-market');
-        container.innerHTML = '';
-        nftCatalog.forEach(nft => {
-            const isOwned = state.nfts.includes(nft.id);
-            container.innerHTML += `
-                <div class="nft-card">
-                    <img src="${nft.img}" class="nft-img">
-                    <div class="nft-info">
-                        <span class="nft-name">${nft.name}</span>
-                        <div class="nft-bonus">+${nft.bonus} к клику</div>
-                        <div class="nft-price">${nft.price} $ZOO</div>
-                        <button class="btn-nft ${isOwned ? 'owned' : ''}" 
-                                onclick="${isOwned ? '' : `buyNFT('${nft.id}', ${nft.price})`}">
-                            ${isOwned ? 'КУПЛЕНО' : 'КУПИТЬ'}
-                        </button>
-                    </div>
-                </div>
-            `;
-        });
-    }
-
-    function buyNFT(id, price) {
-        if (state.zoo >= price) {
-            state.zoo -= price;
-            state.nfts.push(id);
-            tg.HapticFeedback.notificationOccurred('success');
-            renderNFTs();
-            updateUI();
-            saveToDb();
-        } else {
-            tg.showAlert("Недостаточно $ZOO! Продолжай кликать.");
-        }
+        // Лиги
+        let l = leagues.find(l => state.bones < l.max) || leagues[leagues.length-1];
+        document.getElementById('league-name').innerText = l.name;
+        document.getElementById('league-progress').style.width = (state.bones / l.max * 100) + "%";
     }
 
     function handleTap() {
-        const power = calculateTotalTap();
+        const nftBonus = state.nfts.reduce((sum, id) => sum + (items.find(i => i.id === id)?.bonus || 0), 0);
+        const power = state.tapLvl + nftBonus;
         if (state.energy >= 1) {
             state.bones += power;
-            state.zoo += (power * 0.001); // Начисление зоокоинов за клик
+            state.zoo += (power * 0.0001);
             state.energy -= 1;
             updateUI();
             tg.HapticFeedback.impactOccurred('light');
         }
     }
+
+    function buyUpgrade(type) {
+        if (type === 'tap') {
+            let cost = state.tapLvl * 500;
+            if (state.bones >= cost) { state.bones -= cost; state.tapLvl++; }
+        } else {
+            let cost = (state.pnl + 50) * 40;
+            if (state.bones >= cost) { state.bones -= cost; state.pnl += 50; }
+        }
+        updateUI();
+        saveToDb();
+    }
+
+    function openBox() {
+        if (state.zoo < 10) return tg.showAlert("Нужно 10 $ZOO!");
+        state.zoo -= 10;
+        
+        const over = document.getElementById('unboxing');
+        const box = document.getElementById('box-icon');
+        const rew = document.getElementById('reward-info');
+        
+        over.style.display = 'flex';
+        box.style.display = 'block';
+        rew.classList.remove('show');
+
+        setTimeout(() => {
+            box.style.display = 'none';
+            const item = items[Math.floor(Math.random()*items.length)];
+            state.nfts.push(item.id);
+            document.getElementById('rew-img').src = item.img;
+            document.getElementById('rew-name').innerText = item.name;
+            document.getElementById('rew-bonus').innerText = `+${item.bonus} к силе клика`;
+            rew.classList.add('show');
+            renderInventory();
+            saveToDb();
+        }, 2000);
+    }
+
+    function renderInventory() {
+        const inv = document.getElementById('nft-inventory');
+        inv.innerHTML = '';
+        state.nfts.forEach(id => {
+            const item = items.find(i => i.id === id);
+            inv.innerHTML += `<div class="nft-card"><img src="${item.img}" class="nft-img-sm"><br><small>${item.name}</small></div>`;
+        });
+    }
+
+    function closeUnboxing() { document.getElementById('unboxing').style.display = 'none'; updateUI(); }
 
     function switchTab(id, el) {
         document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
@@ -191,16 +247,16 @@
         el.classList.add('active');
     }
 
-    async function saveToDb() { try { await db.collection("users").doc(uid).set(state); } catch(e){} }
+    async function saveToDb() {
+        state.lastSave = Date.now();
+        const uid = tg.initDataUnsafe?.user?.id?.toString() || "dev";
+        try { await db.collection("users").doc(uid).set(state); } catch(e){}
+    }
 
-    document.getElementById('pet').addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        handleTap();
-    });
-
-    setInterval(() => { if(state.energy < 1000) { state.energy = Math.min(1000, state.energy + 3); updateUI(); } }, 1000);
+    document.getElementById('pet').addEventListener('touchstart', (e) => { e.preventDefault(); handleTap(); });
+    setInterval(() => { if(state.energy < 1000) { state.energy = Math.min(1000, state.energy + 2); updateUI(); } }, 1000);
+    setInterval(() => { if(state.pnl > 0) { state.bones += (state.pnl/3600); updateUI(); } }, 1000);
     setInterval(saveToDb, 15000);
-
     init();
 </script>
 </body>

@@ -6,9 +6,7 @@
     <title>Zootopia Crypto</title>
     
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    
     <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
-    
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     
@@ -22,27 +20,31 @@
         .header { text-align: center; padding: 15px; background: rgba(0,0,0,0.5); border-bottom: 1px solid #333; }
         .balance { font-family: 'Orbitron'; font-size: 32px; color: var(--gold); }
         
-        .tab-content { display: none; height: calc(100vh - 160px); overflow-y: auto; padding: 20px; }
+        .tab-content { display: none; height: calc(100vh - 160px); overflow-y: auto; padding: 20px; padding-bottom: 100px; }
         .tab-content.active { display: block; }
         
-        .card { background: var(--card); border-radius: 12px; padding: 15px; margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.1); }
+        .card { background: var(--card); border-radius: 12px; padding: 15px; margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; }
         
         .click-area { display: flex; justify-content: center; align-items: center; height: 260px; position: relative; }
         .pet-image { width: 180px; cursor: pointer; transition: 0.1s; -webkit-tap-highlight-color: transparent; z-index: 10; }
         .pet-image:active { transform: scale(0.92); }
         
-        .nav { position: fixed; bottom: 0; width: 100%; display: flex; background: #111; padding: 12px 0; border-top: 1px solid #333; }
+        .nav { position: fixed; bottom: 0; width: 100%; display: flex; background: #111; padding: 12px 0; border-top: 1px solid #333; z-index: 100; }
         .nav-item { flex: 1; text-align: center; color: #666; font-size: 11px; cursor: pointer; }
         .nav-item.active { color: var(--accent); }
+        .nav-item i { font-size: 20px; margin-bottom: 4px; display: block; }
         
         #loading { position: fixed; top:0; left:0; width:100%; height:100%; background:var(--bg); z-index:999; display:flex; align-items:center; justify-content:center; flex-direction: column; }
+        
+        .rank-number { font-family: 'Orbitron'; color: var(--gold); width: 30px; }
+        .user-name { flex-grow: 1; margin-left: 10px; font-weight: 600; }
     </style>
 </head>
 <body>
 
 <div id="loading">
     <h2 style="font-family:'Orbitron'; color:var(--gold)">ZOOTOPIA</h2>
-    <p id="status-text">Загрузка данных...</p>
+    <p>Синхронизация профиля...</p>
 </div>
 
 <div class="header">
@@ -51,28 +53,34 @@
 </div>
 
 <div id="tab-game" class="tab-content active">
-    <div class="click-area">
-        <img src="dachshund.png" class="pet-image" id="pet" alt="pet">
-    </div>
+    <div class="click-area"><img src="dachshund.png" class="pet-image" id="pet"></div>
     <p style="text-align:center">⚡ Энергия: <span id="energy">1000</span>/1000</p>
 </div>
 
+<div id="tab-leaderboard" class="tab-content">
+    <h3 style="color:var(--gold); font-family:'Orbitron'; text-align:center;">TOP 10 PLAYERS</h3>
+    <div id="leaderboard-list">
+        <p style="text-align:center;">Загрузка рейтинга...</p>
+    </div>
+</div>
+
 <div id="tab-airdrop" class="tab-content">
-    <h3 style="color:var(--gold)">Airdrop & Wallet</h3>
-    <div class="card" style="text-align:center;">
-        <p style="margin:0; font-size:12px;">Контракт токена:</p>
-        <p style="font-size:10px; color:var(--accent); word-break:break-all;">EQB5RZDUIW3wWLWxACmKhiH6UYEGhpuCVz2BB2KI4Wyj91Vs</p>
+    <h3 style="color:var(--gold); font-family:'Orbitron'">Airdrop & Wallet</h3>
+    <div class="card" style="flex-direction:column; align-items:center; text-align:center;">
+        <p style="margin:0; font-size:12px; color:#888;">Контракт токена:</p>
+        <p style="font-size:10px; color:var(--accent); word-break:break-all; margin: 10px 0;">EQB5RZDUIW3wWLWxACmKhiH6UYEGhpuCVz2BB2KI4Wyj91Vs</p>
+        <button class="btn-action" style="background:var(--gold); border:none; padding:8px; border-radius:5px; font-weight:bold;" onclick="window.open('https://tonviewer.com/EQB5RZDUIW3wWLWxACmKhiH6UYEGhpuCVz2BB2KI4Wyj91Vs')">VIEW IN EXPLORER</button>
     </div>
     <div id="ton-connect-btn" style="display:flex; justify-content:center; margin-top:20px;"></div>
 </div>
 
 <div class="nav">
-    <div class="nav-item active" onclick="switchTab('tab-game', this)"><i class="fas fa-paw"></i><br>Игра</div>
-    <div class="nav-item" onclick="switchTab('tab-airdrop', this)"><i class="fas fa-wallet"></i><br>Airdrop</div>
+    <div class="nav-item active" onclick="switchTab('tab-game', this)"><i class="fas fa-paw"></i>Игра</div>
+    <div class="nav-item" onclick="switchTab('tab-leaderboard', this)"><i class="fas fa-trophy"></i>Топ</div>
+    <div class="nav-item" onclick="switchTab('tab-airdrop', this)"><i class="fas fa-wallet"></i>Airdrop</div>
 </div>
 
 <script>
-    // 1. Конфигурация Firebase
     const firebaseConfig = {
         apiKey: "AIzaSyAT4Qt--BNvqA953AQNUbbpiDHbSvO3BfE",
         authDomain: "zootopia-f046d.firebaseapp.com",
@@ -82,56 +90,67 @@
         appId: "1:531125789476:web:7e504c4d855fd397fa49b1"
     };
     
-    // Инициализация Firebase
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
     const tg = window.Telegram.WebApp;
     tg.expand();
 
     const uid = tg.initDataUnsafe?.user?.id?.toString() || "dev_user";
-    let state = { bones: 0, zoo: 0, energy: 1000, tapPower: 1, wallet: null };
+    const firstName = tg.initDataUnsafe?.user?.first_name || "Аноним";
 
-    // 2. Логика TON Connect
+    let state = { bones: 0, zoo: 0, energy: 1000, tapPower: 1, name: firstName };
+
     let tonConnectUI;
     try {
         tonConnectUI = new TONConnectUI.TonConnectUI({
             manifestUrl: 'https://dimazmlbig-dev.github.io/zootopia-clicker/tonconnect-manifest.json',
             buttonRootId: 'ton-connect-btn'
         });
+        tonConnectUI.onStatusChange(wallet => { if (wallet) { state.wallet = wallet.account.address; saveToDb(); } });
+    } catch (e) {}
 
-        tonConnectUI.onStatusChange(wallet => {
-            if (wallet) {
-                state.wallet = wallet.account.address;
-                saveToDb();
+    async function init() {
+        try {
+            const doc = await db.collection("users").doc(uid).get();
+            if (doc.exists) {
+                state = { ...state, ...doc.data(), name: firstName }; // Обновляем имя при каждом входе
+            } else {
+                await db.collection("users").doc(uid).set(state);
             }
-        });
-    } catch (e) {
-        console.error("TON Connect Error:", e);
+        } catch (e) { console.warn("DB offline"); }
+        document.getElementById('loading').style.display = 'none';
+        updateUI();
     }
 
-    // 3. Функции игры
     function updateUI() {
         document.getElementById('bones').innerText = Math.floor(state.bones);
         document.getElementById('zoo').innerText = state.zoo.toFixed(4);
         document.getElementById('energy').innerText = state.energy;
     }
 
-    async function init() {
+    async function loadLeaderboard() {
+        const listDiv = document.getElementById('leaderboard-list');
+        listDiv.innerHTML = '<p style="text-align:center;">Загрузка...</p>';
         try {
-            const doc = await db.collection("users").doc(uid).get();
-            if (doc.exists) {
-                state = { ...state, ...doc.data() };
-            } else {
-                await db.collection("users").doc(uid).set(state);
-            }
-        } catch (e) {
-            console.warn("Database sync failed, using local state");
-        }
-        document.getElementById('loading').style.display = 'none';
-        updateUI();
+            const snapshot = await db.collection("users").orderBy("zoo", "desc").limit(10).get();
+            let html = '';
+            let rank = 1;
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                const isMe = doc.id === uid ? "border: 1px solid var(--accent);" : "";
+                html += `
+                    <div class="card" style="${isMe}">
+                        <span class="rank-number">#${rank}</span>
+                        <span class="user-name">${data.name || "Player"}</span>
+                        <b style="color:var(--accent)">${data.zoo.toFixed(2)}</b>
+                    </div>`;
+                rank++;
+            });
+            listDiv.innerHTML = html;
+        } catch (e) { listDiv.innerHTML = "<p>Ошибка загрузки топа.</p>"; }
     }
 
-    function handleTap(e) {
+    function handleTap() {
         if (state.energy >= state.tapPower) {
             state.bones += state.tapPower;
             state.zoo += (0.0001 * state.tapPower);
@@ -142,11 +161,7 @@
     }
 
     async function saveToDb() {
-        try {
-            await db.collection("users").doc(uid).set(state);
-        } catch(e) {
-            console.error("Save error:", e);
-        }
+        try { await db.collection("users").doc(uid).set(state); } catch(e){}
     }
 
     function switchTab(id, el) {
@@ -154,23 +169,13 @@
         document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
         document.getElementById(id).classList.add('active');
         el.classList.add('active');
+        if (id === 'tab-leaderboard') loadLeaderboard();
     }
 
-    // Слушатели событий
     document.getElementById('pet').addEventListener('pointerdown', handleTap);
-    
-    // Энергия восстанавливается каждые 2 секунды
-    setInterval(() => { 
-        if (state.energy < 1000) { 
-            state.energy = Math.min(1000, state.energy + 2); 
-            updateUI(); 
-        } 
-    }, 2000);
-
-    // Автосохранение каждые 15 секунд
+    setInterval(() => { if (state.energy < 1000) { state.energy = Math.min(1000, state.energy + 2); updateUI(); } }, 2000);
     setInterval(saveToDb, 15000);
 
-    // Запуск
     init();
 </script>
 </body>

@@ -9,6 +9,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&family=Nunito:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🦊</text></svg>">
+    
+    <!-- TonConnect UI -->
+    <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -219,67 +222,80 @@
             </button>
             
             <div class="action-buttons">
-                <button class="action-button" id="boost-button">
-                    <i class="fas fa-rocket"></i>
-                    <span>Буст x2 (1 час)</span>
+                <button class="action-button" id="shop-button">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span>Магазин</span>
                 </button>
                 <button class="action-button" id="achievements-button">
                     <i class="fas fa-trophy"></i>
                     <span>Достижения</span>
                 </button>
-                <button class="action-button" id="shop-button">
-                    <i class="fas fa-shopping-cart"></i>
-                    <span>Магазин</span>
+                <button class="action-button" id="boost-button">
+                    <i class="fas fa-rocket"></i>
+                    <span>Буст</span>
                 </button>
-            </div>
-            
-            <div class="game-info">
-                <p><i class="fas fa-info-circle"></i> Играйте каждый день, чтобы получать бонусы!</p>
             </div>
         </section>
 
         <!-- Модальные окна -->
-        <div id="wallet-modal" class="modal">
+        <div id="shop-modal" class="modal">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h3><i class="fas fa-wallet"></i> Подключение кошелька</h3>
+                    <h3><i class="fas fa-shopping-cart"></i> Магазин</h3>
                     <button class="modal-close">&times;</button>
                 </div>
                 <div class="modal-body">
-                    <p>Выберите способ подключения:</p>
-                    <div class="wallet-options">
-                        <button class="wallet-option" id="tonkeeper">
-                            <i class="fas fa-shield-alt"></i>
-                            <span>Tonkeeper</span>
-                        </button>
-                        <button class="wallet-option" id="tonhub">
-                            <i class="fas fa-cube"></i>
-                            <span>Tonhub</span>
-                        </button>
-                        <button class="wallet-option" id="mytonwallet">
-                            <i class="fas fa-user-circle"></i>
-                            <span>MyTonWallet</span>
-                        </button>
-                    </div>
-                    <div class="modal-info">
-                        <p><i class="fas fa-exclamation-triangle"></i> Подключите кошелёк для вывода токенов SZOO</p>
+                    <div class="shop-items">
+                        <div class="shop-item">
+                            <div class="shop-item-icon">
+                                <i class="fas fa-bolt"></i>
+                            </div>
+                            <div class="shop-item-info">
+                                <h4>Энергетик</h4>
+                                <p>+1000 энергии</p>
+                                <div class="shop-item-price">50 SZOO</div>
+                            </div>
+                            <button class="buy-item-button" data-item="energy">Купить</button>
+                        </div>
+                        
+                        <div class="shop-item">
+                            <div class="shop-item-icon">
+                                <i class="fas fa-rocket"></i>
+                            </div>
+                            <div class="shop-item-info">
+                                <h4>Буст x2 (24ч)</h4>
+                                <p>Удваивает силу клика</p>
+                                <div class="shop-item-price">500 SZOO</div>
+                            </div>
+                            <button class="buy-item-button" data-item="boost24">Купить</button>
+                        </div>
+                        
+                        <div class="shop-item">
+                            <div class="shop-item-icon">
+                                <i class="fas fa-crown"></i>
+                            </div>
+                            <div class="shop-item-info">
+                                <h4>VIP статус</h4>
+                                <p>Навсегда +20% к скорости</p>
+                                <div class="shop-item-price">5,000 SZOO</div>
+                            </div>
+                            <button class="buy-item-button" data-item="vip">Купить</button>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div id="boost-modal" class="modal">
+        <div id="achievements-modal" class="modal">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h3><i class="fas fa-rocket"></i> Активация буста</h3>
+                    <h3><i class="fas fa-trophy"></i> Достижения</h3>
                     <button class="modal-close">&times;</button>
                 </div>
                 <div class="modal-body">
-                    <p>Буст удваивает вашу силу клика на 1 час!</p>
-                    <div class="boost-cost">
-                        Стоимость: <span class="cost">500</span> SZOO
+                    <div class="achievements-list" id="achievements-list">
+                        <!-- Достижения будут загружены динамически -->
                     </div>
-                    <button class="confirm-button" id="activate-boost">Активировать за 500 SZOO</button>
                 </div>
             </div>
         </div>
@@ -288,8 +304,11 @@
     <!-- Уведомления -->
     <div id="notification-container"></div>
 
-    <!-- Telegram WebApp SDK -->
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- Скрипты -->
+    <script src="telegram.js"></script>
+    <script src="wallet.js"></script>
+    <script src="achievements.js"></script>
+    <script src="shop.js"></script>
     <script src="game.js"></script>
 </body>
 </html>

@@ -3,135 +3,146 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Zootopia: @zooclikbot</title>
+    <title>Zootopia Web3: @zooclikbot</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
     <style>
-        :root { --accent: #ff9800; --bg: #0b0b0b; --text: #ffffff; --glass: rgba(255, 255, 255, 0.05); }
+        :root { --accent: #0088cc; --bg: #0b0b0b; --text: #ffffff; --glass: rgba(255, 255, 255, 0.05); }
         body { margin: 0; background: var(--bg); font-family: 'Inter', sans-serif; color: var(--text); overflow: hidden; height: 100vh; }
         
-        /* ЭКРАН ЗАГРУЗКИ */
         #splash {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: #000; z-index: 9999; display: flex; flex-direction: column;
             align-items: center; justify-content: center; transition: opacity 0.5s;
         }
-        .loader {
-            width: 40px; height: 40px; border: 4px solid var(--glass);
-            border-top: 4px solid var(--accent); border-radius: 50%;
-            animation: spin 1s linear infinite; margin-top: 20px;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
         #header { padding: 15px; background: rgba(0,0,0,0.8); text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
         #balance { font-size: 38px; font-weight: 900; color: #fff; text-shadow: 0 0 20px var(--accent); }
         
-        .page { display: none; flex-direction: column; align-items: center; width: 100%; padding: 20px; box-sizing: border-box; }
+        .page { display: none; flex-direction: column; align-items: center; width: 100%; padding: 20px; box-sizing: border-box; overflow-y: auto; height: calc(100vh - 150px); }
         .page.active { display: flex; }
 
-        /* ТАКСА И ЭФФЕКТЫ */
-        .hero-container { position: relative; margin: 40px 0; perspective: 1000px; }
         .hero-img { 
-            width: 250px; height: 250px; object-fit: contain; 
-            cursor: pointer; transition: transform 0.05s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            /* Убираем фон (работает для светлых фонов на картинке) */
-            filter: drop-shadow(0 0 15px rgba(255,152,0,0.3));
+            width: 250px; height: 250px; object-fit: contain; cursor: pointer; 
+            transition: transform 0.05s; filter: drop-shadow(0 0 15px rgba(0,136,204,0.3));
         }
-        /* Анимация "дергания" при клике */
-        .hero-img.tapped { transform: scale(0.85) rotate(3deg); }
+        .hero-img:active { transform: scale(0.9); }
 
         .card { background: var(--glass); border-radius: 20px; padding: 15px; width: 100%; margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.08); }
-        .buy-btn { background: var(--accent); border: none; color: #000; padding: 14px; border-radius: 15px; font-weight: bold; width: 100%; font-size: 14px; }
+        .buy-btn { background: var(--accent); border: none; color: #fff; padding: 14px; border-radius: 15px; font-weight: bold; width: 100%; font-size: 14px; margin-top: 10px; }
+        
+        /* Стили для кнопки TON */
+        #ton-connect-button { margin-bottom: 20px; }
 
         #nav { position: fixed; bottom: 25px; left: 5%; width: 90%; display: flex; background: rgba(20,20,20,0.95); border-radius: 25px; padding: 5px; backdrop-filter: blur(10px); }
         .nav-btn { flex: 1; text-align: center; font-size: 11px; font-weight: bold; color: white; opacity: 0.4; padding: 14px 0; border-radius: 20px; }
-        .nav-btn.active { opacity: 1; background: var(--accent); color: #000; }
-        
-        .tap-anim { position: absolute; color: #fff; font-weight: 900; font-size: 32px; pointer-events: none; animation: float 0.6s ease-out forwards; text-shadow: 0 0 10px var(--accent); }
+        .nav-btn.active { opacity: 1; background: var(--accent); color: #fff; }
+
+        .tap-anim { position: absolute; color: #fff; font-weight: 900; font-size: 32px; pointer-events: none; animation: float 0.6s ease-out forwards; }
         @keyframes float { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-120px); } }
     </style>
 </head>
 <body>
 
     <div id="splash">
-        <h1 style="color: var(--accent); letter-spacing: 5px;">ZOOTOPIA</h1>
-        <div style="font-size: 12px; opacity: 0.5;">@zooclikbot is waking up...</div>
-        <div class="loader"></div>
+        <h1 style="color: var(--accent); letter-spacing: 5px;">ZOOTOPIA <span style="font-size: 14px;">WEB3</span></h1>
+        <div style="font-size: 12px; opacity: 0.5;">Connecting to TON...</div>
     </div>
 
     <div id="header">
         <div id="balance">🦴 <span id="coins">0</span></div>
-        <div style="font-size: 11px; opacity: 0.5; margin-top: 5px;">ПРИБЫЛЬ: +<span id="pps-display">0</span>/с</div>
+        <div style="font-size: 11px; opacity: 0.5; margin-top: 5px;">PPS: +<span id="pps-display">0</span> | POWER: <span id="tap-val">1</span></div>
     </div>
 
     <div id="tab-game" class="page active">
-        <div class="hero-container">
-            <img id="hero" src="dachshund.png" class="hero-img" onclick="handleTap(event)" onerror="this.src='https://i.ibb.co/XfXfXfX/dachshund.png'">
-        </div>
-        <div style="width: 100%;">
-            <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 5px;"><span>ЭНЕРГИЯ</span><span id="energy-text">1000/1000</span></div>
-            <div style="width: 100%; height: 10px; background: rgba(255,255,255,0.05); border-radius: 10px;"><div id="energy-fill" style="height: 100%; background: var(--accent); width: 100%; border-radius: 10px; transition: 0.2s;"></div></div>
+        <img id="hero" src="dachshund.png" class="hero-img" onclick="handleTap(event)" onerror="this.src='https://i.ibb.co/XfXfXfX/dachshund.png'">
+        <div style="width: 100%; margin-top: 20px;">
+            <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 5px;"><span>ENERGY</span><span id="energy-text">1000/1000</span></div>
+            <div style="width: 100%; height: 10px; background: rgba(255,255,255,0.05); border-radius: 10px;"><div id="energy-fill" style="height: 100%; background: var(--accent); width: 100%; border-radius: 10px;"></div></div>
         </div>
     </div>
 
-    <div id="tab-friends" class="page">
-        <h2>ДРУЗЬЯ</h2>
+    <div id="tab-wallet" class="page">
+        <h2>CRYPTO CENTER</h2>
+        <div id="ton-connect-button"></div>
+        
         <div class="card">
-            <button class="buy-btn" onclick="shareInvite()">ПРИГЛАСИТЬ</button>
-            <button class="buy-btn" style="background: var(--glass); color: white; margin-top: 8px;" onclick="copyLink()">ССЫЛКА</button>
+            <b>Вывод косточек</b>
+            <p style="font-size: 12px; opacity: 0.6;">Минимум для обмена: 1,000,000 🦴</p>
+            <button class="buy-btn" onclick="tg.showAlert('Сбор косточек продолжается! Обмен будет доступен после листинга.')">SWAP TO TON</button>
+        </div>
+
+        <div class="card" style="border: 1px solid gold;">
+            <b style="color: gold;">⭐ VIP СТАТУС</b>
+            <p style="font-size: 12px; opacity: 0.6;">Бесконечная энергия и x5 к тапу.</p>
+            <button class="buy-btn" style="background: gold; color: #000;" onclick="payVIP()">КУПИТЬ ЗА 0.5 TON</button>
         </div>
     </div>
 
     <div id="tab-shop" class="page">
-        <h2>SHOP</h2>
+        <h2>MARKET</h2>
         <div class="card">
-            <b>Сила тапа</b>
-            <button id="btn-power" class="buy-btn" onclick="buyUpgrade('power')">100 🦴</button>
+            <b>Upgrade Tap</b>
+            <button id="btn-power" class="buy-btn" onclick="buyUpgrade()">500 🦴</button>
         </div>
     </div>
 
     <div id="nav">
-        <div class="nav-btn active" onclick="showTab(0)">ИГРА</div>
-        <div class="nav-btn" onclick="showTab(1)">ДРУЗЬЯ</div>
-        <div class="nav-btn" onclick="showTab(2)">МАРКЕТ</div>
+        <div class="nav-btn active" onclick="showTab(0)">GAME</div>
+        <div class="nav-btn" onclick="showTab(1)">WALLET</div>
+        <div class="nav-btn" onclick="showTab(2)">SHOP</div>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        // Убираем Splash Screen через 2.5 секунды
-        setTimeout(() => {
-            const splash = document.getElementById('splash');
-            splash.style.opacity = '0';
-            setTimeout(() => splash.style.display = 'none', 500);
-        }, 2500);
+        // 1. ИНИЦИАЛИЗАЦИЯ TON CONNECT
+        const tonConnectUI = new TONConnectUI.TonConnectUI({
+            manifestUrl: 'https://raw.githubusercontent.com/ton-connect/demo-dapp-with-react-ui/master/public/tonconnect-manifest.json', // Замени на свой манифест позже
+            buttonRootId: 'ton-connect-button'
+        });
 
+        // 2. ДАННЫЕ
         const BOT_USERNAME = 'zooclikbot'; 
         const userId = tg.initDataUnsafe?.user?.id || "guest";
-        
-        let gameData = JSON.parse(localStorage.getItem(`zoo_v6_${userId}`)) || {
-            balance: 0, energy: 1000, pps: 0, tapPower: 1, refBonusReceived: false
+        let gameData = JSON.parse(localStorage.getItem(`zoo_web3_${userId}`)) || {
+            balance: 0, energy: 1000, pps: 0, tapPower: 1
         };
 
+        // 3. ФУНКЦИЯ ОПЛАТЫ (Пример)
+        async function payVIP() {
+            if (!tonConnectUI.connected) {
+                tg.showAlert("Сначала подключи кошелек!");
+                return;
+            }
+
+            const transaction = {
+                validUntil: Math.floor(Date.now() / 1000) + 60,
+                messages: [{
+                    address: "ВАШ_ТОН_АДРЕС_ЗДЕСЬ", // ЗАМЕНИ НА СВОЙ АДРЕС
+                    amount: "500000000" // 0.5 TON в нанотонах
+                }]
+            };
+
+            try {
+                await tonConnectUI.sendTransaction(transaction);
+                tg.showAlert("Транзакция отправлена! VIP активируется после подтверждения.");
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        // Остальная логика (Тапы, UI)
         function handleTap(e) {
             if (gameData.energy <= 0) return;
-            
-            // Анимация "дергания"
-            const hero = document.getElementById('hero');
-            hero.classList.add('tapped');
-            setTimeout(() => hero.classList.remove('tapped'), 50);
-
-            // Вибрация
-            tg.HapticFeedback.impactOccurred('heavy');
-
+            tg.HapticFeedback.impactOccurred('medium');
             gameData.balance += gameData.tapPower;
             gameData.energy -= 1;
             
-            // Всплывающие цифры
             const x = e.clientX || (e.touches ? e.touches[0].clientX : 0);
             const y = e.clientY || (e.touches ? e.touches[0].clientY : 0);
             createTapAnim(x, y);
-            
             updateUI();
         }
 
@@ -139,7 +150,7 @@
             const el = document.createElement('div');
             el.className = 'tap-anim';
             el.innerText = `+${gameData.tapPower}`;
-            el.style.left = `${x - 15}px`; el.style.top = `${y - 40}px`;
+            el.style.left = `${x-10}px`; el.style.top = `${y-40}px`;
             document.body.appendChild(el);
             setTimeout(() => el.remove(), 600);
         }
@@ -147,24 +158,20 @@
         function updateUI() {
             document.getElementById('coins').innerText = Math.floor(gameData.balance).toLocaleString();
             document.getElementById('pps-display').innerText = gameData.pps;
+            document.getElementById('tap-val').innerText = gameData.tapPower;
             document.getElementById('energy-text').innerText = `${gameData.energy}/1000`;
             document.getElementById('energy-fill').style.width = (gameData.energy / 10) + '%';
             document.getElementById('btn-power').innerText = (gameData.tapPower * 500).toLocaleString() + " 🦴";
             saveData();
         }
 
-        function shareInvite() {
-            const link = `https://t.me/${BOT_USERNAME}/start?startapp=${userId}`;
-            tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=🐾 Го к нам в команду!`);
+        function showTab(idx) {
+            const tabs = ['tab-game', 'tab-wallet', 'tab-shop'];
+            document.querySelectorAll('.page').forEach((p, i) => p.classList.toggle('active', i === idx));
+            document.querySelectorAll('.nav-btn').forEach((b, i) => b.classList.toggle('active', i === idx));
         }
 
-        function copyLink() {
-            const link = `https://t.me/${BOT_USERNAME}/start?startapp=${userId}`;
-            navigator.clipboard.writeText(link);
-            tg.showAlert("Ссылка скопирована!");
-        }
-
-        function buyUpgrade(type) {
+        function buyUpgrade() {
             let cost = gameData.tapPower * 500;
             if (gameData.balance >= cost) {
                 gameData.balance -= cost;
@@ -173,20 +180,14 @@
             }
         }
 
-        function showTab(idx) {
-            const tabs = ['tab-game', 'tab-friends', 'tab-shop'];
-            document.querySelectorAll('.page').forEach((p, i) => p.classList.toggle('active', i === idx));
-            document.querySelectorAll('.nav-btn').forEach((b, i) => b.classList.toggle('active', i === idx));
-        }
-
-        function saveData() { localStorage.setItem(`zoo_v6_${userId}`, JSON.stringify(gameData)); }
+        function saveData() { localStorage.setItem(`zoo_web3_${userId}`, JSON.stringify(gameData)); }
 
         setInterval(() => {
-            gameData.balance += (gameData.pps / 10);
             if (gameData.energy < 1000) gameData.energy++;
             updateUI();
-        }, 100);
+        }, 1000);
 
+        setTimeout(() => { document.getElementById('splash').style.display = 'none'; }, 2000);
         updateUI();
     </script>
 </body>

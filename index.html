@@ -25,12 +25,10 @@
         .tab-content.active { display: block; }
         
         .card { background: var(--card); border-radius: 12px; padding: 15px; margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; }
-        .card-info { flex-grow: 1; }
-        .card-title { font-weight: 600; font-size: 14px; display: block; }
-        .card-sub { font-size: 11px; color: var(--gold); }
-
-        .click-area { display: flex; justify-content: center; align-items: center; height: 260px; position: relative; }
-        .pet-image { width: 180px; cursor: pointer; transition: 0.1s; -webkit-tap-highlight-color: transparent; z-index: 10; }
+        .btn-buy { background: var(--accent); color: black; border: none; padding: 8px 12px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 12px; }
+        
+        .click-area { display: flex; justify-content: center; align-items: center; height: 260px; }
+        .pet-image { width: 180px; cursor: pointer; transition: 0.1s; -webkit-tap-highlight-color: transparent; }
         .pet-image:active { transform: scale(0.92); }
         
         .nav { position: fixed; bottom: 0; width: 100%; display: flex; background: #111; padding: 12px 0; border-top: 1px solid #333; z-index: 100; }
@@ -38,17 +36,14 @@
         .nav-item.active { color: var(--accent); }
         .nav-item i { font-size: 20px; margin-bottom: 4px; display: block; }
         
-        .btn-buy { background: var(--accent); color: black; border: none; padding: 8px 12px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 12px; min-width: 80px; }
-        .btn-buy:disabled { background: #444; color: #888; cursor: not-allowed; }
-        
-        #loading { position: fixed; top:0; left:0; width:100%; height:100%; background:var(--bg); z-index:999; display:flex; align-items:center; justify-content:center; flex-direction: column; }
+        #loading { position: fixed; top:0; left:0; width:100%; height:100%; background:var(--bg); z-index:999; display:flex; align-items:center; justify-content:center; flex-direction: column; text-align: center; }
     </style>
 </head>
 <body>
 
 <div id="loading">
     <h2 style="font-family:'Orbitron'; color:var(--gold)">ZOOTOPIA</h2>
-    <p>Синхронизация...</p>
+    <p id="loading-status">Синхронизация данных...</p>
 </div>
 
 <div class="header">
@@ -65,54 +60,29 @@
             <div id="energy-bar" style="width:100%; height:100%; background:var(--accent); border-radius:3px; transition:0.3s;"></div>
         </div>
     </div>
-
-    <div style="margin-top:20px;">
-        <h4 style="margin:10px 0; font-size:14px; color:var(--gold)">Daily Boosts</h4>
-        <div class="card" onclick="useDailyEnergy()">
-            <div class="card-info">
-                <span class="card-title">Full Energy</span>
-                <span class="card-sub" id="energy-boost-text">Восстановить на 100%</span>
-            </div>
-            <i class="fas fa-bolt" style="color:var(--accent); font-size:20px;"></i>
-        </div>
-    </div>
 </div>
 
 <div id="tab-upgrades" class="tab-content">
     <h3 style="color:var(--gold); font-family:'Orbitron'">UPGRADES</h3>
     <div class="card">
-        <div class="card-info"><span class="card-title">Мульти-тап</span><span class="card-sub">Ур. <span id="lvl-tap">1</span></span></div>
-        <button class="btn-buy" id="buy-tap" onclick="buyUpgrade('tap')">0</button>
-    </div>
-    <div class="card">
-        <div class="card-info"><span class="card-title">Миска с кормом</span><span class="card-sub">+50 🦴/час</span></div>
-        <button class="btn-buy" id="buy-bowl" onclick="buyUpgrade('bowl')">0</button>
-    </div>
-    <div class="card">
-        <div class="card-info"><span class="card-title">Игрушка</span><span class="card-sub">+250 🦴/час</span></div>
-        <button class="btn-buy" id="buy-toy" onclick="buyUpgrade('toy')">0</button>
+        <div><b>Мульти-тап</b><br><small>Ур. <span id="lvl-tap">1</span></small></div>
+        <button class="btn-buy" onclick="buyUpgrade('tap')">КУПИТЬ</button>
     </div>
 </div>
 
-<div id="tab-tasks" class="tab-content">
-    <h3 style="color:var(--accent); font-family:'Orbitron'">TASKS</h3>
-    <div class="card">
-        <div><b>Подпишись на канал</b><br><small style="color:var(--gold)">+50,000 Bones</small></div>
-        <button class="btn-buy" onclick="doTask('tg', 'https://t.me/ZootopiaChannel')">GO</button>
+<div id="tab-airdrop" class="tab-content">
+    <h3 style="color:var(--gold); font-family:'Orbitron'">AIRDROP</h3>
+    <div class="card" style="flex-direction:column; text-align:center;">
+        <p style="font-size:12px;">Контракт: <br><b>EQB5RZDUIW3wWLWxACmKhiH6UYEGhpuCVz2BB2KI4Wyj91Vs</b></p>
+        <button class="btn-buy" onclick="window.open('https://tonviewer.com/EQB5RZDUIW3wWLWxACmKhiH6UYEGhpuCVz2BB2KI4Wyj91Vs')">ОТКРЫТЬ В EXPLORER</button>
     </div>
     <div id="ton-connect-btn" style="display:flex; justify-content:center; margin-top:20px;"></div>
-</div>
-
-<div id="tab-leaderboard" class="tab-content">
-    <h3 style="color:var(--gold); font-family:'Orbitron'; text-align:center;">TOP PLAYERS</h3>
-    <div id="leaderboard-list"></div>
 </div>
 
 <div class="nav">
     <div class="nav-item active" onclick="switchTab('tab-game', this)"><i class="fas fa-paw"></i>Игра</div>
     <div class="nav-item" onclick="switchTab('tab-upgrades', this)"><i class="fas fa-rocket"></i>Магазин</div>
-    <div class="nav-item" onclick="switchTab('tab-tasks', this)"><i class="fas fa-check-circle"></i>Задания</div>
-    <div class="nav-item" onclick="switchTab('tab-leaderboard', this)"><i class="fas fa-trophy"></i>Топ</div>
+    <div class="nav-item" onclick="switchTab('tab-airdrop', this)"><i class="fas fa-wallet"></i>Airdrop</div>
 </div>
 
 <script>
@@ -131,103 +101,73 @@
     tg.expand();
 
     const uid = tg.initDataUnsafe?.user?.id?.toString() || "dev_user";
-    const firstName = tg.initDataUnsafe?.user?.first_name || "Player";
+    let state = { bones: 0, zoo: 0, energy: 1000, tapPower: 1, pnl: 0, lastUnix: Date.now(), upgrades: { tap: 1 } };
 
-    let state = { 
-        bones: 0, zoo: 0, energy: 1000, tapPower: 1, pnl: 0, 
-        lastUnix: Date.now(), lastEnergyBoost: 0,
-        upgrades: { tap: 1, bowl: 0, toy: 0 },
-        tasks: { tg: false }, wallet: null, name: firstName
-    };
-
-    const upgradeData = {
-        tap: { basePrice: 500, ratio: 1.8, profit: 1 },
-        bowl: { basePrice: 1000, ratio: 1.5, profit: 50 },
-        toy: { basePrice: 5000, ratio: 1.6, profit: 250 }
-    };
+    // Принудительное скрытие загрузки через 5 секунд (защита от зависания)
+    const safetyTimeout = setTimeout(() => {
+        document.getElementById('loading').style.display = 'none';
+    }, 5000);
 
     async function init() {
         try {
             const doc = await db.collection("users").doc(uid).get();
-            if (doc.exists) { state = { ...state, ...doc.data() }; calculateOfflineProfit(); }
-            else { await db.collection("users").doc(uid).set(state); }
-        } catch (e) {}
+            if (doc.exists) { state = { ...state, ...doc.data() }; }
+            updateUI();
+        } catch (e) { console.error("Firebase error", e); }
+        clearTimeout(safetyTimeout);
         document.getElementById('loading').style.display = 'none';
-        updateUI();
-    }
-
-    function calculateOfflineProfit() {
-        const now = Date.now();
-        const hours = (now - state.lastUnix) / 3600000;
-        const profit = Math.floor(hours * state.pnl);
-        if (profit > 0) { state.bones += profit; state.zoo += (profit * 0.00001); tg.showAlert(`Нафармлено в оффлайне: ${profit} 🦴`); }
-        state.lastUnix = now;
-    }
-
-    function useDailyEnergy() {
-        const now = Date.now();
-        if (now - state.lastEnergyBoost > 86400000) { // 24 часа
-            state.energy = 1000;
-            state.lastEnergyBoost = now;
-            saveToDb(); updateUI();
-            tg.showAlert("Энергия восстановлена!");
-        } else {
-            const left = Math.ceil((86400000 - (now - state.lastEnergyBoost)) / 3600000);
-            tg.showAlert(`Буст будет доступен через ${left} ч.`);
-        }
-    }
-
-    function buyUpgrade(type) {
-        const price = Math.floor(upgradeData[type].basePrice * Math.pow(upgradeData[type].ratio, state.upgrades[type]));
-        if (state.bones >= price) {
-            state.bones -= price; state.upgrades[type]++;
-            if (type === 'tap') state.tapPower++; else state.pnl += upgradeData[type].profit;
-            saveToDb(); updateUI();
-        }
     }
 
     function updateUI() {
         document.getElementById('bones').innerText = Math.floor(state.bones).toLocaleString();
         document.getElementById('zoo').innerText = state.zoo.toFixed(4);
-        document.getElementById('pnl-val').innerText = state.pnl;
         document.getElementById('energy').innerText = state.energy;
         document.getElementById('energy-bar').style.width = (state.energy / 10) + "%";
-        
-        for (let t in upgradeData) {
-            const price = Math.floor(upgradeData[t].basePrice * Math.pow(upgradeData[t].ratio, state.upgrades[t]));
-            document.getElementById('buy-'+t).innerText = price.toLocaleString();
-            if(document.getElementById('lvl-'+t)) document.getElementById('lvl-'+t).innerText = state.upgrades[t];
-        }
+        document.getElementById('lvl-tap').innerText = state.upgrades.tap;
     }
 
     function handleTap() {
         if (state.energy >= state.tapPower) {
-            state.bones += state.tapPower; state.zoo += 0.0001; state.energy -= state.tapPower;
-            updateUI(); tg.HapticFeedback.impactOccurred('light');
+            state.bones += state.tapPower;
+            state.zoo += (0.0001 * state.tapPower);
+            state.energy -= state.tapPower;
+            updateUI();
+            tg.HapticFeedback.impactOccurred('light');
         }
     }
 
-    async function saveToDb() { state.lastUnix = Date.now(); try { await db.collection("users").doc(uid).set(state); } catch(e){} }
+    function buyUpgrade(type) {
+        let price = state.upgrades[type] * 500;
+        if (state.bones >= price) {
+            state.bones -= price;
+            state.upgrades[type]++;
+            state.tapPower++;
+            updateUI();
+            saveToDb();
+        }
+    }
+
+    async function saveToDb() { try { await db.collection("users").doc(uid).set(state); } catch(e){} }
 
     function switchTab(id, el) {
         document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
         document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-        document.getElementById(id).classList.add('active'); el.classList.add('active');
-        if (id === 'tab-leaderboard') loadLeaderboard();
+        document.getElementById(id).classList.add('active');
+        el.classList.add('active');
     }
 
-    async function loadLeaderboard() {
-        const list = document.getElementById('leaderboard-list');
-        const snap = await db.collection("users").orderBy("zoo", "desc").limit(10).get();
-        let h = ''; let r = 1;
-        snap.forEach(d => { h += `<div class="card"><span>#${r} ${d.data().name}</span><b>${d.data().zoo.toFixed(2)}</b></div>`; r++; });
-        list.innerHTML = h;
-    }
-
-    setInterval(() => { if (state.pnl > 0) { state.bones += (state.pnl/3600); updateUI(); } }, 1000);
-    setInterval(() => { if (state.energy < 1000) { state.energy = Math.min(1000, state.energy + 3); updateUI(); } }, 1500);
     document.getElementById('pet').addEventListener('pointerdown', handleTap);
     setInterval(saveToDb, 15000);
+    setInterval(() => { if(state.energy < 1000) { state.energy = Math.min(1000, state.energy + 2); updateUI(); } }, 2000);
+
+    // TON Connect
+    try {
+        const tonConnectUI = new TONConnectUI.TonConnectUI({
+            manifestUrl: 'https://dimazmlbig-dev.github.io/zootopia-clicker/tonconnect-manifest.json',
+            buttonRootId: 'ton-connect-btn'
+        });
+    } catch(e) { console.error("TON Connect failed"); }
+
     init();
 </script>
 </body>

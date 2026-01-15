@@ -3,156 +3,262 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Zootopia Clicker</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css">
+    <title>🦴 Zootopia | Фарми $ZOO в Telegram</title>
+    
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;900&family=Orbitron:wght@400;700;900&display=swap');
+
+        :root {
+            --gold: linear-gradient(135deg, #FFD700, #FFA500, #FF6B00);
+            --diamond: linear-gradient(135deg, #00FFFF, #0088FF, #00FF88);
+            --bg-primary: #0A0A12;
+            --bg-glass: rgba(30, 30, 45, 0.8);
+            --text-primary: #FFFFFF;
+            --accent: #00FFFF;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            margin: 0;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+
+        /* Заставка */
+        .splash-screen {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-primary);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            transition: opacity 0.5s ease;
+        }
+
+        /* Хедер */
+        .elite-header {
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px);
+            padding: 20px;
+            text-align: center;
+            border-bottom: 2px solid rgba(255, 215, 0, 0.2);
+        }
+
+        .balance-amount {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 42px;
+            font-weight: 900;
+            background: var(--gold);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Кликер */
+        .clicker-zone {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 300px;
+            margin-top: 20px;
+        }
+
+        .pet-image {
+            width: 220px;
+            transition: transform 0.1s;
+            filter: drop-shadow(0 0 20px rgba(0, 255, 255, 0.3));
+        }
+
+        .pet-image:active {
+            transform: scale(0.92);
+        }
+
+        /* Энергия */
+        .energy-container {
+            padding: 20px;
+            margin: 0 20px;
+            background: var(--bg-glass);
+            border-radius: 15px;
+        }
+
+        .energy-bar {
+            height: 12px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 6px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .energy-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00FF88, #0088FF);
+            width: 100%;
+            transition: width 0.3s;
+        }
+
+        /* Навигация */
+        .neuro-nav {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            background: var(--bg-glass);
+            display: flex;
+            justify-content: space-around;
+            padding: 15px;
+            border-radius: 25px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 255, 255, 0.2);
+        }
+
+        .nav-item {
+            text-align: center;
+            color: #888;
+            font-size: 12px;
+        }
+
+        .nav-item.active {
+            color: var(--accent);
+        }
+
+        .nav-item i {
+            display: block;
+            font-size: 20px;
+            margin-bottom: 4px;
+        }
+
+        /* Скрытые табы */
+        .tab-content { display: none; padding: 20px; }
+        .tab-content.active { display: block; }
+    </style>
 </head>
 <body>
 
-    <div id="loader" class="loader">
-        <div class="loader-content">
-            <div class="loader-spinner"></div>
-            <p class="loader-text">Загружаем Zootopia...</p>
+    <div class="splash-screen" id="splashScreen">
+        <h1 style="font-family: 'Orbitron'; color: #FFD700;">ZOOTOPIA</h1>
+        <div style="width: 200px; height: 4px; background: rgba(255,255,255,0.1); margin-top: 20px;">
+            <div id="loadProgress" style="width: 0%; height: 100%; background: #FFD700; transition: 0.1s;"></div>
         </div>
     </div>
 
-    <div class="container" id="mainApp" style="display: none;">
-        
-        <header class="app-header">
-            <div class="balance-container">
-                <div class="balance-label">
-                    <i class="fas fa-bone"></i> ВАШИ КОСТИ
-                </div>
-                <div class="balance-amount" id="coins">0</div>
-                <div class="balance-subtitle">
-                    <span id="zooBalance">0.0000</span> <span class="badge">$ZOO</span>
-                    <span id="multiplierBadge" class="badge" style="display:none; background: var(--primary);">x2</span>
-                </div>
-            </div>
-            
-            <div class="header-actions">
-                <button class="icon-btn" onclick="showStats()"><i class="fas fa-chart-bar"></i></button>
-                <div id="ton-connect-button"></div>
-            </div>
-        </header>
-
-        <main class="app-main">
-            
-            <section id="tab-game" class="tab-content active">
-                <div class="clicker-area">
-                    <div class="pet-container">
-                        <img src="dachshund.png" alt="Pet" class="pet-image" id="clickTarget" onclick="handleTap(event); checkAntiBot();">
-                        <div class="pet-level">LVL 1: Щенок</div>
-                        <div id="tapIndicator" class="tap-indicator">+1</div>
-                    </div>
-                </div>
-
-                <div class="energy-container">
-                    <div class="energy-info">
-                        <i class="fas fa-bolt" style="color: var(--warning);"></i>
-                        <span id="energyText">Энергия: 1000/1000</span>
-                    </div>
-                    <div class="energy-bar">
-                        <div id="energyFill" class="energy-fill" style="width: 100%;"></div>
-                    </div>
-                </div>
-
-                <div class="stats-container">
-                    <div class="stat-item">
-                        <div class="stat-label">Сила клика</div>
-                        <div class="stat-value" id="tapPower">1</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-label">Кликов</div>
-                        <div class="stat-value" id="totalClicks">0</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-label">Статус</div>
-                        <div class="stat-value" style="font-size: 12px; color: var(--accent);">Active</div>
-                    </div>
-                </div>
-            </section>
-
-            <section id="tab-airdrop" class="tab-content">
-                <div class="airdrop-container">
-                    <div class="token-card glow">
-                        <div class="token-header">
-                            <i class="fas fa-gem fa-2x"></i>
-                            <h3>Zootopia Token</h3>
-                        </div>
-                        <div class="token-balance" id="zooBalanceDisplay">0.0000</div>
-                        <p class="token-subtitle">Накоплено для аирдропа</p>
-                        
-                        <div class="progress-container">
-                            <div class="progress-label">
-                                <span>Прогресс листинга</span>
-                                <span>12%</span>
-                            </div>
-                            <div class="progress-bar">
-                                <div style="width: 12%; height:100%; background: var(--accent); border-radius:4px;"></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="upgrades-section">
-                        <h3 class="section-title"><i class="fas fa-tasks"></i> Задания</h3>
-                        <div class="upgrade-card" onclick="window.open('https://t.me/zootopiaclik', '_blank')">
-                            <div class="upgrade-icon"><i class="fab fa-telegram"></i></div>
-                            <div class="upgrade-info">
-                                <div class="upgrade-name">Подпишись на канал</div>
-                                <div class="upgrade-price">+500 костей</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <section id="tab-friends" class="tab-content">
-                <div class="upgrade-card" style="margin-bottom: 20px; text-align: center;">
-                    <h3>Приглашай друзей</h3>
-                    <p style="color: var(--text-secondary); font-size: 13px; margin: 10px 0;">Получай 10% от их добычи!</p>
-                    <input type="text" id="referralLink" readonly 
-                           style="width: 100%; background: var(--background); border: 1px solid var(--surface-light); color: var(--text); padding: 10px; border-radius: 8px; margin-bottom: 10px;">
-                    <button class="upgrade-price" style="background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 8px; width: 100%; cursor: pointer;" 
-                            onclick="copyReferralLink()">
-                        Копировать ссылку
-                    </button>
-                </div>
-                <p style="text-align: center; color: var(--text-disabled);">Ваш ID: <span id="userId">...</span></p>
-            </section>
-
-        </main>
-
-        <nav class="app-nav">
-            <button class="nav-btn active" onclick="showTab(0)">
-                <i class="fas fa-gamepad"></i>
-                <span>Игра</span>
-            </button>
-            <button class="nav-btn" onclick="showTab(1)">
-                <i class="fas fa-coins"></i>
-                <span>$ZOO</span>
-            </button>
-            <button class="nav-btn" onclick="showTab(2)">
-                <i class="fas fa-users"></i>
-                <span>Друзья</span>
-            </button>
-        </nav>
+    <div class="elite-header">
+        <div style="font-size: 12px; letter-spacing: 2px; color: #FFD700;">ВАШИ КОСТИ</div>
+        <div class="balance-amount" id="balanceAmount">0</div>
+        <div style="color: #00FFFF; font-family: 'Orbitron';">$ZOO: <span id="zooAmount">0.0000</span></div>
     </div>
 
-    <div id="captchaModal" class="modal">
-        <div class="modal-content">
-            <h3>Проверка на бота</h3>
-            <p id="captchaQuestion">Решите пример: 5 + 3 = ?</p>
-            <input type="number" id="captchaAnswer" style="width:100%; padding: 10px; margin: 15px 0;">
-            <button onclick="verifyCaptcha()" style="width:100%; padding: 10px; background: var(--accent); border: none; border-radius: 8px;">Подтвердить</button>
+    <main id="mainGame">
+        <div id="tab-home" class="tab-content active">
+            <div class="clicker-zone">
+                <img src="dachshund.png" class="pet-image" id="clickTarget" alt="Pet">
+            </div>
+
+            <div class="energy-container">
+                <div style="display: flex; justify-content: space-between; font-size: 14px;">
+                    <span>⚡ Энергия</span>
+                    <span id="energyValue">1000/1000</span>
+                </div>
+                <div class="energy-bar">
+                    <div class="energy-fill" id="energyFill"></div>
+                </div>
+            </div>
         </div>
-    </div>
 
-    <script src="game.js"></script>
-    <script src="script.js"></script>
-    <script src="ton-connect.js"></script>
-    <script src="anti-bot.js"></script>
+        <div id="tab-airdrop" class="tab-content">
+            <h2 style="text-align:center">Airdrop $ZOO</h2>
+            <div style="background:var(--bg-glass); padding:20px; border-radius:15px; text-align:center;">
+                <p>Ваш баланс токенов готов к листингу!</p>
+                <div id="ton-connect-button" style="display: flex; justify-content: center;"></div>
+            </div>
+        </div>
+    </main>
+
+    <nav class="neuro-nav">
+        <div class="nav-item active" onclick="showTab('home', this)">
+            <i class="fas fa-paw"></i>
+            <span>Игра</span>
+        </div>
+        <div class="nav-item" onclick="showTab('airdrop', this)">
+            <i class="fas fa-gem"></i>
+            <span>$ZOO</span>
+        </div>
+    </nav>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+
+        // Данные игры
+        let gameData = JSON.parse(localStorage.getItem('zoo_data')) || {
+            bones: 0,
+            zoo: 0,
+            energy: 1000,
+            maxEnergy: 1000
+        };
+
+        // Загрузка
+        let prg = 0;
+        const loader = setInterval(() => {
+            prg += 5;
+            document.getElementById('loadProgress').style.width = prg + '%';
+            if(prg >= 100) {
+                clearInterval(loader);
+                document.getElementById('splashScreen').style.opacity = '0';
+                setTimeout(() => document.getElementById('splashScreen').style.display = 'none', 500);
+            }
+        }, 50);
+
+        // Обновление экрана
+        function updateUI() {
+            document.getElementById('balanceAmount').innerText = Math.floor(gameData.bones);
+            document.getElementById('zooAmount').innerText = gameData.zoo.toFixed(4);
+            document.getElementById('energyValue').innerText = `${gameData.energy}/${gameData.maxEnergy}`;
+            document.getElementById('energyFill').style.width = (gameData.energy / gameData.maxEnergy * 100) + '%';
+            localStorage.setItem('zoo_data', JSON.stringify(gameData));
+        }
+
+        // Клик
+        document.getElementById('clickTarget').addEventListener('touchstart', (e) => {
+            if(gameData.energy > 0) {
+                gameData.bones += 1;
+                gameData.zoo += 0.0001;
+                gameData.energy -= 1;
+                tg.HapticFeedback.impactOccurred('medium');
+                updateUI();
+            }
+        });
+
+        // Регенерация
+        setInterval(() => {
+            if(gameData.energy < gameData.maxEnergy) {
+                gameData.energy += 1;
+                updateUI();
+            }
+        }, 1500);
+
+        // Переключение табов
+        function showTab(tabId, el) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById('tab-' + tabId).classList.add('active');
+            el.classList.add('active');
+            tg.HapticFeedback.selectionChanged();
+        }
+
+        // TON Connect
+        const tonConnectUI = new TONConnectUI.TonConnectUI({
+            manifestUrl: 'https://dimazmlbig-dev.github.io/zootopia-clicker/tonconnect-manifest.json',
+            buttonRootId: 'ton-connect-button'
+        });
+
+        updateUI();
+    </script>
 </body>
 </html>

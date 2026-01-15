@@ -18,10 +18,9 @@
         .tab-content { display: none; height: calc(100vh - 160px); overflow-y: auto; padding: 20px; }
         .tab-content.active { display: block; }
         .card { background: var(--card); border-radius: 12px; padding: 15px; margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.1); }
-        .btn-action { background: var(--gold); color: black; border: none; padding: 10px 15px; border-radius: 8px; font-weight: bold; width: 100%; cursor: pointer; }
         .click-area { display: flex; justify-content: center; align-items: center; height: 260px; }
-        .pet-image { width: 180px; cursor: pointer; transition: 0.1s; -webkit-tap-highlight-color: transparent; }
-        .pet-image:active { transform: scale(0.95); }
+        .pet-image { width: 180px; transition: 0.05s; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+        .pet-image:active { transform: scale(0.92); }
         .nav { position: fixed; bottom: 0; width: 100%; display: flex; background: #111; padding: 12px 0; border-top: 1px solid #333; }
         .nav-item { flex: 1; text-align: center; color: #666; font-size: 11px; cursor: pointer; }
         .nav-item.active { color: var(--accent); }
@@ -32,7 +31,7 @@
 
 <div id="loading">
     <h2 style="font-family:'Orbitron'; color:var(--gold)">ZOOTOPIA</h2>
-    <p id="load-text">Синхронизация данных...</p>
+    <p id="status-text">Синхронизация данных...</p>
 </div>
 
 <div class="header">
@@ -46,10 +45,10 @@
 </div>
 
 <div id="tab-airdrop" class="tab-content">
-    <h3 style="color:var(--gold)">Airdrop</h3>
-    <div class="card">
-        <p style="font-size:12px">Контракт токена:</p>
-        <code style="font-size:9px; word-break:break-all; color:var(--accent)">EQB5RZDUIW3wWLWxACmKhiH6UYEGhpuCVz2BB2KI4Wyj91Vs</code>
+    <h3 style="color:var(--gold)">Airdrop & Wallet</h3>
+    <div class="card" style="text-align:center;">
+        <p style="margin:0; font-size:12px;">Контракт токена:</p>
+        <p style="font-size:10px; color:var(--accent); word-break:break-all;">EQB5RZDUIW3wWLWxACmKhiH6UYEGhpuCVz2BB2KI4Wyj91Vs</p>
     </div>
     <div id="ton-connect-btn" style="display:flex; justify-content:center; margin-top:20px;"></div>
 </div>
@@ -72,8 +71,8 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
     const tg = window.Telegram.WebApp;
-    const uid = tg.initDataUnsafe?.user?.id?.toString() || "test_user";
-
+    const uid = tg.initDataUnsafe?.user?.id?.toString() || "dev_user";
+    
     let state = { bones: 0, zoo: 0, energy: 1000, tapPower: 1 };
 
     const tonConnectUI = new TONConnectUI.TonConnectUI({
@@ -92,7 +91,7 @@
             document.getElementById('loading').style.display = 'none';
             update();
         } catch (e) {
-            document.getElementById('load-text').innerText = "Ошибка БД: Проверьте Rules в Firebase";
+            document.getElementById('status-text').innerText = "Ошибка базы данных!";
             console.error(e);
         }
     }
@@ -109,7 +108,6 @@
             state.zoo += (0.0001 * state.tapPower);
             state.energy -= state.tapPower;
             update();
-            save();
         }
     }
 
@@ -122,9 +120,10 @@
         el.classList.add('active');
     }
 
+    tonConnectUI.onStatusChange(wallet => { if(wallet) { state.wallet = wallet.account.address; save(); } });
     document.getElementById('pet').addEventListener('pointerdown', handleTap);
     setInterval(() => { if (state.energy < 1000) { state.energy = Math.min(1000, state.energy + 2); update(); } }, 2000);
-
+    setInterval(save, 10000);
     init();
 </script>
 </body>

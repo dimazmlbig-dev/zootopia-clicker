@@ -3,225 +3,179 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Zootopia: Level System</title>
+    <title>Zootopia Clicker: @zooclikbot Edition</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
     <style>
         :root { --accent: #ff9800; --bg: #0f0f0f; --text: #ffffff; --glass: rgba(255, 255, 255, 0.05); }
         body { margin: 0; background: var(--bg); font-family: 'Inter', sans-serif; color: var(--text); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         
-        #header { padding: 15px; background: rgba(0,0,0,0.6); backdrop-filter: blur(15px); text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
-        #balance { font-size: 32px; font-weight: 900; display: flex; align-items: center; justify-content: center; gap: 10px; }
-        #rank-display { font-size: 10px; letter-spacing: 2px; color: var(--accent); text-transform: uppercase; margin-top: 5px; font-weight: bold; }
-
-        .page { display: none; flex-direction: column; align-items: center; flex-grow: 1; width: 100%; padding: 20px; box-sizing: border-box; overflow-y: auto; }
+        #header { padding: 15px; background: rgba(0,0,0,0.8); backdrop-filter: blur(15px); text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); z-index: 10; }
+        #balance { font-size: 34px; font-weight: 900; color: #fff; text-shadow: 0 0 15px var(--accent); }
+        
+        .page { display: none; flex-direction: column; align-items: center; flex-grow: 1; width: 100%; padding: 20px; box-sizing: border-box; overflow-y: auto; padding-bottom: 100px; }
         .page.active { display: flex; }
 
-        /* Прогресс-бары */
-        .stat-box { width: 100%; margin-top: 15px; }
-        .bar-label { display: flex; justify-content: space-between; font-size: 11px; opacity: 0.6; margin-bottom: 4px; }
-        .bar-bg { width: 100%; height: 8px; background: rgba(255,255,255,0.05); border-radius: 10px; overflow: hidden; margin-bottom: 10px; border: 1px solid rgba(255,255,255,0.05); }
-        .bar-fill { height: 100%; transition: width 0.3s ease; }
-        #energy-fill { background: var(--accent); }
-        #level-fill { background: #4caf50; box-shadow: 0 0 10px rgba(76, 175, 80, 0.3); }
-
-        /* Герой */
-        .hero-container { position: relative; margin: 20px 0; cursor: pointer; }
-        .hero-img { width: 240px; height: 240px; object-fit: contain; transition: transform 0.1s; }
+        .card { background: var(--glass); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 15px; width: 100%; margin-bottom: 12px; box-sizing: border-box; }
+        .buy-btn { background: var(--accent); border: none; color: #000; padding: 12px; border-radius: 12px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; font-size: 14px; }
+        
+        .hero-img { width: 220px; height: 220px; object-fit: contain; cursor: pointer; transition: transform 0.05s; margin: 20px 0; }
         .hero-img:active { transform: scale(0.92); }
 
-        /* Квесты */
-        .quest-card { background: var(--glass); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 15px; width: 100%; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
-        .quest-btn { background: var(--accent); border: none; color: #000; padding: 8px 15px; border-radius: 12px; font-weight: bold; cursor: pointer; }
-        .quest-btn.done { background: rgba(255,255,255,0.1); color: #fff; cursor: default; }
-
-        /* Навигация */
-        #nav { width: 90%; margin: 10px auto 30px; display: flex; background: var(--glass); border-radius: 25px; padding: 5px; backdrop-filter: blur(10px); }
+        #nav { position: fixed; bottom: 20px; left: 5%; width: 90%; display: flex; background: rgba(20,20,20,0.9); border-radius: 25px; padding: 5px; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
         .nav-btn { flex: 1; text-align: center; font-size: 10px; font-weight: bold; color: white; opacity: 0.4; cursor: pointer; padding: 12px 0; border-radius: 18px; }
         .nav-btn.active { opacity: 1; background: var(--accent); color: #000; }
-
-        .floating-num { position: absolute; font-size: 32px; font-weight: 900; color: #fff; pointer-events: none; animation: floatUp 0.6s ease-out; text-shadow: 0 0 10px var(--accent); }
-        @keyframes floatUp { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-120px); } }
+        
+        .tap-anim { position: absolute; color: white; font-weight: 900; font-size: 28px; pointer-events: none; animation: float 0.7s ease-out forwards; z-index: 100; text-shadow: 0 0 10px var(--accent); }
+        @keyframes float { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-100px); } }
     </style>
 </head>
 <body>
 
     <div id="header">
         <div id="balance">🦴 <span id="coins">0</span></div>
-        <div id="rank-display">Звание: <span id="rank-name">Стажер</span></div>
+        <div style="font-size: 11px; opacity: 0.6; margin-top: 5px;">Прибыль: +<span id="pps-display">0</span>/с</div>
     </div>
 
     <div id="tab-game" class="page active">
-        <div class="hero-container" onclick="handleTap(event)">
-            <img src="dachshund.png" class="hero-img" onerror="this.src='https://i.ibb.co/XfXfXfX/dachshund.png'">
-        </div>
-        
-        <div class="stat-box">
-            <div class="bar-label"><span>УРОВЕНЬ <span id="level-num">1</span></span><span id="level-text">0/1000 XP</span></div>
-            <div class="bar-bg"><div id="level-fill" class="bar-fill" style="width: 0%"></div></div>
-
-            <div class="bar-label"><span>ЭНЕРГИЯ</span><span id="energy-text">1000/1000</span></div>
-            <div class="bar-bg"><div id="energy-fill" class="bar-fill" style="width: 100%"></div></div>
+        <img src="dachshund.png" class="hero-img" onclick="handleTap(event)" onerror="this.src='https://i.ibb.co/XfXfXfX/dachshund.png'">
+        <div style="width: 100%;">
+            <div style="display: flex; justify-content: space-between; font-size: 11px;"><span>ЭНЕРГИЯ</span><span id="energy-text">1000/1000</span></div>
+            <div style="width: 100%; height: 8px; background: rgba(255,255,255,0.05); border-radius: 10px; margin-top: 5px;"><div id="energy-fill" style="height: 100%; background: var(--accent); width: 100%;"></div></div>
         </div>
     </div>
 
-    <div id="tab-tasks" class="page">
-        <h2 style="margin-top:0">ЗАДАНИЯ</h2>
-        <div class="quest-card">
-            <div><b>Канал Zootopia</b><br><small>+5,000 🦴</small></div>
-            <button id="q-sub" class="quest-btn" onclick="doQuest('sub', 5000, 'https://t.me/zootopiaclik')">JOIN</button>
+    <div id="tab-friends" class="page">
+        <h2 style="margin: 0 0 10px 0;">ДРУЗЬЯ</h2>
+        <div class="card" style="text-align: center;">
+            <p style="font-size: 14px; margin-bottom: 15px;">Пригласи друга в <b>@zooclikbot</b> и получи 50,000 🦴!</p>
+            <button class="buy-btn" onclick="shareInvite()">ПРИГЛАСИТЬ</button>
+            <button class="buy-btn" style="background: var(--glass); color: white;" onclick="copyLink()">КОПИРОВАТЬ ССЫЛКУ</button>
         </div>
-        <div class="quest-card">
-            <div><b>Пригласить друзей</b><br><small>+15,000 🦴</small></div>
-            <button id="q-frens" class="quest-btn" onclick="inviteFrens()">INVITE</button>
+        <div class="card">
+            <div style="font-weight: bold;">ТВОИ НАПАРНИКИ</div>
+            <div id="friend-list" style="font-size: 12px; opacity: 0.5; margin-top: 10px; text-align: center;">Список пуст</div>
         </div>
     </div>
 
-    <div id="tab-wallet" class="page">
-        <div id="ton-connect-button"></div>
+    <div id="tab-shop" class="page">
+        <h2 style="margin: 0 0 15px 0;">УЛУЧШЕНИЯ</h2>
+        <div class="card">
+            <b>Сила клика</b><br><small>Кликай мощнее</small>
+            <button id="btn-power" class="buy-btn" onclick="buyUpgrade('power')">1,000 🦴</button>
+        </div>
+        <div class="card">
+            <b>Патрульный бот</b><br><small>Прибыль в секунду</small>
+            <button id="btn-bot" class="buy-btn" onclick="buyUpgrade('bot')">5,000 🦴</button>
+        </div>
     </div>
 
     <div id="nav">
-        <div class="nav-btn active" onclick="showTab(0)">ГЛАВНАЯ</div>
-        <div class="nav-btn" onclick="showTab(1)">ЗАДАНИЯ</div>
-        <div class="nav-btn" onclick="showTab(3)">WALLET</div>
+        <div class="nav-btn active" onclick="showTab(0)">ИГРА</div>
+        <div class="nav-btn" onclick="showTab(1)">ДРУЗЬЯ</div>
+        <div class="nav-btn" onclick="showTab(2)">МАГАЗИН</div>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
-
-        // 1. КОНФИГУРАЦИЯ УРОВНЕЙ
-        const RANKS = [
-            { name: "Стажер", xp: 0, power: 1 },
-            { name: "Патрульный", xp: 5000, power: 2 },
-            { name: "Детектив", xp: 20000, power: 4 },
-            { name: "Инспектор", xp: 100000, power: 8 },
-            { name: "Шеф Полиции", xp: 500000, power: 15 },
-            { name: "Легенда", xp: 1000000, power: 50 }
-        ];
-
+        
+        // ВСЕ ССЫЛКИ НАСТРОЕНЫ НА @zooclikbot
+        const BOT_USERNAME = 'zooclikbot'; 
         const userId = tg.initDataUnsafe?.user?.id || "guest";
-        let gameData = JSON.parse(localStorage.getItem(`zootopia_v2_${userId}`)) || { 
-            balance: 0, 
-            totalEarned: 0, // Это наш опыт (XP)
-            energy: 1000, 
-            completedQuests: [] 
+        
+        let gameData = JSON.parse(localStorage.getItem(`zoo_final_${userId}`)) || {
+            balance: 0,
+            energy: 1000,
+            pps: 0,
+            tapPower: 1,
+            refBonusReceived: false
         };
 
-        function saveData() { localStorage.setItem(`zootopia_v2_${userId}`, JSON.stringify(gameData)); }
+        function saveData() { localStorage.setItem(`zoo_final_${userId}`, JSON.stringify(gameData)); }
 
-        // 2. ЛОГИКА ТАПА С УЧЕТОМ СИЛЫ
-        let lastTap = 0;
-        function handleTap(e) {
-            const now = Date.now();
-            if (now - lastTap < 30) return; // Анти-чит
-            if (gameData.energy <= 0) return;
-
-            const currentRank = getCurrentRank();
-            const power = currentRank.power;
-
-            gameData.balance += power;
-            gameData.totalEarned += power;
-            gameData.energy -= 1;
-            
-            lastTap = now;
-            tg.HapticFeedback.impactOccurred('light');
-            updateUI();
-            
-            showFloatingText(e.clientX, e.clientY, `+${power}`);
+        // СИСТЕМА ПРИГЛАШЕНИЙ
+        function shareInvite() {
+            const link = `https://t.me/${BOT_USERNAME}/start?startapp=${userId}`;
+            const text = "🐾 Стань моим напарником в Zootopia Clicker! Даю 5,000 бонусов на старт!";
+            tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`);
         }
 
-        function getCurrentRank() {
-            let rank = RANKS[0];
-            for (let i = RANKS.length - 1; i >= 0; i--) {
-                if (gameData.totalEarned >= RANKS[i].xp) {
-                    rank = RANKS[i];
-                    rank.level = i + 1;
-                    break;
-                }
+        function copyLink() {
+            const link = `https://t.me/${BOT_USERNAME}/start?startapp=${userId}`;
+            navigator.clipboard.writeText(link);
+            tg.showAlert("Ссылка для @zooclikbot скопирована!");
+        }
+
+        function checkReferral() {
+            const startParam = tg.initDataUnsafe?.start_param;
+            if (startParam && startParam !== userId && !gameData.refBonusReceived) {
+                gameData.balance += 5000;
+                gameData.refBonusReceived = true;
+                saveData();
+                tg.showPopup({ title: "🎁 Бонус!", message: "Вы получили 5,000 🦴 за переход по ссылке!", buttons: [{type: "ok"}] });
             }
-            return rank;
+        }
+
+        // ГЕЙМПЛЕЙ
+        function handleTap(e) {
+            if (gameData.energy <= 0) return;
+            gameData.balance += gameData.tapPower;
+            gameData.energy -= 1;
+            
+            const x = e.clientX || (e.touches ? e.touches[0].clientX : 0);
+            const y = e.clientY || (e.touches ? e.touches[0].clientY : 0);
+            if(x && y) createTapAnim(x, y);
+            
+            tg.HapticFeedback.impactOccurred('light');
+            updateUI();
+        }
+
+        function createTapAnim(x, y) {
+            const el = document.createElement('div');
+            el.className = 'tap-anim';
+            el.innerText = `+${gameData.tapPower}`;
+            el.style.left = `${x}px`; el.style.top = `${y}px`;
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 700);
+        }
+
+        function buyUpgrade(type) {
+            let cost = type === 'power' ? gameData.tapPower * 1000 : (gameData.pps + 1) * 2000;
+            if (gameData.balance >= cost) {
+                gameData.balance -= cost;
+                if (type === 'power') gameData.tapPower++;
+                else gameData.pps++;
+                saveData();
+                updateUI();
+            } else tg.showAlert("Недостаточно косточек!");
         }
 
         function updateUI() {
-            const rank = getCurrentRank();
-            const nextRank = RANKS[rank.level] || rank;
-            
             document.getElementById('coins').innerText = Math.floor(gameData.balance).toLocaleString();
-            document.getElementById('rank-name').innerText = rank.name;
-            document.getElementById('level-num').innerText = rank.level;
-            
-            // Расчет прогресса уровня
-            const xpInCurrentLevel = gameData.totalEarned - rank.xp;
-            const xpRequiredForNext = nextRank.xp - rank.xp;
-            const progress = rank.name === "Легенда" ? 100 : (xpInCurrentLevel / xpRequiredForNext) * 100;
-            
-            document.getElementById('level-fill').style.width = progress + '%';
-            document.getElementById('level-text').innerText = `${Math.floor(gameData.totalEarned).toLocaleString()} XP`;
-            
+            document.getElementById('pps-display').innerText = gameData.pps;
             document.getElementById('energy-text').innerText = `${gameData.energy}/1000`;
             document.getElementById('energy-fill').style.width = (gameData.energy / 10) + '%';
+            
+            document.getElementById('btn-power').innerText = (gameData.tapPower * 1000).toLocaleString() + " 🦴";
+            document.getElementById('btn-bot').innerText = ((gameData.pps + 1) * 2000).toLocaleString() + " 🦴";
         }
 
-        function showFloatingText(x, y, text) {
-            const el = document.createElement('div');
-            el.className = 'floating-num';
-            el.innerText = text;
-            el.style.left = x + 'px';
-            el.style.top = y + 'px';
-            document.body.appendChild(el);
-            setTimeout(() => el.remove(), 600);
+        function showTab(idx) {
+            const tabs = ['tab-game', 'tab-friends', 'tab-shop'];
+            document.querySelectorAll('.page').forEach((p, i) => p.classList.toggle('active', i === idx));
+            document.querySelectorAll('.nav-btn').forEach((b, i) => b.classList.toggle('active', i === idx));
         }
 
-        function doQuest(id, reward, url) {
-            if (gameData.completedQuests.includes(id)) return;
-            if (url) tg.openTelegramLink(url);
-            const btn = document.getElementById(`q-${id}`);
-            btn.innerText = "⏳";
-            setTimeout(() => {
-                gameData.balance += reward;
-                gameData.completedQuests.push(id);
-                saveData();
-                updateUI();
-                renderQuests();
-            }, 3000);
-        }
-
-        function renderQuests() {
-            gameData.completedQuests.forEach(id => {
-                const btn = document.getElementById(`q-${id}`);
-                if (btn) { btn.innerText = "DONE"; btn.className = "quest-btn done"; btn.onclick = null; }
-            });
-        }
-
-        function showTab(index) {
-            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-            const tabs = {0: 'tab-game', 1: 'tab-tasks', 3: 'tab-wallet'};
-            document.getElementById(tabs[index]).classList.add('active');
-            const btnMap = {0:0, 1:1, 3:2};
-            document.querySelectorAll('.nav-btn')[btnMap[index]].classList.add('active');
-        }
-
-        function inviteFrens() {
-            const text = "Стань лучшим детективом в Zootopia Clicker! 🐾";
-            const url = `https://t.me/share/url?url=https://t.me/your_bot_name?start=${userId}&text=${text}`;
-            tg.openTelegramLink(url);
-        }
-
-        const tonConnectUI = new TONConnectUI.TonConnectUI({
-            manifestUrl: 'https://dimazmlbig-dev.github.io/zootopia-clicker/tonconnect-manifest.json',
-            buttonRootId: 'ton-connect-button'
-        });
-
-        updateUI();
-        renderQuests();
         setInterval(() => {
+            gameData.balance += (gameData.pps / 10);
             if (gameData.energy < 1000) gameData.energy++;
             updateUI();
             saveData();
-        }, 1500);
+        }, 100);
+
+        checkReferral();
+        updateUI();
     </script>
 </body>
 </html>

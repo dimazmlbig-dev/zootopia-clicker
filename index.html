@@ -3,1689 +3,208 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Zootopia: Final Edition</title>
+    <title>Zootopia Cliker</title>
     
-    <!-- Favicon -->
-    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐶</text></svg>">
-    
-    <!-- Telegram WebApp SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    
-    <!-- TON Connect UI -->
     <script src="https://unpkg.com/@tonconnect/ui@2.0.3/dist/tonconnect-ui.min.js"></script>
-    
-    <!-- Font Awesome -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
-    
-    <!-- Firebase (опционально, для хранения данных) -->
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&family=Orbitron:wght@700&display=swap');
         
-        :root {
-            --blue: #1A5CC7;
-            --gold: #FFD700;
-            --accent: #FF8D29;
-            --green: #4CAF50;
-            --red: #F44336;
+        :root { --blue: #1A5CC7; --gold: #FFD700; --accent: #FF8D29; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
+
+        body { 
+            font-family: 'Fredoka', sans-serif; 
+            background: linear-gradient(180deg, #2A75FF 0%, #1A5CC7 100%);
+            color: white; margin: 0; height: 100vh; overflow: hidden;
+            display: flex; flex-direction: column;
         }
+
+        /* ВЕРХНЯЯ ПАНЕЛЬ (как на скриншоте) */
+        .header { text-align: center; padding-top: calc(env(safe-area-inset-top) + 10px); z-index: 100; }
+        .score { font-family: 'Orbitron'; font-size: 48px; font-weight: 700; }
+        .zoo-val { font-family: 'Orbitron'; font-size: 16px; color: var(--gold); margin-bottom: 10px; }
         
-        * {
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
-            user-select: none;
-            -webkit-user-drag: none;
+        /* ОБЛАЧКА (BUBBLES) */
+        .bubble {
+            position: absolute; background: white; border-radius: 20px;
+            padding: 8px 12px; color: #E57373; font-weight: 600; font-size: 13px;
+            text-align: center; box-shadow: 0 4px 0 rgba(0,0,0,0.1);
+            cursor: pointer; z-index: 50; min-width: 85px;
+            border: 2px solid #eee;
         }
-        
-        body {
-            font-family: 'Fredoka', sans-serif;
-            background: linear-gradient(135deg, var(--blue) 0%, #0d3a8a 100%);
-            color: white;
-            margin: 0;
-            height: 100vh;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
+        .bubble::after { /* Хвостик облачка */
+            content: ''; position: absolute; width: 10px; height: 10px;
+            background: white; transform: rotate(45deg);
         }
+        .b-left::after { left: -5px; top: 50%; margin-top: -5px; }
+        .b-right::after { right: -5px; top: 50%; margin-top: -5px; }
+
+        /* Позиции из скриншота */
+        .pos-1 { top: 20%; left: 5%; }  /* ТОП */
+        .pos-2 { top: 38%; left: 5%; }  /* Новости */
+        .pos-3 { top: 56%; left: 5%; }  /* 3 в ряд */
+        .pos-4 { top: 20%; right: 5%; } /* NFT */
+        .pos-5 { top: 38%; right: 5%; } /* Кошелек */
+        .pos-6 { top: 56%; right: 5%; } /* Магазин */
+
+        /* ЦЕНТРАЛЬНАЯ ТАКСА */
+        .main-view { flex-grow: 1; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .evo-tag { background: rgba(255,255,255,0.2); padding: 5px 15px; border-radius: 15px; font-size: 14px; margin-bottom: 20px; }
         
-        /* ШАПКА */
-        .header {
-            text-align: center;
-            padding-top: calc(env(safe-area-inset-top) + 10px);
-            z-index: 100;
-            background: rgba(0, 0, 0, 0.2);
-            padding-bottom: 10px;
-            backdrop-filter: blur(5px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        
-        .score {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 42px;
-            line-height: 1;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-            background: linear-gradient(45deg, var(--gold), #FF8D29);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-        
-        .currency {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 14px;
-            color: var(--gold);
-            margin-top: 5px;
-        }
-        
-        /* ОСНОВНОЙ КОНТЕНТ */
-        .content {
-            flex-grow: 1;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .tab-panel {
-            display: none;
-            height: 100%;
-            width: 100%;
-            padding: 20px;
-            overflow-y: auto;
-            padding-bottom: calc(80px + env(safe-area-inset-bottom));
-        }
-        
-        .tab-panel.active {
-            display: flex;
-            flex-direction: column;
-        }
-        
-        /* ИГРА (ГЛАВНАЯ) */
-        .game-area {
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: space-around;
-        }
-        
-        .bubble-btn {
-            position: absolute;
-            background: white;
-            color: #E57373;
-            font-weight: 600;
-            padding: 10px 18px;
-            border-radius: 25px;
-            font-size: 13px;
-            text-align: center;
-            box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.2);
-            animation: float 3s infinite ease-in-out;
-            cursor: pointer;
-            z-index: 50;
-            border: none;
-            transition: transform 0.2s;
-        }
-        
-        .bubble-btn:active {
-            transform: scale(0.95);
-        }
-        
-        @keyframes float {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-8px); }
-        }
-        
-        .character-box {
-            position: relative;
-            width: 60vw;
-            max-width: 280px;
-            min-height: 280px;
-            transition: transform 0.1s;
-            cursor: pointer;
-        }
-        
-        .character-box:active {
-            transform: scale(0.92);
-        }
-        
-        .main-pet {
-            width: 100%;
-            height: auto;
-            z-index: 5;
-            position: relative;
-            filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.3));
-        }
-        
-        .nft-overlay {
-            position: absolute;
-            inset: 0;
-            z-index: 10;
-            pointer-events: none;
-            display: none;
-            width: 100%;
-            height: auto;
-        }
-        
-        .nft-overlay.visible {
-            display: block;
-        }
-        
+        .character-box { position: relative; width: 60vw; max-width: 250px; }
+        .main-pet { width: 100%; filter: drop-shadow(0 10px 20px rgba(0,0,0,0.3)); }
+        .nft-overlay { position: absolute; inset: 0; pointer-events: none; display: none; z-index: 10; }
+        .nft-overlay.active { display: block; }
+
         /* ЭНЕРГИЯ */
-        .energy-container {
-            width: 90%;
-            max-width: 400px;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 20px;
-            padding: 12px 15px;
-            margin-bottom: 10px;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+        .energy-box { width: 85%; background: rgba(0,0,0,0.3); border-radius: 20px; padding: 15px; margin-bottom: 20px; }
+        .energy-bar { height: 12px; background: rgba(255,255,255,0.1); border-radius: 6px; overflow: hidden; margin-top: 8px; }
+        .energy-fill { height: 100%; background: #FFD700; width: 100%; transition: 0.3s; }
+
+        /* НИЖНЯЯ НАВИГАЦИЯ */
+        .nav-bar { height: 70px; display: flex; background: rgba(0,0,0,0.2); border-top: 1px solid rgba(255,255,255,0.1); }
+        .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 12px; color: #88aaff; }
+        .nav-item.active { color: white; }
+        .nav-item i { font-size: 20px; margin-bottom: 4px; }
+
+        /* МОДАЛКИ (ДЛЯ НОВОСТЕЙ И ИГРЫ) */
+        .modal { 
+            position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 1000; 
+            display: none; flex-direction: column; padding: 30px 20px; 
         }
-        
-        .energy-bar {
-            width: 100%;
-            height: 20px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            overflow: hidden;
-            margin-top: 5px;
-        }
-        
-        .energy-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #FFEF5E, #FF8D29);
-            width: 100%;
-            transition: width 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-            border-radius: 10px;
-        }
-        
-        /* НИЖНЕЕ МЕНЮ (РАЗДЕЛЫ) */
-        .nav-bar {
-            height: 80px;
-            background: rgba(0, 0, 0, 0.3);
-            backdrop-filter: blur(15px);
-            display: flex;
-            padding-bottom: env(safe-area-inset-bottom);
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            z-index: 1000;
-        }
-        
-        .nav-item {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            font-size: 11px;
-            opacity: 0.6;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        
-        .nav-item.active {
-            opacity: 1;
-            color: var(--gold);
-            transform: translateY(-5px);
-        }
-        
-        .nav-item i {
-            font-size: 22px;
-            margin-bottom: 4px;
-            transition: transform 0.3s;
-        }
-        
-        .nav-item.active i {
-            transform: scale(1.1);
-        }
-        
-        /* КАРТОЧКИ В СПИСКАХ */
-        .card {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 15px;
-            padding: 18px;
-            margin-bottom: 12px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            transition: transform 0.2s;
-        }
-        
-        .card:active {
-            transform: scale(0.98);
-        }
-        
-        .btn-action {
-            background: linear-gradient(135deg, var(--gold), #FF8D29);
-            border: none;
-            padding: 12px 20px;
-            border-radius: 12px;
-            font-weight: bold;
-            cursor: pointer;
-            color: #333;
-            font-size: 14px;
-            transition: all 0.2s;
-            box-shadow: 0 4px 10px rgba(255, 215, 0, 0.3);
-        }
-        
-        .btn-action:active {
-            transform: scale(0.95);
-            box-shadow: 0 2px 5px rgba(255, 215, 0, 0.2);
-        }
-        
-        .btn-action:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-        
-        /* МИНИ-ИГРА */
-        .match3-grid {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 8px;
-            margin-top: 20px;
-            max-width: 320px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-        
-        .cell {
-            aspect-ratio: 1;
-            background: rgba(255, 255, 255, 0.15);
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            cursor: pointer;
-            transition: all 0.2s;
-            backdrop-filter: blur(5px);
-            border: 2px solid rgba(255, 255, 255, 0.1);
-        }
-        
-        .cell:active {
-            transform: scale(0.9);
-            background: rgba(255, 255, 255, 0.3);
-        }
-        
-        /* АНИМАЦИИ */
-        .tap-animation {
-            position: absolute;
-            pointer-events: none;
-            animation: floatUp 1s forwards;
-            font-size: 28px;
-            color: var(--gold);
-            font-weight: bold;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-            z-index: 100;
-        }
-        
-        @keyframes floatUp {
-            0% {
-                opacity: 1;
-                transform: translateY(0) scale(1);
-            }
-            100% {
-                opacity: 0;
-                transform: translateY(-60px) scale(1.2);
-            }
-        }
-        
-        /* ЕЖЕДНЕВНЫЕ НАГРАДЫ */
-        .daily-rewards {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-        
-        .daily-day {
-            width: 50px;
-            height: 50px;
-            border-radius: 10px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            background: rgba(255, 255, 255, 0.1);
-            font-size: 12px;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        
-        .daily-day.claimed {
-            background: linear-gradient(135deg, var(--green), #2E7D32);
-            transform: scale(1.05);
-        }
-        
-        .daily-day.today {
-            border: 2px solid var(--gold);
-            animation: pulse 2s infinite;
-        }
-        
-        @keyframes pulse {
-            0%, 100% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.4); }
-            50% { box-shadow: 0 0 0 10px rgba(255, 215, 0, 0); }
-        }
-        
-        /* РЕФЕРАЛЬНАЯ СИСТЕМА */
-        .referral-box {
-            background: linear-gradient(135deg, rgba(76, 175, 80, 0.2), rgba(33, 150, 243, 0.2));
-            border-radius: 15px;
-            padding: 15px;
-            margin-top: 20px;
-            text-align: center;
-        }
-        
-        .referral-link {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            padding: 10px;
-            margin: 10px 0;
-            word-break: break-all;
-            font-family: monospace;
-            font-size: 12px;
-        }
-        
-        /* АДАПТИВНОСТЬ */
-        @media (max-width: 480px) {
-            .score {
-                font-size: 36px;
-            }
-            
-            .character-box {
-                width: 70vw;
-                min-height: 250px;
-            }
-            
-            .nav-item i {
-                font-size: 20px;
-            }
-            
-            .nav-item {
-                font-size: 10px;
-            }
-            
-            .bubble-btn {
-                padding: 8px 15px;
-                font-size: 12px;
-            }
-        }
-        
-        /* ПРОГРЕСС БАР ЗАГРУЗКИ */
-        .loader {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: var(--blue);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 9999;
-            transition: opacity 0.5s;
-        }
-        
-        .loader.hidden {
-            opacity: 0;
-            pointer-events: none;
-        }
-        
-        .loader-spinner {
-            width: 50px;
-            height: 50px;
-            border: 5px solid rgba(255, 255, 255, 0.1);
-            border-radius: 50%;
-            border-top-color: var(--gold);
-            animation: spin 1s linear infinite;
-            margin-bottom: 20px;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        /* МОДАЛЬНЫЕ ОКНА */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.8);
-            z-index: 2000;
-            align-items: center;
-            justify-content: center;
-            backdrop-filter: blur(5px);
-        }
-        
-        .modal.active {
-            display: flex;
-        }
-        
-        .modal-content {
-            background: rgba(26, 92, 199, 0.95);
-            border-radius: 20px;
-            padding: 25px;
-            max-width: 90%;
-            width: 400px;
-            max-height: 80vh;
-            overflow-y: auto;
-            border: 2px solid var(--gold);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-        }
-        
-        /* УВЕДОМЛЕНИЯ */
-        .notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: rgba(76, 175, 80, 0.9);
-            color: white;
-            padding: 15px 20px;
-            border-radius: 10px;
-            transform: translateX(150%);
-            transition: transform 0.3s;
-            z-index: 3000;
-            backdrop-filter: blur(10px);
-        }
-        
-        .notification.active {
-            transform: translateX(0);
-        }
-        
-        .notification.error {
-            background: rgba(244, 67, 54, 0.9);
-        }
-        
-        .notification.warning {
-            background: rgba(255, 141, 41, 0.9);
-        }
-        
-        /* ПОЛОСА ПРОГРЕССА УРОВНЯ */
-        .level-container {
-            width: 90%;
-            max-width: 400px;
-            margin: 10px 0;
-        }
-        
-        .level-bar {
-            height: 6px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 3px;
-            overflow: hidden;
-            margin-top: 5px;
-        }
-        
-        .level-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #9C27B0, #E91E63);
-            border-radius: 3px;
-            transition: width 0.5s;
-        }
-        
-        h1, h2, h3 {
-            margin-top: 0;
-            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.3);
-        }
-        
-        h2 {
-            color: var(--gold);
-            font-size: 22px;
-            margin-bottom: 20px;
-        }
-        
-        small {
-            opacity: 0.8;
-            font-size: 12px;
-        }
-        
-        /* СКРОЛЛБАР */
-        ::-webkit-scrollbar {
-            width: 6px;
-        }
-        
-        ::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 3px;
-        }
-        
-        ::-webkit-scrollbar-thumb {
-            background: var(--gold);
-            border-radius: 3px;
-        }
-        
-        ::-webkit-scrollbar-thumb:hover {
-            background: #FF8D29;
-        }
+        .modal.active { display: flex; }
+        .close-modal { align-self: flex-end; font-size: 30px; margin-bottom: 20px; }
     </style>
 </head>
 <body>
 
-<!-- Загрузчик -->
-<div class="loader" id="loader">
-    <div class="loader-spinner"></div>
-    <div>Загрузка Zootopia...</div>
-</div>
-
-<!-- Уведомления -->
-<div class="notification" id="notification"></div>
-
-<!-- Модальное окно достижений -->
-<div class="modal" id="achievement-modal">
-    <div class="modal-content">
-        <h2>🎉 Новое достижение!</h2>
-        <p id="achievement-text"></p>
-        <button class="btn-action" onclick="hideModal('achievement-modal')" style="width: 100%; margin-top: 20px;">
-            Отлично!
-        </button>
-    </div>
-</div>
-
 <header class="header">
-    <div class="score" id="bones">0</div>
-    <div class="currency">$ZOO: <span id="zoo-val">0.0000</span></div>
-    <div class="level-container">
-        <div style="font-size: 12px; display: flex; justify-content: space-between;">
-            <span>Уровень <span id="level">1</span></span>
-            <span id="level-progress">0/1000</span>
-        </div>
-        <div class="level-bar">
-            <div class="level-fill" id="level-fill" style="width: 0%;"></div>
-        </div>
-    </div>
+    <div class="score" id="bones">357</div>
+    <div class="zoo-val">$ZOO: <span id="zoo">0.0788</span></div>
 </header>
 
-<div class="content">
-    <!-- ВКЛАДКА: ГЛАВНАЯ -->
-    <div id="tab-main" class="tab-panel active">
-        <div class="game-area">
-            <button class="bubble-btn" style="top: 10%; left: 5%;" onclick="showTab('tab-top', this)">
-                🏆 ТОП
-            </button>
-            <button class="bubble-btn" style="top: 10%; right: 5%;" onclick="connectWallet()">
-                💳 КОШЕЛЕК
-            </button>
-            <button class="bubble-btn" style="top: 30%; left: 2%;" onclick="showTab('tab-news', this)">
-                🔔 НОВОСТИ
-            </button>
-            <button class="bubble-btn" style="bottom: 30%; right: 2%;" onclick="showDailyRewards()">
-                🎁 ДЕНЬ <span id="day-streak">0</span>
-            </button>
-            
-            <div id="evo-label" style="font-size: 18px; font-weight: 600; margin-bottom: 10px; text-align: center;">
-                🐶 Малыш Такса
-            </div>
-            
-            <div class="character-box" onclick="handleTap(event)">
-                <img src="https://api.dicebear.com/7.x/shapes/svg?seed=glasses&backgroundColor=1A5CC7" 
-                     id="nft-glasses" class="nft-overlay" alt="NFT Очки">
-                <img src="https://api.dicebear.com/7.x/shapes/svg?seed=hat&backgroundColor=1A5CC7" 
-                     id="nft-hat" class="nft-overlay" alt="NFT Шляпа">
-                <img src="https://api.dicebear.com/7.x/bottts/svg?seed=dachshund&backgroundColor=1A5CC7" 
-                     id="pet-img" class="main-pet" alt="Питомец">
-            </div>
-            
-            <div style="font-size: 14px; margin: 10px 0; text-align: center;">
-                Сила тапа: <span id="tap-power">1</span> 🦴
-            </div>
-            
-            <div class="energy-container">
-                <div style="font-size: 14px; margin-bottom: 8px; font-weight: bold; display: flex; justify-content: space-between;">
-                    <span>⚡ Энергия</span>
-                    <span id="en-cur">1000</span> / 1000
-                </div>
-                <div class="energy-bar">
-                    <div class="energy-fill" id="en-fill" style="width: 100%;"></div>
-                </div>
-            </div>
-            
-            <div class="referral-box" id="referral-section" style="display: none;">
-                <h3>👥 Пригласи друга!</h3>
-                <p>Получите по 1000 🦴 каждый!</p>
-                <div class="referral-link" id="referral-link">
-                    Загрузка...
-                </div>
-                <button class="btn-action" onclick="copyReferralLink()">
-                    📋 Скопировать ссылку
-                </button>
-            </div>
-        </div>
+<main class="main-view">
+    <div class="bubble b-right pos-1" onclick="showTab('tab-top')">топ<br>участников</div>
+    <div class="bubble b-right pos-2" onclick="openModal('news-modal')">новости</div>
+    <div class="bubble b-right pos-3" onclick="openModal('game-modal')">3 в ряд</div>
+
+    <div class="bubble b-left pos-4" onclick="openModal('nft-modal')">NFT</div>
+    <div class="bubble b-left pos-5" id="ton-btn">мой<br>кошелек</div>
+    <div class="bubble b-left pos-6" onclick="showTab('tab-shop')">магазин</div>
+
+    <div class="evo-tag">МАЛЫШ ТАКСА 🐾</div>
+
+    <div class="character-box" onclick="handleTap(event)">
+        <img src="nft_glasses.png" id="nft-glasses" class="nft-overlay">
+        <img src="nft_hat.png" id="nft-hat" class="nft-overlay">
+        <img src="dachshund.png" class="main-pet" id="pet">
     </div>
-    
-    <!-- ВКЛАДКА: МАГАЗИН -->
-    <div id="tab-shop" class="tab-panel">
-        <h2>🛒 Магазин Бустов</h2>
-        
-        <div class="card">
-            <div>
-                <b>💪 Сила тапа</b><br>
-                <small>Увеличивает кости за клик</small><br>
-                <span id="tap-price" style="color: var(--gold); font-weight: bold;">500 🦴</span>
-            </div>
-            <button class="btn-action" onclick="upgradeTap()">
-                Lvl <span id="tap-lvl">1</span>
-            </button>
+
+    <div class="energy-box">
+        <div style="display:flex; justify-content:space-between; font-size:12px;">
+            <span>⚡ ЭНЕРГИЯ</span>
+            <span id="en-text">999</span>
         </div>
-        
-        <div class="card">
-            <div>
-                <b>⚡ Восстановление энергии</b><br>
-                <small>Быстрее восстанавливает энергию</small><br>
-                <span id="energy-price" style="color: var(--gold); font-weight: bold;">1000 🦴</span>
-            </div>
-            <button class="btn-action" onclick="upgradeEnergy()">
-                Lvl <span id="energy-lvl">1</span>
-            </button>
-        </div>
-        
-        <h2>👕 NFT Гардероб</h2>
-        
-        <div class="card">
-            <div>
-                <b>🕶️ Очки Cyber</b><br>
-                <small>Стильные очки для питомца</small><br>
-                <span style="color: var(--gold); font-weight: bold;">10 $ZOO</span>
-            </div>
-            <button class="btn-action" id="buy-glasses" onclick="buyNFT('glasses', 10)">
-                Купить
-            </button>
-        </div>
-        
-        <div class="card">
-            <div>
-                <b>🎩 Шляпа Gentleman</b><br>
-                <small>Элегантная шляпа</small><br>
-                <span style="color: var(--gold); font-weight: bold;">15 $ZOO</span>
-            </div>
-            <button class="btn-action" id="buy-hat" onclick="buyNFT('hat', 15)">
-                Купить
-            </button>
-        </div>
-        
-        <div class="card">
-            <div>
-                <b>👑 Корона Короля</b><br>
-                <small>Королевская корона</small><br>
-                <span style="color: var(--gold); font-weight: bold;">50 $ZOO</span>
-            </div>
-            <button class="btn-action" id="buy-crown" onclick="buyNFT('crown', 50)">
-                Купить
-            </button>
-        </div>
+        <div class="energy-bar"><div class="energy-fill" id="en-fill"></div></div>
     </div>
-    
-    <!-- ВКЛАДКА: МИНИ-ИГРА -->
-    <div id="tab-game" class="tab-panel">
-        <h2>🎮 Zootopia Match</h2>
-        <p>Нажимай на косточки и получай $ZOO!</p>
-        <p>Собрано: <span id="game-score">0</span> 🦴</p>
-        
-        <div id="grid" class="match3-grid"></div>
-        
-        <div style="text-align: center; margin-top: 20px;">
-            <button class="btn-action" onclick="resetGame()" style="margin: 5px;">
-                🔄 Перезапуск
-            </button>
-            <button class="btn-action" onclick="claimGameRewards()" id="claim-game-btn" style="margin: 5px;">
-                🏆 Забрать награду
-            </button>
-        </div>
-        
-        <div style="margin-top: 20px; font-size: 14px; opacity: 0.8;">
-            <b>🎯 Задание:</b> Собери 20 косточек за одну сессию, чтобы получить бонус!
-        </div>
+</main>
+
+<div id="news-modal" class="modal">
+    <div class="close-modal" onclick="closeModal('news-modal')">&times;</div>
+    <h2>НОВОСТИ 🐾</h2>
+    <div style="background:rgba(255,255,255,0.1); padding:15px; border-radius:15px;">
+        <p><b>Дизайн обновлен!</b> Мы вернули любимые облачка и добавили мини-игру.</p>
+        <hr opacity="0.1">
+        <p><b>Листинг скоро:</b> Копите $ZOO для будущего обмена.</p>
     </div>
-    
-    <!-- ВКЛАДКА: НОВОСТИ -->
-    <div id="tab-news" class="tab-panel">
-        <h2>📢 Новости</h2>
-        
-        <div class="card">
-            <div>
-                <b>🎨 Обновление дизайна!</b><br>
-                <small>Сегодня, 10:30</small><br>
-                <span>Теперь навигация внизу, добавлены анимации и улучшен UI.</span>
-            </div>
-        </div>
-        
-        <div class="card">
-            <div>
-                <b>💎 TON Интеграция</b><br>
-                <small>Вчера, 14:45</small><br>
-                <span>Кошелек TON теперь полностью работает. Подключай и получай бонус!</span>
-            </div>
-        </div>
-        
-        <div class="card">
-            <div>
-                <b>🏆 Новые достижения</b><br>
-                <small>2 дня назад, 09:15</small><br>
-                <span>Добавлены достижения за 1000, 5000 и 10000 кликов!</span>
-            </div>
-        </div>
-        
-        <div class="card">
-            <div>
-                <b>🎁 Ежедневные награды</b><br>
-                <small>3 дня назад, 11:20</small><br>
-                <span>Заходи каждый день, чтобы получить уникальные награды!</span>
-            </div>
-        </div>
-        
-        <div class="card">
-            <div>
-                <b>👥 Реферальная система</b><br>
-                <small>5 дней назад, 16:40</small><br>
-                <span>Приглашай друзей и получай бонусы за каждого!</span>
-            </div>
-        </div>
-    </div>
-    
-    <!-- ВКЛАДКА: ТОП ИГРОКОВ -->
-    <div id="tab-top" class="tab-panel">
-        <h2>🏆 Топ участников</h2>
-        
-        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-            <button class="btn-action" onclick="loadTop('bones')" style="flex: 1;">
-                🦴 По костям
-            </button>
-            <button class="btn-action" onclick="loadTop('zoo')" style="flex: 1;">
-                💎 По $ZOO
-            </button>
-            <button class="btn-action" onclick="loadTop('tap')" style="flex: 1;">
-                💪 По силе
-            </button>
-        </div>
-        
-        <div id="top-list">
-            <div class="card">
-                <div style="display: flex; align-items: center; width: 100%;">
-                    <div style="font-size: 24px; margin-right: 15px; color: var(--gold);">🥇</div>
-                    <div style="flex-grow: 1;">
-                        <b>NickName_1</b><br>
-                        <small>1,234,567 🦴 • 12.3456 $ZOO</small>
-                    </div>
-                    <div style="font-weight: bold; color: var(--gold);">
-                        Ур. 25
-                    </div>
-                </div>
-            </div>
-            
-            <div class="card">
-                <div style="display: flex; align-items: center; width: 100%;">
-                    <div style="font-size: 24px; margin-right: 15px; color: silver;">🥈</div>
-                    <div style="flex-grow: 1;">
-                        <b>Player_Two</b><br>
-                        <small>987,654 🦴 • 9.8765 $ZOO</small>
-                    </div>
-                    <div style="font-weight: bold; color: silver;">
-                        Ур. 18
-                    </div>
-                </div>
-            </div>
-            
-            <div class="card">
-                <div style="display: flex; align-items: center; width: 100%;">
-                    <div style="font-size: 24px; margin-right: 15px; color: #cd7f32;">🥉</div>
-                    <div style="flex-grow: 1;">
-                        <b>Gamer_Pro</b><br>
-                        <small>765,432 🦴 • 7.6543 $ZOO</small>
-                    </div>
-                    <div style="font-weight: bold; color: #cd7f32;">
-                        Ур. 15
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div style="text-align: center; margin-top: 20px; font-size: 14px; opacity: 0.8;">
-            <p>Твое место: <b id="user-rank">Загрузка...</b></p>
-            <button class="btn-action" onclick="updateTopList()" style="margin-top: 10px;">
-                🔄 Обновить
-            </button>
-        </div>
-    </div>
-    
-    <!-- ВКЛАДКА: ЕЖЕДНЕВНЫЕ НАГРАДЫ -->
-    <div id="tab-daily" class="tab-panel">
-        <div class="modal-content" style="margin: auto; width: 100%;">
-            <h2>🎁 Ежедневные награды</h2>
-            <p style="text-align: center;">Серия: <span id="current-streak">0</span> дней</p>
-            
-            <div class="daily-rewards">
-                <div class="daily-day" id="day1" onclick="claimDaily(1)">
-                    <div>День 1</div>
-                    <div>100 🦴</div>
-                </div>
-                <div class="daily-day" id="day2" onclick="claimDaily(2)">
-                    <div>День 2</div>
-                    <div>200 🦴</div>
-                </div>
-                <div class="daily-day" id="day3" onclick="claimDaily(3)">
-                    <div>День 3</div>
-                    <div>300 🦴</div>
-                </div>
-                <div class="daily-day" id="day4" onclick="claimDaily(4)">
-                    <div>День 4</div>
-                    <div>500 🦴</div>
-                </div>
-                <div class="daily-day" id="day5" onclick="claimDaily(5)">
-                    <div>День 5</div>
-                    <div>800 🦴</div>
-                </div>
-                <div class="daily-day" id="day6" onclick="claimDaily(6)">
-                    <div>День 6</div>
-                    <div>1300 🦴</div>
-                </div>
-                <div class="daily-day" id="day7" onclick="claimDaily(7)">
-                    <div>День 7</div>
-                    <div>2100 🦴</div>
-                </div>
-            </div>
-            
-            <p style="text-align: center; font-size: 14px; margin-top: 20px;">
-                Заходи каждый день, чтобы не прерывать серию!
-            </p>
-            
-            <button class="btn-action" onclick="showTab('tab-main')" style="width: 100%; margin-top: 20px;">
-                ← Назад
-            </button>
-        </div>
-    </div>
+</div>
+
+<div id="game-modal" class="modal">
+    <div class="close-modal" onclick="closeModal('game-modal')">&times;</div>
+    <h2>Zootopia Match</h2>
+    <div id="grid" style="display:grid; grid-template-columns:repeat(5,1fr); gap:5px;"></div>
+    <p style="text-align:center; margin-top:20px;">Награда: <span id="game-reward" style="color:var(--gold)">0</span> $ZOO</p>
 </div>
 
 <nav class="nav-bar">
-    <div class="nav-item active" onclick="showTab('tab-main', this)">
-        <i class="fas fa-paw"></i>
-        Главная
-    </div>
-    <div class="nav-item" onclick="showTab('tab-shop', this)">
-        <i class="fas fa-shopping-cart"></i>
-        Магазин
-    </div>
-    <div class="nav-item" onclick="showTab('tab-game', this)">
-        <i class="fas fa-th"></i>
-        3 в ряд
-    </div>
-    <div class="nav-item" onclick="showTab('tab-top', this)">
-        <i class="fas fa-trophy"></i>
-        Топ
-    </div>
-    <div class="nav-item" onclick="showTab('tab-news', this)">
-        <i class="fas fa-newspaper"></i>
-        Новости
-    </div>
+    <div class="nav-item active"><i class="fas fa-bone"></i>ГЛАВНАЯ</div>
+    <div class="nav-item" onclick="openModal('shop-modal')"><i class="fas fa-rocket"></i>ПРОКАЧКА</div>
 </nav>
 
 <script>
-    // ==================== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ====================
-    let tg = null;
-    let tonConnectUI = null;
-    let lastTapTime = 0;
-    let gameScore = 0;
-    let dailyRewardsClaimed = [];
-    let achievements = [];
-    
-    // Состояние игры
-    let state = {
-        bones: 0,
-        zoo: 0,
-        energy: 1000,
-        tapLvl: 1,
-        energyLvl: 1,
-        ownedNFTs: [],
-        level: 1,
-        exp: 0,
-        achievements: [],
-        gameHighScore: 0,
-        referralCode: '',
-        referrals: 0
-    };
-    
-    // Цены улучшений
-    const upgradeCosts = {
-        tap: [500, 1000, 2000, 4000, 8000, 16000, 32000, 64000, 128000, 256000],
-        energy: [1000, 2000, 4000, 8000, 16000, 32000, 64000, 128000, 256000, 512000]
-    };
-    
-    // Ежедневные награды
-    const dailyRewards = [100, 200, 300, 500, 800, 1300, 2100];
-    
-    // Достижения
-    const achievementList = [
-        { id: 'first_tap', name: 'Первый клик!', desc: 'Сделайте первый клик', goal: 1, reward: 100 },
-        { id: '100_clicks', name: 'Начало пути', desc: 'Сделайте 100 кликов', goal: 100, reward: 500 },
-        { id: '1000_clicks', name: 'Уверенный кликер', desc: 'Сделайте 1000 кликов', goal: 1000, reward: 2000 },
-        { id: '10000_clicks', name: 'Мастер кликов', desc: 'Сделайте 10000 кликов', goal: 10000, reward: 10000 },
-        { id: 'first_upgrade', name: 'Первый апгрейд', desc: 'Улучшите силу тапа', goal: 1, reward: 200 },
-        { id: 'first_nft', name: 'Модник', desc: 'Купите первый NFT', goal: 1, reward: 500 },
-        { id: 'level_10', name: 'Опытный игрок', desc: 'Достигните 10 уровня', goal: 10, reward: 5000 },
-        { id: 'level_20', name: 'Ветеран', desc: 'Достигните 20 уровня', goal: 20, reward: 15000 },
-        { id: 'rich', name: 'Богач', desc: 'Накопите 100 $ZOO', goal: 100, reward: 10000 },
-        { id: 'referral_master', name: 'Социальная бабочка', desc: 'Пригласите 5 друзей', goal: 5, reward: 5000 }
-    ];
-    
-    // ==================== ИНИЦИАЛИЗАЦИЯ ====================
-    document.addEventListener('DOMContentLoaded', function() {
-        // Инициализация Telegram WebApp
-        try {
-            tg = window.Telegram?.WebApp;
-            if (tg) {
-                tg.ready();
-                tg.expand();
-                tg.enableClosingConfirmation();
-                
-                // Получаем данные пользователя
-                const user = tg.initDataUnsafe?.user;
-                if (user) {
-                    console.log('Пользователь Telegram:', user);
-                    state.referralCode = 'ref_' + (user.id || Date.now()).toString().slice(-8);
-                    
-                    // Проверяем реферала
-                    const startParam = tg.initDataUnsafe?.start_param;
-                    if (startParam && startParam.startsWith('ref_')) {
-                        handleReferral(startParam);
-                    }
-                }
-            }
-        } catch (e) {
-            console.log('Не в Telegram или ошибка:', e);
-        }
-        
-        // Инициализация TON Connect
-        try {
-            tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-                manifestUrl: 'https://raw.githubusercontent.com/ton-connect/demo-dapp-with-react-ui/master/public/tonconnect-manifest.json',
-                actionsConfiguration: {
-                    twaReturnUrl: 'https://t.me/ZootopiaGameBot/app'
-                }
-            });
-            
-            // Проверяем подключенный кошелек
-            tonConnectUI.connectionRestored.then((connected) => {
-                if (connected) {
-                    showNotification('Кошелек TON подключен!', 'success');
-                }
-            });
-        } catch (e) {
-            console.log('Ошибка TON Connect:', e);
-        }
-        
-        // Загрузка сохраненной игры
-        loadGame();
-        
-        // Инициализация мини-игры
-        initGame();
-        
-        // Загрузка ежедневных наград
-        loadDailyRewards();
-        
-        // Обновление UI
-        updateUI();
-        
-        // Скрываем загрузчик
-        setTimeout(() => {
-            document.getElementById('loader').classList.add('hidden');
-        }, 1000);
-        
-        // Восстановление энергии
-        setInterval(restoreEnergy, 1000);
-        
-        // Автосохранение каждые 30 секунд
-        setInterval(saveGame, 30000);
-        
-        // Показываем реферальную секцию если есть код
-        if (state.referralCode) {
-            document.getElementById('referral-section').style.display = 'block';
-            document.getElementById('referral-link').textContent = 
-                'https://t.me/ZootopiaGameBot/app?startapp=' + state.referralCode;
-        }
+    let state = { bones: 357, zoo: 0.0788, energy: 999, tapLvl: 1 };
+    const tg = window.Telegram.WebApp;
+
+    // Инициализация TON Connect
+    const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+        manifestUrl: 'https://raw.githubusercontent.com/ton-connect/demo-dapp-with-react-ui/master/public/tonconnect-manifest.json',
+        buttonRootId: 'ton-btn' 
     });
-    
-    // ==================== ОСНОВНЫЕ ФУНКЦИИ ====================
-    
-    function handleTap(event) {
-        const now = Date.now();
-        if (now - lastTapTime < 50) return; // Защита от спама
-        lastTapTime = now;
-        
+
+    function handleTap(e) {
         if (state.energy >= 2) {
-            // Анимация клика
-            createTapAnimation(event);
-            
-            // Обновление состояния
-            const tapPower = getTapPower();
-            state.bones += tapPower;
-            state.zoo += (tapPower * 0.0001);
+            state.bones += state.tapLvl;
+            state.zoo += 0.0001;
             state.energy -= 2;
-            state.exp += tapPower;
-            
-            // Проверка достижений
-            checkAchievements();
-            
-            // Проверка эволюции
-            checkEvolution();
-            
-            // Проверка уровня
-            checkLevelUp();
-            
-            // Обновление UI
             updateUI();
-            
-            // Вибрация (если доступно)
-            try {
-                if (tg?.HapticFeedback) {
-                    tg.HapticFeedback.impactOccurred('light');
-                }
-            } catch (e) {}
-            
-            // Звук клика (опционально)
-            playTapSound();
-        } else {
-            showNotification('Недостаточно энергии!', 'warning');
+            tg.HapticFeedback.impactOccurred('medium');
+            createTapText(e);
         }
     }
-    
-    function createTapAnimation(event) {
-        const anim = document.createElement('div');
-        anim.className = 'tap-animation';
-        anim.innerText = '+' + getTapPower();
-        
-        // Позиционируем анимацию
-        const x = event.clientX || window.innerWidth / 2;
-        const y = event.clientY || window.innerHeight / 2;
-        
-        anim.style.left = (x - 20) + 'px';
-        anim.style.top = (y - 20) + 'px';
-        
-        document.body.appendChild(anim);
-        setTimeout(() => anim.remove(), 1000);
+
+    function createTapText(e) {
+        const span = document.createElement('span');
+        span.innerText = `+${state.tapLvl}`;
+        span.style.position = 'fixed';
+        span.style.left = e.clientX + 'px';
+        span.style.top = e.clientY + 'px';
+        span.style.color = '#FFD700';
+        span.style.fontWeight = 'bold';
+        span.style.animation = 'fadeOut 1s forwards';
+        document.body.appendChild(span);
+        setTimeout(() => span.remove(), 1000);
     }
-    
-    function playTapSound() {
-        // Простой звук клика
-        try {
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
-            
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-            
-            oscillator.frequency.value = 800;
-            oscillator.type = 'sine';
-            
-            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
-            
-            oscillator.start(audioContext.currentTime);
-            oscillator.stop(audioContext.currentTime + 0.1);
-        } catch (e) {
-            console.log('Аудио не доступно');
-        }
+
+    function updateUI() {
+        document.getElementById('bones').innerText = state.bones;
+        document.getElementById('zoo').innerText = state.zoo.toFixed(4);
+        document.getElementById('en-text').innerText = Math.floor(state.energy);
+        document.getElementById('en-fill').style.width = (state.energy / 10) + '%';
     }
-    
-    function getTapPower() {
-        return state.tapLvl * (state.tapLvl < 5 ? 1 : state.tapLvl < 10 ? 2 : state.tapLvl < 15 ? 3 : 5);
+
+    function openModal(id) { 
+        document.getElementById(id).classList.add('active'); 
+        if(id === 'game-modal') initMatch3();
     }
-    
-    function upgradeTap() {
-        const cost = upgradeCosts.tap[state.tapLvl - 1] || state.tapLvl * 500;
-        
-        if (state.bones >= cost) {
-            state.bones -= cost;
-            state.tapLvl++;
-            
-            showNotification('Сила тапа улучшена до уровня ' + state.tapLvl + '!', 'success');
-            updateUI();
-            saveGame();
-        } else {
-            showNotification('Недостаточно костей! Нужно: ' + cost + ' 🦴', 'error');
-        }
-    }
-    
-    function upgradeEnergy() {
-        const cost = upgradeCosts.energy[state.energyLvl - 1] || state.energyLvl * 1000;
-        
-        if (state.bones >= cost) {
-            state.bones -= cost;
-            state.energyLvl++;
-            
-            showNotification('Восстановление энергии улучшено до уровня ' + state.energyLvl + '!', 'success');
-            updateUI();
-            saveGame();
-        } else {
-            showNotification('Недостаточно костей! Нужно: ' + cost + ' 🦴', 'error');
-        }
-    }
-    
-    function restoreEnergy() {
-        if (state.energy < 1000) {
-            const restoreRate = 1 + (state.energyLvl * 0.5);
-            state.energy = Math.min(1000, state.energy + restoreRate);
-            
-            // Обновляем только индикатор энергии
-            document.getElementById('en-cur').textContent = Math.floor(state.energy);
-            document.getElementById('en-fill').style.width = (state.energy / 10) + '%';
-        }
-    }
-    
-    function buyNFT(id, price) {
-        if (state.zoo >= price && !state.ownedNFTs.includes(id)) {
-            state.zoo -= price;
-            state.ownedNFTs.push(id);
-            
-            // Показываем NFT на персонаже
-            document.getElementById('nft-' + id)?.classList.add('visible');
-            
-            // Обновляем кнопку
-            const button = document.getElementById('buy-' + id);
-            if (button) {
-                button.textContent = '✅ Надето';
-                button.disabled = true;
-            }
-            
-            showNotification('NFT "' + id + '" куплен и надет!', 'success');
-            
-            // Проверяем достижение
-            if (!state.achievements.includes('first_nft')) {
-                unlockAchievement('first_nft');
-            }
-            
-            updateUI();
-            saveGame();
-        } else if (state.ownedNFTs.includes(id)) {
-            showNotification('Этот NFT уже куплен!', 'warning');
-        } else {
-            showNotification('Недостаточно $ZOO! Нужно: ' + price + ' $ZOO', 'error');
-        }
-    }
-    
-    function checkEvolution() {
-        const label = document.getElementById('evo-label');
-        if (state.tapLvl >= 15) {
-            label.innerHTML = '🤖 Кибер-Такса <small style="font-size:12px;">(Уровень 15+)</small>';
-        } else if (state.tapLvl >= 10) {
-            label.innerHTML = '🦸 Такса-Супергерой <small style="font-size:12px;">(Уровень 10+)</small>';
-        } else if (state.tapLvl >= 5) {
-            label.innerHTML = '💪 Сильная Такса <small style="font-size:12px;">(Уровень 5+)</small>';
-        } else {
-            label.innerHTML = '🐶 Малыш Такса <small style="font-size:12px;">(Уровень 1)</small>';
-        }
-    }
-    
-    function checkLevelUp() {
-        const expNeeded = state.level * 1000;
-        if (state.exp >= expNeeded) {
-            state.level++;
-            state.exp = state.exp - expNeeded;
-            
-            showNotification('🎉 Новый уровень: ' + state.level + '!', 'success');
-            
-            // Награда за уровень
-            state.bones += state.level * 500;
-            state.zoo += state.level * 0.01;
-            
-            // Проверяем достижения
-            if (state.level === 10 && !state.achievements.includes('level_10')) {
-                unlockAchievement('level_10');
-            }
-            if (state.level === 20 && !state.achievements.includes('level_20')) {
-                unlockAchievement('level_20');
-            }
-        }
-    }
-    
-    // ==================== СИСТЕМА ДОСТИЖЕНИЙ ====================
-    
-    function checkAchievements() {
-        // Проверяем достижения по кликам
-        const totalClicks = Math.floor(state.bones / getTapPower());
-        
-        achievementList.forEach(achievement => {
-            if (state.achievements.includes(achievement.id)) return;
-            
-            let unlocked = false;
-            
-            switch(achievement.id) {
-                case 'first_tap':
-                    unlocked = totalClicks >= 1;
-                    break;
-                case '100_clicks':
-                    unlocked = totalClicks >= 100;
-                    break;
-                case '1000_clicks':
-                    unlocked = totalClicks >= 1000;
-                    break;
-                case '10000_clicks':
-                    unlocked = totalClicks >= 10000;
-                    break;
-                case 'first_upgrade':
-                    unlocked = state.tapLvl > 1;
-                    break;
-                case 'rich':
-                    unlocked = state.zoo >= 100;
-                    break;
-                case 'referral_master':
-                    unlocked = state.referrals >= 5;
-                    break;
-            }
-            
-            if (unlocked) {
-                unlockAchievement(achievement.id);
-            }
-        });
-    }
-    
-    function unlockAchievement(achievementId) {
-        const achievement = achievementList.find(a => a.id === achievementId);
-        if (!achievement) return;
-        
-        state.achievements.push(achievementId);
-        state.bones += achievement.reward;
-        
-        // Показываем уведомление
-        document.getElementById('achievement-text').textContent = 
-            achievement.name + ' - ' + achievement.desc + '\nНаграда: ' + achievement.reward + ' 🦴';
-        showModal('achievement-modal');
-        
-        showNotification('🎉 Достижение разблокировано: ' + achievement.name, 'success');
-        saveGame();
-    }
-    
-    // ==================== МИНИ-ИГРА ====================
-    
-    function initGame() {
+    function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+    function initMatch3() {
         const grid = document.getElementById('grid');
-        if (!grid) return;
-        
         grid.innerHTML = '';
-        gameScore = 0;
-        
-        for (let i = 0; i < 25; i++) {
+        for(let i=0; i<25; i++) {
             const cell = document.createElement('div');
-            cell.className = 'cell';
-            cell.innerHTML = '🦴';
-            cell.onclick = () => handleGameCellClick(cell, i);
+            cell.style = "aspect-ratio:1; background:rgba(255,255,255,0.1); display:flex; align-items:center; justify-content:center; border-radius:8px; font-size:20px;";
+            cell.innerText = '🦴';
+            cell.onclick = () => {
+                state.zoo += 0.001;
+                cell.innerText = '💎';
+                updateUI();
+                document.getElementById('game-reward').innerText = (parseFloat(document.getElementById('game-reward').innerText) + 0.001).toFixed(3);
+            };
             grid.appendChild(cell);
         }
-        
-        document.getElementById('game-score').textContent = gameScore;
     }
-    
-    function handleGameCellClick(cell, index) {
-        if (cell.style.opacity === '0.5') return;
-        
-        gameScore++;
-        cell.style.opacity = '0.5';
-        cell.style.transform = 'scale(0.8)';
-        cell.style.background = 'rgba(255, 215, 0, 0.3)';
-        
-        document.getElementById('game-score').textContent = gameScore;
-        
-        // Вибрация
-        try {
-            if (tg?.HapticFeedback) {
-                tg.HapticFeedback.impactOccurred('soft');
-            }
-        } catch (e) {}
-        
-        // Проверяем награду
-        if (gameScore >= 20) {
-            document.getElementById('claim-game-btn').disabled = false;
-            showNotification('🎯 Задание выполнено! Можете забрать награду.', 'success');
-        }
-        
-        // Случайное восстановление ячейки
-        setTimeout(() => {
-            if (Math.random() > 0.7) {
-                cell.style.opacity = '1';
-                cell.style.transform = 'scale(1)';
-                cell.style.background = '';
-                gameScore--;
-                document.getElementById('game-score').textContent = gameScore;
-            }
-        }, 3000);
-    }
-    
-    function claimGameRewards() {
-        if (gameScore >= 20) {
-            const reward = gameScore * 10;
-            state.bones += reward;
-            state.zoo += gameScore * 0.001;
-            
-            showNotification('🎁 Получено: ' + reward + ' 🦴 и ' + (gameScore * 0.001).toFixed(4) + ' $ZOO', 'success');
-            
-            // Сбрасываем игру
-            initGame();
-            document.getElementById('claim-game-btn').disabled = true;
-            
-            updateUI();
-            saveGame();
-        }
-    }
-    
-    function resetGame() {
-        initGame();
-        document.getElementById('claim-game-btn').disabled = true;
-        showNotification('Игра перезапущена!', 'success');
-    }
-    
-    // ==================== ЕЖЕДНЕВНЫЕ НАГРАДЫ ====================
-    
-    function loadDailyRewards() {
-        const saved = localStorage.getItem('zootopia_daily');
-        if (saved) {
-            dailyRewardsClaimed = JSON.parse(saved);
-        }
-        
-        updateDailyRewardsUI();
-    }
-    
-    function updateDailyRewardsUI() {
-        const today = new Date().toDateString();
-        const lastClaim = localStorage.getItem('last_daily_claim');
-        const streak = parseInt(localStorage.getItem('daily_streak') || '0');
-        
-        document.getElementById('current-streak').textContent = streak;
-        document.getElementById('day-streak').textContent = streak;
-        
-        // Сбрасываем серию если пропустили день
-        if (lastClaim && lastClaim !== today) {
-            const yesterday = new Date();
-            yesterday.setDate(yesterday.getDate() - 1);
-            
-            if (lastClaim !== yesterday.toDateString()) {
-                localStorage.setItem('daily_streak', '0');
-            }
-        }
-        
-        // Обновляем отображение дней
-        for (let i = 1; i <= 7; i++) {
-            const dayElement = document.getElementById('day' + i);
-            if (!dayElement) continue;
-            
-            dayElement.classList.remove('claimed', 'today');
-            
-            if (dailyRewardsClaimed.includes(i)) {
-                dayElement.classList.add('claimed');
-                dayElement.innerHTML = '<div>День ' + i + '</div><div>✅</div>';
-            } else if (i === streak + 1 && lastClaim !== today) {
-                dayElement.classList.add('today');
-            }
-        }
-    }
-    
-    function showDailyRewards() {
-        showTab('tab-daily');
-        updateDailyRewardsUI();
-    }
-    
-    function claimDaily(day) {
-        const today = new Date().toDateString();
-        const lastClaim = localStorage.getItem('last_daily_claim');
-        const streak = parseInt(localStorage.getItem('daily_streak') || '0');
-        
-        if (lastClaim === today) {
-            showNotification('Вы уже получали награду сегодня!', 'warning');
-            return;
-        }
-        
-        if (day !== streak + 1) {
-            showNotification('Сначала получите награду за день ' + (streak + 1), 'error');
-            return;
-        }
-        
-        const reward = dailyRewards[day - 1] || 100;
-        state.bones += reward;
-        state.zoo += reward * 0.001;
-        
-        dailyRewardsClaimed.push(day);
-        localStorage.setItem('zootopia_daily', JSON.stringify(dailyRewardsClaimed));
-        localStorage.setItem('last_daily_claim', today);
-        localStorage.setItem('daily_streak', streak + 1);
-        
-        showNotification('🎁 Ежедневная награда: ' + reward + ' 🦴', 'success');
-        
-        updateDailyRewardsUI();
-        updateUI();
-        saveGame();
-    }
-    
-    // ==================== РЕФЕРАЛЬНАЯ СИСТЕМА ====================
-    
-    function handleReferral(refCode) {
-        if (refCode === state.referralCode) {
-            showNotification('Нельзя пригласить самого себя!', 'warning');
-            return;
-        }
-        
-        const referrals = JSON.parse(localStorage.getItem('zootopia_referrals') || '{}');
-        
-        if (!referrals[refCode]) {
-            referrals[refCode] = true;
-            localStorage.setItem('zootopia_referrals', JSON.stringify(referrals));
-            
-            // Награда рефереру (в реальном приложении отправляется на бэкенд)
-            showNotification('🎉 Вы зашли по реферальной ссылке!', 'success');
-            
-            // Здесь можно отправить запрос на сервер для начисления награды рефереру
-        }
-    }
-    
-    function copyReferralLink() {
-        const link = document.getElementById('referral-link').textContent;
-        
-        navigator.clipboard.writeText(link).then(() => {
-            showNotification('Ссылка скопирована в буфер обмена!', 'success');
-        }).catch(err => {
-            console.error('Ошибка копирования: ', err);
-            showNotification('Не удалось скопировать ссылку', 'error');
-        });
-    }
-    
-    // ==================== TON КОШЕЛЕК ====================
-    
-    function connectWallet() {
-        try {
-            if (tonConnectUI) {
-                tonConnectUI.openModal();
-            } else {
-                showNotification('TON Connect не инициализирован', 'error');
-            }
-        } catch (e) {
-            console.log('Ошибка подключения кошелька:', e);
-            showNotification('Ошибка подключения кошелька', 'error');
-        }
-    }
-    
-    // ==================== UI ФУНКЦИИ ====================
-    
-    function showTab(tabId, element) {
-        // Скрываем все вкладки
-        document.querySelectorAll('.tab-panel').forEach(tab => {
-            tab.classList.remove('active');
-        });
-        
-        // Показываем выбранную вкладку
-        const tab = document.getElementById(tabId);
-        if (tab) {
-            tab.classList.add('active');
-        }
-        
-        // Обновляем навигацию
-        if (element) {
-            document.querySelectorAll('.nav-item').forEach(nav => {
-                nav.classList.remove('active');
-            });
-            element.classList.add('active');
-        }
-        
-        // Инициализируем игру при открытии вкладки с игрой
-        if (tabId === 'tab-game') {
-            initGame();
-        }
-        
-        // Прячем модальные вкладки если уходим с них
-        if (tabId !== 'tab-daily') {
-            document.getElementById('tab-daily').classList.remove('active');
-        }
-    }
-    
-    function updateUI() {
-        // Обновляем основные показатели
-        document.getElementById('bones').textContent = Math.floor(state.bones).toLocaleString();
-        document.getElementById('zoo-val').textContent = state.zoo.toFixed(4);
-        document.getElementById('en-cur').textContent = Math.floor(state.energy);
-        document.getElementById('en-fill').style.width = (state.energy / 10) + '%';
-        
-        // Обновляем улучшения
-        document.getElementById('tap-lvl').textContent = state.tapLvl;
-        document.getElementById('tap-power').textContent = getTapPower();
-        document.getElementById('energy-lvl').textContent = state.energyLvl;
-        
-        const tapCost = upgradeCosts.tap[state.tapLvl - 1] || state.tapLvl * 500;
-        const energyCost = upgradeCosts.energy[state.energyLvl - 1] || state.energyLvl * 1000;
-        
-        document.getElementById('tap-price').textContent = tapCost.toLocaleString() + ' 🦴';
-        document.getElementById('energy-price').textContent = energyCost.toLocaleString() + ' 🦴';
-        
-        // Обновляем уровень
-        document.getElementById('level').textContent = state.level;
-        const expNeeded = state.level * 1000;
-        const expPercent = (state.exp / expNeeded) * 100;
-        document.getElementById('level-fill').style.width = expPercent + '%';
-        document.getElementById('level-progress').textContent = 
-            Math.floor(state.exp).toLocaleString() + '/' + expNeeded.toLocaleString();
-        
-        // Обновляем NFT кнопки
-        ['glasses', 'hat', 'crown'].forEach(id => {
-            const button = document.getElementById('buy-' + id);
-            if (button) {
-                if (state.ownedNFTs.includes(id)) {
-                    button.textContent = '✅ Надето';
-                    button.disabled = true;
-                    document.getElementById('nft-' + id)?.classList.add('visible');
-                } else {
-                    button.textContent = 'Купить';
-                    button.disabled = false;
-                    document.getElementById('nft-' + id)?.classList.remove('visible');
-                }
-            }
-        });
-        
-        // Обновляем топ
-        updateTopList();
-    }
-    
-    function showNotification(message, type = 'success') {
-        const notification = document.getElementById('notification');
-        if (!notification) return;
-        
-        notification.textContent = message;
-        notification.className = 'notification ' + type;
-        notification.classList.add('active');
-        
-        setTimeout(() => {
-            notification.classList.remove('active');
-        }, 3000);
-    }
-    
-    function showModal(modalId) {
-        const modal = document.getElementById(modalId);
-        if (modal) {
-            modal.classList.add('active');
-        }
-    }
-    
-    function hideModal(modalId) {
-        const modal = document.getElementById(modalId);
-        if (modal) {
-            modal.classList.remove('active');
-        }
-    }
-    
-    // ==================== СОХРАНЕНИЕ И ЗАГРУЗКА ====================
-    
-    function saveGame() {
-        try {
-            localStorage.setItem('zootopia_save', JSON.stringify(state));
-        } catch (e) {
-            console.log('Ошибка сохранения:', e);
-        }
-    }
-    
-    function loadGame() {
-        try {
-            const saved = localStorage.getItem('zootopia_save');
-            if (saved) {
-                const loaded = JSON.parse(saved);
-                state = { ...state, ...loaded };
-                
-                // Восстанавливаем NFT
-                state.ownedNFTs.forEach(id => {
-                    document.getElementById('nft-' + id)?.classList.add('visible');
-                });
-            }
-        } catch (e) {
-            console.log('Ошибка загрузки:', e);
-        }
-    }
-    
-    // ==================== ТОП ИГРОКОВ ====================
-    
-    function updateTopList() {
-        // В реальном приложении здесь был бы запрос к серверу
-        // Для демо используем заглушку
-        
-        const userRank = Math.max(1, Math.floor(Math.random() * 50) + 1);
-        document.getElementById('user-rank').textContent = '#' + userRank;
-    }
-    
-    function loadTop(type) {
-        // Заглушка для топов
-        const topList = document.getElementById('top-list');
-        topList.innerHTML = `
-            <div class="card">
-                <div style="text-align: center; padding: 20px;">
-                    <i class="fas fa-sync fa-spin" style="font-size: 24px; margin-bottom: 10px;"></i>
-                    <p>Загрузка топ ${type}...</p>
-                </div>
-            </div>
-        `;
-        
-        setTimeout(() => {
-            updateTopList();
-        }, 1000);
-    }
-    
-    // ==================== ЭКСПОРТ ДЛЯ ГЛОБАЛЬНОГО ДОСТУПА ====================
-    window.handleTap = handleTap;
-    window.upgradeTap = upgradeTap;
-    window.upgradeEnergy = upgradeEnergy;
-    window.buyNFT = buyNFT;
-    window.showTab = showTab;
-    window.initGame = initGame;
-    window.claimGameRewards = claimGameRewards;
-    window.resetGame = resetGame;
-    window.showDailyRewards = showDailyRewards;
-    window.claimDaily = claimDaily;
-    window.connectWallet = connectWallet;
-    window.copyReferralLink = copyReferralLink;
-    window.updateTopList = updateTopList;
-    window.loadTop = loadTop;
-    window.hideModal = hideModal;
+
+    setInterval(() => { if(state.energy < 1000) { state.energy += 1; updateUI(); } }, 1000);
+    updateUI();
 </script>
+
+<style>
+@keyframes fadeOut { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-50px); } }
+</style>
+
 </body>
 </html>

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Zootopia | Cloud Edition</title>
+    <title>Zootopia Clicker | Cloud</title>
     
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
@@ -74,7 +74,13 @@
 </div>
 
 <div id="tab-earn" class="tab-content">
-    <h3 style="color: var(--accent)">Tasks</h3>
+    <h3 style="color: var(--accent)">Tasks & Friends</h3>
+    
+    <div class="card" style="background: linear-gradient(45deg, #1c1c2e, #2a2a3e);">
+        <div><b>Invite Friend</b><br><small>Get 50,000 Bones!</small></div>
+        <button class="btn-action" onclick="shareReferral()">INVITE</button>
+    </div>
+
     <div class="card">
         <div><b>Join Channel</b><br><small>+5,000 Bones</small></div>
         <button class="btn-action" id="btn-sub" onclick="doTask('sub', 'https://t.me/zootopiaclik')">START</button>
@@ -89,7 +95,7 @@
 </div>
 
 <script>
-    // --- FIREBASE CONFIG ---
+    // --- CONFIG ---
     const firebaseConfig = {
         apiKey: "AIzaSyAT4Qt--BNvqA953AQNUbbpiDHbSvO3BfE",
         authDomain: "zootopia-f046d.firebaseapp.com",
@@ -112,19 +118,44 @@
         tasks: { sub: false }
     };
 
-    // Загрузка из Firebase
+    // --- LOGIC ---
     async function initGame() {
         try {
+            await checkReferral(); // Проверка реферала
             const doc = await db.collection("users").doc(userId).get();
             if (doc.exists) {
                 state = { ...state, ...doc.data() };
+            } else {
+                await save(); // Создаем профиль в базе
             }
             document.getElementById('loading-overlay').style.display = 'none';
             update();
         } catch (e) {
             console.error("Firebase Error:", e);
-            document.getElementById('loading-overlay').innerHTML = "<p>Database Error! Check Rules.</p>";
         }
+    }
+
+    async function checkReferral() {
+        const startParam = tg.initDataUnsafe?.start_param;
+        if (startParam && startParam !== userId) {
+            const userDoc = await db.collection("users").doc(userId).get();
+            if (!userDoc.exists) {
+                const referrerRef = db.collection("users").doc(startParam);
+                const referrerDoc = await referrerRef.get();
+                if (referrerDoc.exists) {
+                    await referrerRef.update({
+                        bones: firebase.firestore.FieldValue.increment(50000)
+                    });
+                    tg.showPopup({ message: "Welcome! Your friend got a bonus!" });
+                }
+            }
+        }
+    }
+
+    function shareReferral() {
+        const link = `https://t.me/zooclikbot?start=${userId}`;
+        const text = "Join Zootopia and earn $ZOO together!";
+        tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`);
     }
 
     async function save() {
@@ -192,7 +223,6 @@
         el.classList.add('active');
     }
 
-    // Авто-сохранение раз в 10 секунд и автоклик
     setInterval(() => {
         if (state.autoPower > 0) {
             state.bones += state.autoPower;
@@ -202,7 +232,7 @@
         update();
     }, 1000);
 
-    setInterval(save, 10000);
+    setInterval(save, 10000); // Автосохранение каждые 10 сек
 
     const pet = document.getElementById('pet');
     pet.addEventListener('touchstart', (e) => { e.preventDefault(); handleTap(e); });

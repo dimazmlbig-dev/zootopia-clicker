@@ -3,131 +3,135 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Zootopia Clicker: @zooclikbot Edition</title>
+    <title>Zootopia: @zooclikbot</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
     <style>
-        :root { --accent: #ff9800; --bg: #0f0f0f; --text: #ffffff; --glass: rgba(255, 255, 255, 0.05); }
-        body { margin: 0; background: var(--bg); font-family: 'Inter', sans-serif; color: var(--text); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        :root { --accent: #ff9800; --bg: #0b0b0b; --text: #ffffff; --glass: rgba(255, 255, 255, 0.05); }
+        body { margin: 0; background: var(--bg); font-family: 'Inter', sans-serif; color: var(--text); overflow: hidden; height: 100vh; }
         
-        #header { padding: 15px; background: rgba(0,0,0,0.8); backdrop-filter: blur(15px); text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); z-index: 10; }
-        #balance { font-size: 34px; font-weight: 900; color: #fff; text-shadow: 0 0 15px var(--accent); }
+        /* ЭКРАН ЗАГРУЗКИ */
+        #splash {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; z-index: 9999; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; transition: opacity 0.5s;
+        }
+        .loader {
+            width: 40px; height: 40px; border: 4px solid var(--glass);
+            border-top: 4px solid var(--accent); border-radius: 50%;
+            animation: spin 1s linear infinite; margin-top: 20px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        #header { padding: 15px; background: rgba(0,0,0,0.8); text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        #balance { font-size: 38px; font-weight: 900; color: #fff; text-shadow: 0 0 20px var(--accent); }
         
-        .page { display: none; flex-direction: column; align-items: center; flex-grow: 1; width: 100%; padding: 20px; box-sizing: border-box; overflow-y: auto; padding-bottom: 100px; }
+        .page { display: none; flex-direction: column; align-items: center; width: 100%; padding: 20px; box-sizing: border-box; }
         .page.active { display: flex; }
 
-        .card { background: var(--glass); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 15px; width: 100%; margin-bottom: 12px; box-sizing: border-box; }
-        .buy-btn { background: var(--accent); border: none; color: #000; padding: 12px; border-radius: 12px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; font-size: 14px; }
-        
-        .hero-img { width: 220px; height: 220px; object-fit: contain; cursor: pointer; transition: transform 0.05s; margin: 20px 0; }
-        .hero-img:active { transform: scale(0.92); }
+        /* ТАКСА И ЭФФЕКТЫ */
+        .hero-container { position: relative; margin: 40px 0; perspective: 1000px; }
+        .hero-img { 
+            width: 250px; height: 250px; object-fit: contain; 
+            cursor: pointer; transition: transform 0.05s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            /* Убираем фон (работает для светлых фонов на картинке) */
+            filter: drop-shadow(0 0 15px rgba(255,152,0,0.3));
+        }
+        /* Анимация "дергания" при клике */
+        .hero-img.tapped { transform: scale(0.85) rotate(3deg); }
 
-        #nav { position: fixed; bottom: 20px; left: 5%; width: 90%; display: flex; background: rgba(20,20,20,0.9); border-radius: 25px; padding: 5px; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
-        .nav-btn { flex: 1; text-align: center; font-size: 10px; font-weight: bold; color: white; opacity: 0.4; cursor: pointer; padding: 12px 0; border-radius: 18px; }
+        .card { background: var(--glass); border-radius: 20px; padding: 15px; width: 100%; margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.08); }
+        .buy-btn { background: var(--accent); border: none; color: #000; padding: 14px; border-radius: 15px; font-weight: bold; width: 100%; font-size: 14px; }
+
+        #nav { position: fixed; bottom: 25px; left: 5%; width: 90%; display: flex; background: rgba(20,20,20,0.95); border-radius: 25px; padding: 5px; backdrop-filter: blur(10px); }
+        .nav-btn { flex: 1; text-align: center; font-size: 11px; font-weight: bold; color: white; opacity: 0.4; padding: 14px 0; border-radius: 20px; }
         .nav-btn.active { opacity: 1; background: var(--accent); color: #000; }
         
-        .tap-anim { position: absolute; color: white; font-weight: 900; font-size: 28px; pointer-events: none; animation: float 0.7s ease-out forwards; z-index: 100; text-shadow: 0 0 10px var(--accent); }
-        @keyframes float { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-100px); } }
+        .tap-anim { position: absolute; color: #fff; font-weight: 900; font-size: 32px; pointer-events: none; animation: float 0.6s ease-out forwards; text-shadow: 0 0 10px var(--accent); }
+        @keyframes float { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-120px); } }
     </style>
 </head>
 <body>
 
+    <div id="splash">
+        <h1 style="color: var(--accent); letter-spacing: 5px;">ZOOTOPIA</h1>
+        <div style="font-size: 12px; opacity: 0.5;">@zooclikbot is waking up...</div>
+        <div class="loader"></div>
+    </div>
+
     <div id="header">
         <div id="balance">🦴 <span id="coins">0</span></div>
-        <div style="font-size: 11px; opacity: 0.6; margin-top: 5px;">Прибыль: +<span id="pps-display">0</span>/с</div>
+        <div style="font-size: 11px; opacity: 0.5; margin-top: 5px;">ПРИБЫЛЬ: +<span id="pps-display">0</span>/с</div>
     </div>
 
     <div id="tab-game" class="page active">
-        <img src="dachshund.png" class="hero-img" onclick="handleTap(event)" onerror="this.src='https://i.ibb.co/XfXfXfX/dachshund.png'">
+        <div class="hero-container">
+            <img id="hero" src="dachshund.png" class="hero-img" onclick="handleTap(event)" onerror="this.src='https://i.ibb.co/XfXfXfX/dachshund.png'">
+        </div>
         <div style="width: 100%;">
-            <div style="display: flex; justify-content: space-between; font-size: 11px;"><span>ЭНЕРГИЯ</span><span id="energy-text">1000/1000</span></div>
-            <div style="width: 100%; height: 8px; background: rgba(255,255,255,0.05); border-radius: 10px; margin-top: 5px;"><div id="energy-fill" style="height: 100%; background: var(--accent); width: 100%;"></div></div>
+            <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 5px;"><span>ЭНЕРГИЯ</span><span id="energy-text">1000/1000</span></div>
+            <div style="width: 100%; height: 10px; background: rgba(255,255,255,0.05); border-radius: 10px;"><div id="energy-fill" style="height: 100%; background: var(--accent); width: 100%; border-radius: 10px; transition: 0.2s;"></div></div>
         </div>
     </div>
 
     <div id="tab-friends" class="page">
-        <h2 style="margin: 0 0 10px 0;">ДРУЗЬЯ</h2>
-        <div class="card" style="text-align: center;">
-            <p style="font-size: 14px; margin-bottom: 15px;">Пригласи друга в <b>@zooclikbot</b> и получи 50,000 🦴!</p>
-            <button class="buy-btn" onclick="shareInvite()">ПРИГЛАСИТЬ</button>
-            <button class="buy-btn" style="background: var(--glass); color: white;" onclick="copyLink()">КОПИРОВАТЬ ССЫЛКУ</button>
-        </div>
+        <h2>ДРУЗЬЯ</h2>
         <div class="card">
-            <div style="font-weight: bold;">ТВОИ НАПАРНИКИ</div>
-            <div id="friend-list" style="font-size: 12px; opacity: 0.5; margin-top: 10px; text-align: center;">Список пуст</div>
+            <button class="buy-btn" onclick="shareInvite()">ПРИГЛАСИТЬ</button>
+            <button class="buy-btn" style="background: var(--glass); color: white; margin-top: 8px;" onclick="copyLink()">ССЫЛКА</button>
         </div>
     </div>
 
     <div id="tab-shop" class="page">
-        <h2 style="margin: 0 0 15px 0;">УЛУЧШЕНИЯ</h2>
+        <h2>SHOP</h2>
         <div class="card">
-            <b>Сила клика</b><br><small>Кликай мощнее</small>
-            <button id="btn-power" class="buy-btn" onclick="buyUpgrade('power')">1,000 🦴</button>
-        </div>
-        <div class="card">
-            <b>Патрульный бот</b><br><small>Прибыль в секунду</small>
-            <button id="btn-bot" class="buy-btn" onclick="buyUpgrade('bot')">5,000 🦴</button>
+            <b>Сила тапа</b>
+            <button id="btn-power" class="buy-btn" onclick="buyUpgrade('power')">100 🦴</button>
         </div>
     </div>
 
     <div id="nav">
         <div class="nav-btn active" onclick="showTab(0)">ИГРА</div>
         <div class="nav-btn" onclick="showTab(1)">ДРУЗЬЯ</div>
-        <div class="nav-btn" onclick="showTab(2)">МАГАЗИН</div>
+        <div class="nav-btn" onclick="showTab(2)">МАРКЕТ</div>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
-        
-        // ВСЕ ССЫЛКИ НАСТРОЕНЫ НА @zooclikbot
+
+        // Убираем Splash Screen через 2.5 секунды
+        setTimeout(() => {
+            const splash = document.getElementById('splash');
+            splash.style.opacity = '0';
+            setTimeout(() => splash.style.display = 'none', 500);
+        }, 2500);
+
         const BOT_USERNAME = 'zooclikbot'; 
         const userId = tg.initDataUnsafe?.user?.id || "guest";
         
-        let gameData = JSON.parse(localStorage.getItem(`zoo_final_${userId}`)) || {
-            balance: 0,
-            energy: 1000,
-            pps: 0,
-            tapPower: 1,
-            refBonusReceived: false
+        let gameData = JSON.parse(localStorage.getItem(`zoo_v6_${userId}`)) || {
+            balance: 0, energy: 1000, pps: 0, tapPower: 1, refBonusReceived: false
         };
 
-        function saveData() { localStorage.setItem(`zoo_final_${userId}`, JSON.stringify(gameData)); }
-
-        // СИСТЕМА ПРИГЛАШЕНИЙ
-        function shareInvite() {
-            const link = `https://t.me/${BOT_USERNAME}/start?startapp=${userId}`;
-            const text = "🐾 Стань моим напарником в Zootopia Clicker! Даю 5,000 бонусов на старт!";
-            tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`);
-        }
-
-        function copyLink() {
-            const link = `https://t.me/${BOT_USERNAME}/start?startapp=${userId}`;
-            navigator.clipboard.writeText(link);
-            tg.showAlert("Ссылка для @zooclikbot скопирована!");
-        }
-
-        function checkReferral() {
-            const startParam = tg.initDataUnsafe?.start_param;
-            if (startParam && startParam !== userId && !gameData.refBonusReceived) {
-                gameData.balance += 5000;
-                gameData.refBonusReceived = true;
-                saveData();
-                tg.showPopup({ title: "🎁 Бонус!", message: "Вы получили 5,000 🦴 за переход по ссылке!", buttons: [{type: "ok"}] });
-            }
-        }
-
-        // ГЕЙМПЛЕЙ
         function handleTap(e) {
             if (gameData.energy <= 0) return;
+            
+            // Анимация "дергания"
+            const hero = document.getElementById('hero');
+            hero.classList.add('tapped');
+            setTimeout(() => hero.classList.remove('tapped'), 50);
+
+            // Вибрация
+            tg.HapticFeedback.impactOccurred('heavy');
+
             gameData.balance += gameData.tapPower;
             gameData.energy -= 1;
             
+            // Всплывающие цифры
             const x = e.clientX || (e.touches ? e.touches[0].clientX : 0);
             const y = e.clientY || (e.touches ? e.touches[0].clientY : 0);
-            if(x && y) createTapAnim(x, y);
+            createTapAnim(x, y);
             
-            tg.HapticFeedback.impactOccurred('light');
             updateUI();
         }
 
@@ -135,20 +139,9 @@
             const el = document.createElement('div');
             el.className = 'tap-anim';
             el.innerText = `+${gameData.tapPower}`;
-            el.style.left = `${x}px`; el.style.top = `${y}px`;
+            el.style.left = `${x - 15}px`; el.style.top = `${y - 40}px`;
             document.body.appendChild(el);
-            setTimeout(() => el.remove(), 700);
-        }
-
-        function buyUpgrade(type) {
-            let cost = type === 'power' ? gameData.tapPower * 1000 : (gameData.pps + 1) * 2000;
-            if (gameData.balance >= cost) {
-                gameData.balance -= cost;
-                if (type === 'power') gameData.tapPower++;
-                else gameData.pps++;
-                saveData();
-                updateUI();
-            } else tg.showAlert("Недостаточно косточек!");
+            setTimeout(() => el.remove(), 600);
         }
 
         function updateUI() {
@@ -156,9 +149,28 @@
             document.getElementById('pps-display').innerText = gameData.pps;
             document.getElementById('energy-text').innerText = `${gameData.energy}/1000`;
             document.getElementById('energy-fill').style.width = (gameData.energy / 10) + '%';
-            
-            document.getElementById('btn-power').innerText = (gameData.tapPower * 1000).toLocaleString() + " 🦴";
-            document.getElementById('btn-bot').innerText = ((gameData.pps + 1) * 2000).toLocaleString() + " 🦴";
+            document.getElementById('btn-power').innerText = (gameData.tapPower * 500).toLocaleString() + " 🦴";
+            saveData();
+        }
+
+        function shareInvite() {
+            const link = `https://t.me/${BOT_USERNAME}/start?startapp=${userId}`;
+            tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=🐾 Го к нам в команду!`);
+        }
+
+        function copyLink() {
+            const link = `https://t.me/${BOT_USERNAME}/start?startapp=${userId}`;
+            navigator.clipboard.writeText(link);
+            tg.showAlert("Ссылка скопирована!");
+        }
+
+        function buyUpgrade(type) {
+            let cost = gameData.tapPower * 500;
+            if (gameData.balance >= cost) {
+                gameData.balance -= cost;
+                gameData.tapPower++;
+                updateUI();
+            }
         }
 
         function showTab(idx) {
@@ -167,14 +179,14 @@
             document.querySelectorAll('.nav-btn').forEach((b, i) => b.classList.toggle('active', i === idx));
         }
 
+        function saveData() { localStorage.setItem(`zoo_v6_${userId}`, JSON.stringify(gameData)); }
+
         setInterval(() => {
             gameData.balance += (gameData.pps / 10);
             if (gameData.energy < 1000) gameData.energy++;
             updateUI();
-            saveData();
         }, 100);
 
-        checkReferral();
         updateUI();
     </script>
 </body>

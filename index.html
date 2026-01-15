@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Zootopia Cloud Pro</title>
+    <title>Zootopia Crypto</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -14,26 +15,26 @@
         body { font-family: 'Poppins', sans-serif; background: var(--bg); color: white; margin: 0; overflow: hidden; touch-action: none; }
         .header { text-align: center; padding: 15px; background: rgba(0,0,0,0.5); border-bottom: 1px solid #333; }
         .balance { font-family: 'Orbitron'; font-size: 32px; color: var(--gold); }
-        .tab-content { display: none; height: calc(100vh - 160px); overflow-y: auto; padding: 20px; }
+        .tab-content { display: none; height: calc(100vh - 160px); overflow-y: auto; padding: 20px; padding-bottom: 100px; }
         .tab-content.active { display: block; }
         .card { background: var(--card); border-radius: 12px; padding: 15px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px solid rgba(255,255,255,0.1); }
-        .btn-action { background: var(--gold); color: black; border: none; padding: 10px 15px; border-radius: 8px; font-weight: bold; cursor: pointer; }
-        .btn-action:disabled { background: #444; color: #888; }
-        .click-area { display: flex; justify-content: center; align-items: center; height: 260px; position: relative; }
-        .pet-image { width: 180px; cursor: pointer; transition: 0.05s; }
+        .btn-action { background: var(--gold); color: black; border: none; padding: 10px 15px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 12px; }
+        .click-area { display: flex; justify-content: center; align-items: center; height: 260px; }
+        .pet-image { width: 180px; transition: 0.05s; cursor: pointer; -webkit-tap-highlight-color: transparent; }
         .pet-image:active { transform: scale(0.92); }
-        .nav { position: fixed; bottom: 0; width: 100%; display: flex; background: #111; padding: 12px 0; border-top: 1px solid #333; }
-        .nav-item { flex: 1; text-align: center; color: #666; font-size: 11px; cursor: pointer; }
+        .nav { position: fixed; bottom: 0; width: 100%; display: flex; background: #111; padding: 12px 0; border-top: 1px solid #333; z-index: 100; }
+        .nav-item { flex: 1; text-align: center; color: #666; font-size: 11px; }
         .nav-item.active { color: var(--accent); }
         .nav-item i { font-size: 20px; margin-bottom: 4px; display: block; }
         #loading { position: fixed; top:0; left:0; width:100%; height:100%; background:var(--bg); z-index:999; display:flex; align-items:center; justify-content:center; flex-direction: column; }
+        .contract-box { background: #000; padding: 10px; border-radius: 8px; font-size: 10px; color: var(--gold); word-break: break-all; font-family: monospace; border: 1px dashed #444; margin: 10px 0; }
     </style>
 </head>
 <body>
 
 <div id="loading">
     <h2 style="font-family:'Orbitron'; color:var(--gold)">ZOOTOPIA</h2>
-    <p>Синхронизация с облаком...</p>
+    <p>Loading Blockchain Data...</p>
 </div>
 
 <div class="header">
@@ -43,37 +44,44 @@
 
 <div id="tab-game" class="tab-content active">
     <div class="click-area"><img src="dachshund.png" class="pet-image" id="pet"></div>
-    <div style="padding:10px">
-        <p>⚡ Энергия: <span id="energy">1000</span>/1000</p>
-        <p style="font-size:12px; color:#888">Сила клика: +<span id="power">1</span></p>
+    <div style="text-align:center; background: rgba(255,255,255,0.05); padding: 10px; border-radius: 10px;">
+        <p style="margin:0">⚡ Энергия: <span id="energy">1000</span>/1000</p>
+        <div style="height:4px; background:#333; border-radius:2px; margin-top:8px;">
+            <div id="energy-bar" style="height:100%; background:var(--accent); width:100%; transition:0.3s"></div>
+        </div>
     </div>
 </div>
 
 <div id="tab-shop" class="tab-content">
-    <h3 style="color:var(--gold)">Улучшения</h3>
+    <h3 style="color:var(--gold)">Shop</h3>
     <div class="card">
-        <div><b>Сила тапа</b><br><small id="price-tap">500</small> 🦴</div>
-        <button class="btn-action" onclick="buy('tap')">КУПИТЬ</button>
+        <div><b>Power Tap</b><br><small id="price-tap">500</small> 🦴</div>
+        <button class="btn-action" onclick="buy('tap')">Upgrade</button>
     </div>
-    <div class="card" style="opacity: 0.5;">
-        <div><b>Авто-бот</b><br><small>Скоро</small></div>
-        <button class="btn-action" disabled>LOCK</button>
+    <div class="card" style="opacity:0.5">
+        <div><b>Auto-Miner</b><br><small>Coming Soon</small></div>
+        <button class="btn-action" disabled>Lock</button>
     </div>
 </div>
 
-<div id="tab-friends" class="tab-content">
-    <h3 style="color:var(--accent)">Пригласи друзей</h3>
-    <div class="card" style="background: linear-gradient(45deg, #1C1C2E, #2A2A3E);">
-        <div style="flex:1"><b>+50,000 Bones</b><br><small>за каждого друга</small></div>
-        <button class="btn-action" onclick="invite()">ПРИГЛАСИТЬ</button>
+<div id="tab-airdrop" class="tab-content">
+    <h3 style="color:var(--accent); font-family:'Orbitron'">AIRDROP</h3>
+    <p style="font-size: 13px; color: #ccc;">Собери как можно больше $ZOO до начала листинга!</p>
+    
+    <div class="card" style="flex-direction:column; align-items:flex-start;">
+        <span style="font-size:12px; color:#888;">Token Contract:</span>
+        <div class="contract-box">EQB5RZDUlW3wWLWxACmKhiH6UYEGhpuCVz2BB2KI4Wyj91Vs</div>
+        <button class="btn-action" style="width:100%" onclick="window.open('https://tonviewer.com/EQB5RZDUlW3wWLWxACmKhiH6UYEGhpuCVz2BB2KI4Wyj91Vs')">VIEW IN EXPLORER</button>
     </div>
-    <p style="font-size:12px; color:#888; text-align:center">Твои рефералы: <span id="ref-count">0</span></p>
+
+    <div id="ton-connect-btn" style="display:flex; justify-content:center; margin-top:20px;"></div>
+    <p id="wallet-status" style="font-size:11px; color:#00FF88; text-align:center; margin-top:10px; display:none;">Кошелек успешно привязан!</p>
 </div>
 
 <div class="nav">
-    <div class="nav-item active" onclick="switchTab('tab-game', this)"><i class="fas fa-paw"></i>Игра</div>
-    <div class="nav-item" onclick="switchTab('tab-shop', this)"><i class="fas fa-shopping-cart"></i>Магазин</div>
-    <div class="nav-item" onclick="switchTab('tab-friends', this)"><i class="fas fa-users"></i>Друзья</div>
+    <div class="nav-item active" onclick="switchTab('tab-game', this)"><i class="fas fa-paw"></i>Game</div>
+    <div class="nav-item" onclick="switchTab('tab-shop', this)"><i class="fas fa-shopping-cart"></i>Shop</div>
+    <div class="nav-item" onclick="switchTab('tab-airdrop', this)"><i class="fas fa-wallet"></i>Airdrop</div>
 </div>
 
 <script>
@@ -91,49 +99,39 @@
     const tg = window.Telegram.WebApp;
     const uid = tg.initDataUnsafe?.user?.id?.toString() || "dev_user";
     
-    // Получаем ID пригласителя из ссылки старта (если есть)
-    const urlParams = new URLSearchParams(window.location.search);
-    const referrerId = tg.initDataUnsafe?.start_param || null;
+    let state = { bones: 0, zoo: 0, energy: 1000, tapPower: 1, tapPrice: 500, wallet: null };
 
-    let state = { 
-        bones: 0, zoo: 0, energy: 1000, 
-        tapPower: 1, tapPrice: 500,
-        refs: 0, rewarded: false 
-    };
+    const tonConnectUI = new TONConnectUI.TonConnectUI({
+        manifestUrl: 'https://dimazmlbig-dev.github.io/zootopia-clicker/tonconnect-manifest.json',
+        buttonRootId: 'ton-connect-btn'
+    });
 
     async function init() {
-        const doc = await db.collection("users").doc(uid).get();
-        if (doc.exists) {
-            state = { ...state, ...doc.data() };
-        } else {
-            // Если новый игрок и пришел по ссылке
-            if (referrerId && referrerId !== uid) {
-                state.bones += 50000;
-                giveBonusToReferrer(referrerId);
-            }
-            await db.collection("users").doc(uid).set(state);
-        }
-        document.getElementById('loading').style.display = 'none';
-        update();
-    }
-
-    async function giveBonusToReferrer(rid) {
-        const rDoc = await db.collection("users").doc(rid).get();
-        if (rDoc.exists) {
-            let rData = rDoc.data();
-            rData.bones += 50000;
-            rData.refs = (rData.refs || 0) + 1;
-            await db.collection("users").doc(rid).set(rData);
-        }
+        try {
+            const doc = await db.collection("users").doc(uid).get();
+            if (doc.exists) state = { ...state, ...doc.data() };
+            if (state.wallet) document.getElementById('wallet-status').style.display = 'block';
+            document.getElementById('loading').style.display = 'none';
+            update();
+        } catch(e) { console.error(e); }
     }
 
     function update() {
         document.getElementById('bones').innerText = Math.floor(state.bones);
         document.getElementById('zoo').innerText = state.zoo.toFixed(4);
         document.getElementById('energy').innerText = state.energy;
-        document.getElementById('power').innerText = state.tapPower;
         document.getElementById('price-tap').innerText = state.tapPrice;
-        document.getElementById('ref-count').innerText = state.refs || 0;
+        document.getElementById('energy-bar').style.width = (state.energy / 10) + '%';
+    }
+
+    function handleTap(e) {
+        if (state.energy >= state.tapPower) {
+            state.bones += state.tapPower;
+            state.zoo += (0.0001 * state.tapPower);
+            state.energy -= state.tapPower;
+            tg.HapticFeedback.impactOccurred('light');
+            update();
+        }
     }
 
     function buy(type) {
@@ -141,22 +139,8 @@
             state.bones -= state.tapPrice;
             state.tapPower++;
             state.tapPrice = Math.floor(state.tapPrice * 1.6);
+            tg.HapticFeedback.notificationOccurred('success');
             save(); update();
-        }
-    }
-
-    function invite() {
-        const text = `Заходи в Zootopia Clicker! Дают 50к костей при старте по моей ссылке! 🐾`;
-        const shareUrl = `https://t.me/share/url?url=https://t.me/zooclikbot?start=${uid}&text=${encodeURIComponent(text)}`;
-        tg.openTelegramLink(shareUrl);
-    }
-
-    function handleTap() {
-        if (state.energy >= state.tapPower) {
-            state.bones += state.tapPower;
-            state.zoo += (0.0001 * state.tapPower);
-            state.energy -= state.tapPower;
-            update();
         }
     }
 
@@ -167,12 +151,20 @@
         document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
         document.getElementById(id).classList.add('active');
         el.classList.add('active');
+        tg.HapticFeedback.selectionChanged();
     }
+
+    tonConnectUI.onStatusChange(w => { 
+        if(w) { 
+            state.wallet = w.account.address; 
+            document.getElementById('wallet-status').style.display = 'block';
+            save(); 
+        } 
+    });
 
     document.getElementById('pet').addEventListener('pointerdown', handleTap);
     setInterval(() => { if (state.energy < 1000) { state.energy = Math.min(1000, state.energy + 2); update(); } }, 2000);
-    setInterval(save, 15000); // Сохраняем в облако каждые 15 сек
-
+    setInterval(save, 15000);
     init();
 </script>
 </body>

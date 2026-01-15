@@ -67,19 +67,41 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
 
+        // 1. Сначала определяем ID пользователя
         const userId = tg.initDataUnsafe?.user?.id || "local_user";
+        
+        // 2. СРАЗУ загружаем данные из памяти
         let balance = parseFloat(localStorage.getItem(`balance_${userId}`)) || 0;
         let energy = parseInt(localStorage.getItem(`energy_${userId}`)) || 1000;
         const maxEnergy = 1000;
 
+        // 3. СРАЗУ отображаем их, чтобы юзер не видел "0"
+        function updateUI() {
+            const coinsEl = document.getElementById('coins');
+            const energyEl = document.getElementById('cur-energy');
+            const fillEl = document.getElementById('energy-fill');
+            
+            if (coinsEl) coinsEl.innerText = Math.floor(balance);
+            if (energyEl) energyEl.innerText = energy;
+            if (fillEl) fillEl.style.width = (energy / maxEnergy * 100) + '%';
+        }
+        
+        // Вызываем обновление интерфейса МГНОВЕННО
+        updateUI();
+
+        // Инициализация кошелька
         const tonConnectUI = new TONConnectUI.TonConnectUI({
             manifestUrl: 'https://dimazmlbig-dev.github.io/zootopia-clicker/tonconnect-manifest.json',
             buttonRootId: 'ton-connect-button' 
         });
 
         function handleTap(e) {
-            if (energy <= 0) { tg.HapticFeedback.notificationOccurred('error'); return; }
-            balance++; energy--;
+            if (energy <= 0) { 
+                tg.HapticFeedback.notificationOccurred('error'); 
+                return; 
+            }
+            balance++; 
+            energy--;
             tg.HapticFeedback.impactOccurred('medium');
             updateUI();
             saveData();
@@ -91,12 +113,6 @@
             text.style.top = e.clientY + 'px';
             document.body.appendChild(text);
             setTimeout(() => text.remove(), 600);
-        }
-
-        function updateUI() {
-            document.getElementById('coins').innerText = Math.floor(balance);
-            document.getElementById('cur-energy').innerText = energy;
-            document.getElementById('energy-fill').style.width = (energy / maxEnergy * 100) + '%';
         }
 
         function saveData() {
@@ -115,15 +131,20 @@
                 document.getElementById('tab-other').classList.add('active');
                 document.getElementById('other-title').innerText = "В разработке 🛠";
             }
+            // После переключения вкладок тоже обновляем UI на всякий случай
+            updateUI();
         }
 
         setInterval(() => {
-            if (energy < maxEnergy) { energy++; updateUI(); saveData(); }
+            if (energy < maxEnergy) { 
+                energy++; 
+                updateUI(); 
+                saveData(); 
+            }
         }, 1500);
-
-        updateUI();
     </script>
 </body>
 </html>
+
 
 

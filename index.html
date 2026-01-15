@@ -10,47 +10,38 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;900&family=Orbitron:wght@400;900&display=swap');
         :root { --gold: #FFD700; --accent: #00FFFF; --bg: #0A0A12; }
-        body { font-family: 'Poppins', sans-serif; background: var(--bg); color: white; margin: 0; overflow: hidden; user-select: none; }
-        
-        .header { text-align: center; padding: 20px; border-bottom: 1px solid #333; }
-        .balance { font-family: 'Orbitron', sans-serif; font-size: 48px; color: var(--gold); text-shadow: 0 0 20px rgba(255,215,0,0.5); }
-        
-        .click-area { display: flex; justify-content: center; align-items: center; height: 350px; position: relative; }
-        .pet-card { width: 250px; height: 250px; position: relative; display: flex; justify-content: center; align-items: center; }
-        .pet-image { width: 100%; cursor: pointer; transition: transform 0.05s; z-index: 10; -webkit-user-drag: none; }
-        .pet-image:active { transform: scale(0.95); }
-
+        body { font-family: 'Poppins', sans-serif; background: var(--bg); color: white; margin: 0; overflow: hidden; user-select: none; touch-action: none; }
+        .header { text-align: center; padding: 15px; border-bottom: 1px solid #333; }
+        .balance { font-family: 'Orbitron'; font-size: 42px; color: var(--gold); margin: 5px 0; }
+        .click-area { display: flex; justify-content: center; align-items: center; height: 320px; position: relative; }
+        .pet-image { width: 220px; cursor: pointer; transition: transform 0.05s; z-index: 10; -webkit-user-drag: none; }
+        .pet-image:active { transform: scale(0.92); }
         .energy-box { padding: 20px; }
         .energy-bar { height: 10px; background: #222; border-radius: 5px; margin-top: 8px; overflow: hidden; }
         .energy-fill { height: 100%; background: linear-gradient(90deg, #00FF88, #0088FF); width: 100%; transition: width 0.2s; }
-
-        .nav { position: fixed; bottom: 0; width: 100%; display: flex; background: rgba(20,20,30,0.95); padding: 15px 0; border-top: 1px solid #333; }
-        .nav-item { flex: 1; text-align: center; color: #666; font-size: 12px; cursor: pointer; }
+        .nav { position: fixed; bottom: 0; width: 100%; display: flex; background: #111; padding: 10px 0; border-top: 1px solid #333; }
+        .nav-item { flex: 1; text-align: center; color: #666; font-size: 12px; }
         .nav-item.active { color: var(--accent); }
         .tab-content { display: none; padding: 20px; text-align: center; }
         .tab-content.active { display: block; }
-
-        /* Эффект вылетающих цифр */
-        .floating-text { position: absolute; color: var(--gold); font-family: 'Orbitron'; font-weight: bold; font-size: 24px; pointer-events: none; animation: floatUp 0.8s ease-out forwards; z-index: 100; }
-        @keyframes floatUp { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-100px); } }
+        .floating-text { position: absolute; color: var(--gold); font-family: 'Orbitron'; font-weight: bold; font-size: 28px; pointer-events: none; animation: floatUp 0.6s ease-out forwards; z-index: 100; }
+        @keyframes floatUp { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-120px); } }
     </style>
 </head>
 <body>
 
     <div class="header">
-        <div style="font-size: 12px; color: #aaa;">Bones Balance</div>
+        <div style="font-size: 10px; color: #aaa; letter-spacing: 2px;">BONES BALANCE</div>
         <div class="balance" id="bones">0</div>
-        <div style="color: var(--accent);">$ZOO: <span id="zoo">0.0000</span></div>
+        <div style="color: var(--accent); font-size: 14px;">$ZOO: <span id="zoo">0.0000</span></div>
     </div>
 
     <div id="game-tab" class="tab-content active">
         <div class="click-area" id="click-area">
-            <div class="pet-card">
-                <img src="dachshund.png" class="pet-image" id="pet" alt="Dachshund">
-            </div>
+            <img src="dachshund.png" class="pet-image" id="pet" alt="Pet" onerror="this.src='https://cdn-icons-png.flaticon.com/512/616/616408.png'">
         </div>
         <div class="energy-box">
-            <div style="display: flex; justify-content: space-between;">
+            <div style="display: flex; justify-content: space-between; font-size: 14px;">
                 <span>⚡ Energy</span>
                 <span id="energy-text">1000/1000</span>
             </div>
@@ -59,9 +50,9 @@
     </div>
 
     <div id="zoo-tab" class="tab-content">
-        <h2>Airdrop Section</h2>
-        <p>Connect your TON wallet to receive $ZOO</p>
-        <div id="ton-connect" style="display:flex; justify-content:center;"></div>
+        <h2 style="color: var(--gold)">Airdrop</h2>
+        <p>Connect TON wallet to save progress</p>
+        <div id="ton-connect" style="display:flex; justify-content:center; margin-top: 20px;"></div>
     </div>
 
     <div class="nav">
@@ -72,6 +63,7 @@
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
+        tg.enableClosingConfirmation();
 
         let data = {
             bones: parseInt(localStorage.getItem('bones')) || 0,
@@ -84,49 +76,36 @@
             document.getElementById('bones').innerText = data.bones;
             document.getElementById('zoo').innerText = data.zoo.toFixed(4);
             document.getElementById('energy-text').innerText = data.energy + '/' + data.maxEnergy;
-            document.getElementById('energy-fill').style.width = (data.energy / data.maxEnergy * 100) + '%';
-            
+            document.getElementById('energy-fill').style.width = (data.energy/data.maxEnergy*100) + '%';
             localStorage.setItem('bones', data.bones);
             localStorage.setItem('zoo', data.zoo);
             localStorage.setItem('energy', data.energy);
         }
 
-        const pet = document.getElementById('pet');
-        const clickArea = document.getElementById('click-area');
-
         function handleTap(e) {
             if (data.energy <= 0) return;
-
-            // Координаты для анимации цифр
             const x = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
             const y = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
-
-            // Логика
+            
             data.bones += 1;
             data.zoo += 0.0001;
             data.energy -= 1;
 
-            // Анимация текста
             const txt = document.createElement('div');
             txt.className = 'floating-text';
             txt.innerText = '+1';
-            txt.style.left = x + 'px';
-            txt.style.top = y + 'px';
+            txt.style.left = (x - 10) + 'px';
+            txt.style.top = (y - 20) + 'px';
             document.body.appendChild(txt);
-            setTimeout(() => txt.remove(), 800);
+            setTimeout(() => txt.remove(), 600);
 
-            // Вибрация
-            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
-
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
             update();
         }
 
-        // Слушаем и клики мышкой, и тапы пальцем
+        const pet = document.getElementById('pet');
+        pet.addEventListener('touchstart', (e) => { e.preventDefault(); handleTap(e); });
         pet.addEventListener('mousedown', handleTap);
-        pet.addEventListener('touchstart', (e) => {
-            e.preventDefault(); // Чтобы не было двойного клика и зума
-            handleTap(e);
-        });
 
         function switchTab(id, el) {
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
@@ -135,15 +114,11 @@
             el.classList.add('active');
         }
 
-        // Регенерация энергии
         setInterval(() => {
-            if (data.energy < data.maxEnergy) {
-                data.energy += 1;
-                update();
-            }
+            if (data.energy < data.maxEnergy) { data.energy += 1; update(); }
         }, 1500);
 
-        const tonConnectUI = new TONConnectUI.TonConnectUI({
+        new TONConnectUI.TonConnectUI({
             manifestUrl: 'https://dimazmlbig-dev.github.io/zootopia-clicker/tonconnect-manifest.json',
             buttonRootId: 'ton-connect'
         });

@@ -3,164 +3,293 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>🦴 Zootopia Clicker | Фарми $ZOO</title>
-    <meta name="description" content="Запусти ферму кликов в Telegram! Качай питомца, зарабатывай кости и готовься к аирдропу токенов $ZOO.">
-    <!-- Telegram Web App SDK (ОБЯЗАТЕЛЬНО) -->
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <!-- TON Connect -->
-    <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
-    <!-- Иконки -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Шрифты -->
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;800;900&family=Orbitron:wght@400;500;700;900&display=swap" rel="stylesheet">
-    <!-- Наш основной стиль -->
+    <title>Zootopia Clicker - Telegram Game</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&family=Nunito:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🦊</text></svg>">
 </head>
 <body>
-    <!-- Заставка -->
-    <div class="splash-screen" id="splashScreen">
-        <div class="splash-content">
-            <div class="logo">🦴</div>
-            <h1 class="splash-title">ZOOTOPIA</h1>
-            <p class="splash-subtitle">Elite Clicker</p>
-            <div class="loading-bar">
-                <div class="loading-progress" id="loadingProgress"></div>
+    <div class="container">
+        <!-- Шапка игры -->
+        <header class="game-header">
+            <div class="title-section">
+                <h1><i class="fas fa-paw"></i> ZOOTOPIA</h1>
+                <p class="subtitle">Elite Clicker Game</p>
             </div>
-        </div>
-    </div>
-
-    <!-- Основной интерфейс -->
-    <div class="container" id="mainApp" style="display: none;">
-        <!-- Хедер с балансом -->
-        <header class="app-header">
-            <div class="user-info">
-                <span id="userName">Игрок</span>
-                <span class="level-badge" id="userLevel">LVL 1</span>
-            </div>
-            <div class="balance-container">
-                <div class="balance-main">
-                    <span class="balance-icon">🦴</span>
-                    <span id="balanceCount" class="balance-count">0</span>
-                </div>
-                <div class="balance-token">
-                    <span class="token-icon">💎</span>
-                    <span id="zooTokenCount">0.0000</span> $ZOO
+            <div class="player-level">
+                <div class="level-badge">
+                    <i class="fas fa-star"></i>
+                    <span>Ур. <span id="player-level">1</span></span>
                 </div>
             </div>
         </header>
 
-        <!-- Основная область с табами -->
-        <main class="app-main">
-            <!-- Вкладка 1: Игра / Кликер -->
-            <section id="tabGame" class="tab-pane active">
-                <div class="clicker-arena">
-                    <div class="pet-container">
-                        <img src="dachshund.png" 
-                             alt="Питомец Zootopia" 
-                             class="pet-image"
-                             id="clickTarget">
-                        <div class="pet-info">
-                            <span class="pet-name" id="petName">Такса</span>
-                            <span class="pet-level">Ур. <span id="petLevel">1</span></span>
-                        </div>
-                    </div>
-                    
-                    <div class="energy-display">
-                        <div class="energy-label">
-                            <i class="fas fa-bolt"></i> ЭНЕРГИЯ
-                            <span id="energyText">1000 / 1000</span>
-                        </div>
-                        <div class="energy-bar">
-                            <div class="energy-fill" id="energyFill"></div>
-                        </div>
-                    </div>
-
-                    <div class="stats-panel">
-                        <div class="stat-card">
-                            <div class="stat-icon"><i class="fas fa-fist-raised"></i></div>
-                            <div class="stat-value" id="clickPowerStat">1</div>
-                            <div class="stat-label">Сила клика</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-icon"><i class="fas fa-mouse-pointer"></i></div>
-                            <div class="stat-value" id="totalClicksStat">0</div>
-                            <div class="stat-label">Всего кликов</div>
-                        </div>
-                    </div>
+        <!-- Блок энергии -->
+        <section class="energy-section">
+            <div class="energy-header">
+                <h2><i class="fas fa-bolt"></i> ЭНЕРГИЯ</h2>
+                <span id="energy-display">1000/1000</span>
+            </div>
+            <div class="energy-bar-container">
+                <div class="energy-bar" id="energy-bar"></div>
+            </div>
+            <div class="energy-stats">
+                <div class="stat-item">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <span>Восст.: <span id="regen-rate">10</span>/сек</span>
                 </div>
+                <div class="stat-item">
+                    <i class="far fa-clock"></i>
+                    <span>Полное: <span id="regen-time">1:40</span></span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Основной кликер -->
+        <section class="clicker-section">
+            <div class="click-stats">
+                <div class="stat-box">
+                    <div class="stat-label">
+                        <i class="fas fa-mouse-pointer"></i> Всего кликов
+                    </div>
+                    <div class="stat-value" id="total-clicks">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">
+                        <i class="fas fa-fist-raised"></i> Сила клика
+                    </div>
+                    <div class="stat-value" id="click-power">1</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">
+                        <i class="fas fa-crown"></i> Кликов/сек
+                    </div>
+                    <div class="stat-value" id="clicks-per-second">0</div>
+                </div>
+            </div>
+
+            <div class="click-area">
+                <button id="click-button" class="click-button">
+                    <div class="button-icon">
+                        <i class="fas fa-paw"></i>
+                    </div>
+                    <div class="button-text">КЛИКНИ!</div>
+                    <div class="button-subtext">+<span id="click-power-display">1</span> энергии</div>
+                </button>
                 
-                <div class="upgrades-panel">
-                    <h3><i class="fas fa-arrow-up"></i> Улучшения</h3>
-                    <div class="upgrades-grid">
-                        <div class="upgrade-item" onclick="buyUpgrade('clickPower')">
-                            <div class="upgrade-icon"><i class="fas fa-hand-rock"></i></div>
-                            <div class="upgrade-details">
-                                <div class="upgrade-title">Мощный удар</div>
-                                <div class="upgrade-desc">+1 к силе клика</div>
-                                <div class="upgrade-price">🦴 1,000</div>
-                            </div>
-                            <div class="upgrade-level">Ур. <span id="clickPowerLvl">0</span></div>
-                        </div>
-                        <div class="upgrade-item" onclick="buyUpgrade('energyMax')">
-                            <div class="upgrade-icon"><i class="fas fa-battery-full"></i></div>
-                            <div class="upgrade-details">
-                                <div class="upgrade-title">Большая батарея</div>
-                                <div class="upgrade-desc">+100 к максимуму энергии</div>
-                                <div class="upgrade-price">🦴 5,000</div>
-                            </div>
-                            <div class="upgrade-level">Ур. <span id="energyMaxLvl">0</span></div>
+                <div class="auto-clicker">
+                    <i class="fas fa-robot"></i>
+                    <span>Автокликеры: <span id="auto-clickers">0</span></span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Улучшения -->
+        <section class="upgrades-section">
+            <div class="section-header">
+                <h2><i class="fas fa-arrow-up"></i> УЛУЧШЕНИЯ</h2>
+                <div class="balance">
+                    <i class="fas fa-coins"></i>
+                    <span id="balance">0</span> $
+                </div>
+            </div>
+
+            <div class="upgrades-grid">
+                <!-- Мощный удар -->
+                <div class="upgrade-card" id="upgrade-power">
+                    <div class="upgrade-icon power">
+                        <i class="fas fa-fist-raised"></i>
+                    </div>
+                    <div class="upgrade-info">
+                        <h3>Мощный удар</h3>
+                        <p>+1 к силе клика</p>
+                        <div class="upgrade-level">
+                            Ур. <span id="power-level">0</span>
                         </div>
                     </div>
-                </div>
-            </section>
-
-            <!-- Вкладка 2: Airdrop & TON -->
-            <section id="tabAirdrop" class="tab-pane">
-                <div class="airdrop-hero">
-                    <h2><i class="fas fa-gem"></i> Ваши токены $ZOO</h2>
-                    <div class="token-balance-card">
-                        <div class="token-balance" id="zooBalanceAirdrop">0.0000</div>
-                        <div class="token-symbol">$ZOO</div>
-                        <div class="token-progress">
-                            <div class="progress-bar">
-                                <div class="progress-fill" id="airdropProgress"></div>
-                            </div>
-                            <div class="progress-text">Прогресс до листинга: <span id="progressPercent">0%</span></div>
-                        </div>
+                    <div class="upgrade-action">
+                        <div class="upgrade-cost" id="power-cost">1,000</div>
+                        <button class="buy-button" data-upgrade="power">Купить</button>
                     </div>
                 </div>
 
-                <div class="wallet-section">
-                    <h3><i class="fas fa-wallet"></i> Кошелёк TON</h3>
-                    <p>Подключите кошелёк, чтобы увеличить фарминг в 2 раза!</p>
-                    <!-- Контейнер для кнопки TON Connect -->
-                    <div id="ton-connect-button"></div>
-                    <div class="wallet-status" id="walletStatus">
-                        <i class="fas fa-times-circle"></i> Не подключен
+                <!-- Большая батарея -->
+                <div class="upgrade-card" id="upgrade-battery">
+                    <div class="upgrade-icon battery">
+                        <i class="fas fa-car-battery"></i>
+                    </div>
+                    <div class="upgrade-info">
+                        <h3>Большая батарея</h3>
+                        <p>+100 к максимуму энергии</p>
+                        <div class="upgrade-level">
+                            Ур. <span id="battery-level">0</span>
+                        </div>
+                    </div>
+                    <div class="upgrade-action">
+                        <div class="upgrade-cost" id="battery-cost">5,000</div>
+                        <button class="buy-button" data-upgrade="battery">Купить</button>
                     </div>
                 </div>
-            </section>
-        </main>
 
-        <!-- Навигация внизу -->
-        <nav class="app-navigation">
-            <button class="nav-btn active" onclick="switchTab('game')" data-tab="game">
-                <i class="fas fa-gamepad"></i>
-                <span>Игра</span>
+                <!-- Автокликер -->
+                <div class="upgrade-card" id="upgrade-auto">
+                    <div class="upgrade-icon auto">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <div class="upgrade-info">
+                        <h3>Автокликер</h3>
+                        <p>1 клик/сек автоматически</p>
+                        <div class="upgrade-level">
+                            Ур. <span id="auto-level">0</span>
+                        </div>
+                    </div>
+                    <div class="upgrade-action">
+                        <div class="upgrade-cost" id="auto-cost">10,000</div>
+                        <button class="buy-button" data-upgrade="auto">Купить</button>
+                    </div>
+                </div>
+
+                <!-- Ускорение -->
+                <div class="upgrade-card" id="upgrade-speed">
+                    <div class="upgrade-icon speed">
+                        <i class="fas fa-tachometer-alt"></i>
+                    </div>
+                    <div class="upgrade-info">
+                        <h3>Ускорение</h3>
+                        <p>+20% к скорости регенерации</p>
+                        <div class="upgrade-level">
+                            Ур. <span id="speed-level">0</span>
+                        </div>
+                    </div>
+                    <div class="upgrade-action">
+                        <div class="upgrade-cost" id="speed-cost">25,000</div>
+                        <button class="buy-button" data-upgrade="speed">Купить</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Токены и прогресс -->
+        <section class="tokens-section">
+            <div class="section-header">
+                <h2><i class="fas fa-gem"></i> ТОКЕНЫ SZOO</h2>
+                <div class="token-balance">
+                    <span id="tokens">0.0000</span> SZOO
+                </div>
+            </div>
+
+            <div class="progress-container">
+                <div class="progress-info">
+                    <span>Прогресс до листинга</span>
+                    <span id="progress-percent">0.0%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress-fill"></div>
+                </div>
+                <div class="progress-required">
+                    Требуется: <span id="required-tokens">1,000,000</span> SZOO
+                </div>
+            </div>
+
+            <div class="community-stats">
+                <div class="community-stat">
+                    <i class="fas fa-users"></i>
+                    <div>
+                        <div class="stat-label">Игроков онлайн</div>
+                        <div class="stat-value" id="players-online">1,247</div>
+                    </div>
+                </div>
+                <div class="community-stat">
+                    <i class="fas fa-globe"></i>
+                    <div>
+                        <div class="stat-label">Всего кликов</div>
+                        <div class="stat-value" id="global-clicks">12.5M</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Кошелек и кнопки -->
+        <section class="wallet-section">
+            <button id="connect-wallet" class="wallet-button">
+                <i class="fas fa-wallet"></i>
+                <span>Подключить TON кошелёк</span>
             </button>
-            <button class="nav-btn" onclick="switchTab('airdrop')" data-tab="airdrop">
-                <i class="fas fa-gem"></i>
-                <span>$ZOO</span>
-            </button>
-        </nav>
+            
+            <div class="action-buttons">
+                <button class="action-button" id="boost-button">
+                    <i class="fas fa-rocket"></i>
+                    <span>Буст x2 (1 час)</span>
+                </button>
+                <button class="action-button" id="achievements-button">
+                    <i class="fas fa-trophy"></i>
+                    <span>Достижения</span>
+                </button>
+                <button class="action-button" id="shop-button">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span>Магазин</span>
+                </button>
+            </div>
+            
+            <div class="game-info">
+                <p><i class="fas fa-info-circle"></i> Играйте каждый день, чтобы получать бонусы!</p>
+            </div>
+        </section>
+
+        <!-- Модальные окна -->
+        <div id="wallet-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="fas fa-wallet"></i> Подключение кошелька</h3>
+                    <button class="modal-close">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p>Выберите способ подключения:</p>
+                    <div class="wallet-options">
+                        <button class="wallet-option" id="tonkeeper">
+                            <i class="fas fa-shield-alt"></i>
+                            <span>Tonkeeper</span>
+                        </button>
+                        <button class="wallet-option" id="tonhub">
+                            <i class="fas fa-cube"></i>
+                            <span>Tonhub</span>
+                        </button>
+                        <button class="wallet-option" id="mytonwallet">
+                            <i class="fas fa-user-circle"></i>
+                            <span>MyTonWallet</span>
+                        </button>
+                    </div>
+                    <div class="modal-info">
+                        <p><i class="fas fa-exclamation-triangle"></i> Подключите кошелёк для вывода токенов SZOO</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="boost-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="fas fa-rocket"></i> Активация буста</h3>
+                    <button class="modal-close">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p>Буст удваивает вашу силу клика на 1 час!</p>
+                    <div class="boost-cost">
+                        Стоимость: <span class="cost">500</span> SZOO
+                    </div>
+                    <button class="confirm-button" id="activate-boost">Активировать за 500 SZOO</button>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <!-- Всплывающее уведомление (оставлено для обратной связи) -->
-    <div class="notification" id="globalNotification"></div>
+    <!-- Уведомления -->
+    <div id="notification-container"></div>
 
-    <!-- ПОДКЛЮЧЕНИЕ НАШИХ JS-МОДУЛЕЙ (БЕЗ anti-bot.js) -->
-    <script src="ton-connect.js"></script>
-    <script src="script.js"></script>
-    <!-- Файл game.js можно подключить позже, когда он будет готов -->
+    <!-- Telegram WebApp SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="game.js"></script>
 </body>
 </html>

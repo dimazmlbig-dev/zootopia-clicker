@@ -1,256 +1,811 @@
-// script.js - Основной скрипт игры (без капчи и защиты от ботов)
-
-// Инициализация Telegram Web App
-const tg = window.Telegram.WebApp;
-tg.expand();
-tg.setHeaderColor('#0a0a14');
-tg.setBackgroundColor('#0a0a14');
-
-// Данные игры
-let gameData = JSON.parse(localStorage.getItem('zoo_save_v1')) || {
-    bones: 0,
-    zooTokens: 0.0,
-    energy: 1000,
-    maxEnergy: 1000,
-    clickPower: 1,
-    totalClicks: 0,
-    level: 1,
-    upgrades: {
-        clickPower: { level: 0, cost: 1000 },
-        energyMax: { level: 0, cost: 5000 }
-    },
-    walletConnected: false
-};
-
-// Инициализация при загрузке
-document.addEventListener('DOMContentLoaded', () => {
-    initGame();
-    loadSplashScreen();
-});
-
-// Загрузочный экран
-function loadSplashScreen() {
-    let progress = 0;
-    const loadingBar = document.getElementById('loadingProgress');
-    const splashScreen = document.getElementById('splashScreen');
-    
-    const interval = setInterval(() => {
-        progress += Math.random() * 20;
-        loadingBar.style.width = progress + '%';
-        
-        if (progress >= 100) {
-            clearInterval(interval);
-            setTimeout(() => {
-                splashScreen.style.opacity = '0';
-                setTimeout(() => {
-                    splashScreen.style.display = 'none';
-                    document.getElementById('mainApp').style.display = 'block';
-                    updateUI();
-                    startGameIntervals(); // Запускаем фоновые процессы
-                    showNotification('🎮 Добро пожаловать в Zootopia!', 'success');
-                }, 500);
-            }, 500);
-        }
-    }, 50);
+/* Основные стили */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
 }
 
-// Инициализация игры
-function initGame() {
-    // Установка имени пользователя из Telegram
-    if (tg.initDataUnsafe?.user) {
-        const user = tg.initDataUnsafe.user;
-        document.getElementById('userName').textContent = user.first_name || user.username || 'Игрок';
+:root {
+    --primary: #7B61FF;
+    --primary-dark: #5A43D9;
+    --secondary: #00D4AA;
+    --danger: #FF6B6B;
+    --warning: #FFB74D;
+    --success: #4CAF50;
+    --dark: #1A1A2E;
+    --darker: #0F0F1A;
+    --light: #F8F9FA;
+    --gray: #6C757D;
+    --gray-dark: #343A40;
+    --energy: #00D4AA;
+    --token: #FFB74D;
+    --upgrade-power: #FF6B6B;
+    --upgrade-battery: #4FC3F7;
+    --upgrade-auto: #81C784;
+    --upgrade-speed: #BA68C8;
+}
+
+body {
+    font-family: 'Nunito', sans-serif;
+    background: linear-gradient(135deg, var(--darker), var(--dark));
+    color: var(--light);
+    min-height: 100vh;
+    padding: 20px;
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 500px;
+    margin: 0 auto;
+    padding-bottom: 30px;
+}
+
+/* Шапка игры */
+.game-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+}
+
+.title-section h1 {
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 800;
+    font-size: 24px;
+    background: linear-gradient(90deg, var(--primary), var(--secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 5px;
+}
+
+.subtitle {
+    font-size: 14px;
+    color: var(--gray);
+    font-weight: 300;
+}
+
+.level-badge {
+    background: linear-gradient(135deg, var(--warning), #FF9800);
+    padding: 8px 15px;
+    border-radius: 15px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+}
+
+/* Блок энергии */
+.energy-section {
+    background: rgba(0, 212, 170, 0.1);
+    border-radius: 20px;
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 1px solid rgba(0, 212, 170, 0.2);
+}
+
+.energy-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.energy-header h2 {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--energy);
+}
+
+#energy-display {
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 700;
+    font-size: 20px;
+    color: var(--energy);
+}
+
+.energy-bar-container {
+    height: 12px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    margin-bottom: 15px;
+    overflow: hidden;
+}
+
+.energy-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--energy), #00FFD4);
+    border-radius: 6px;
+    width: 100%;
+    transition: width 0.3s ease;
+}
+
+.energy-stats {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    color: var(--gray);
+}
+
+.stat-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+/* Кликер секция */
+.clicker-section {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 20px;
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.click-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.stat-box {
+    background: rgba(255, 255, 255, 0.07);
+    padding: 15px;
+    border-radius: 15px;
+    text-align: center;
+    transition: transform 0.2s ease;
+}
+
+.stat-box:hover {
+    transform: translateY(-2px);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.stat-label {
+    font-size: 12px;
+    color: var(--gray);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+}
+
+.stat-value {
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 700;
+    font-size: 22px;
+    color: var(--light);
+}
+
+.click-area {
+    text-align: center;
+}
+
+.click-button {
+    width: 180px;
+    height: 180px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    border: none;
+    color: white;
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 700;
+    font-size: 18px;
+    cursor: pointer;
+    margin: 0 auto 15px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: all 0.2s ease;
+    box-shadow: 0 10px 30px rgba(123, 97, 255, 0.4);
+    position: relative;
+    overflow: hidden;
+}
+
+.click-button:active {
+    transform: scale(0.95);
+    box-shadow: 0 5px 20px rgba(123, 97, 255, 0.6);
+}
+
+.click-button::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.click-button:active::before {
+    opacity: 1;
+}
+
+.button-icon {
+    font-size: 40px;
+}
+
+.button-text {
+    font-size: 16px;
+    letter-spacing: 1px;
+}
+
+.button-subtext {
+    font-size: 12px;
+    opacity: 0.9;
+    font-weight: 400;
+}
+
+.auto-clicker {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 14px;
+    color: var(--gray);
+    margin-top: 15px;
+}
+
+/* Улучшения */
+.upgrades-section {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 20px;
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.section-header h2 {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--light);
+}
+
+.balance {
+    background: rgba(255, 183, 77, 0.1);
+    padding: 8px 15px;
+    border-radius: 15px;
+    font-weight: 600;
+    color: var(--token);
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.upgrades-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 15px;
+}
+
+.upgrade-card {
+    background: rgba(255, 255, 255, 0.07);
+    border-radius: 15px;
+    padding: 15px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    transition: all 0.3s ease;
+    border: 1px solid transparent;
+}
+
+.upgrade-card:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateY(-2px);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.upgrade-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    color: white;
+}
+
+.upgrade-icon.power { background: var(--upgrade-power); }
+.upgrade-icon.battery { background: var(--upgrade-battery); }
+.upgrade-icon.auto { background: var(--upgrade-auto); }
+.upgrade-icon.speed { background: var(--upgrade-speed); }
+
+.upgrade-info {
+    flex: 1;
+}
+
+.upgrade-info h3 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 5px;
+    color: var(--light);
+}
+
+.upgrade-info p {
+    font-size: 12px;
+    color: var(--gray);
+    margin-bottom: 8px;
+}
+
+.upgrade-level {
+    font-size: 11px;
+    color: var(--gray);
+}
+
+.upgrade-action {
+    text-align: right;
+}
+
+.upgrade-cost {
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--token);
+    margin-bottom: 8px;
+}
+
+.buy-button {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: 'Nunito', sans-serif;
+}
+
+.buy-button:hover {
+    background: var(--primary-dark);
+    transform: scale(1.05);
+}
+
+.buy-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Токены секция */
+.tokens-section {
+    background: rgba(255, 183, 77, 0.1);
+    border-radius: 20px;
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 1px solid rgba(255, 183, 77, 0.2);
+}
+
+.token-balance {
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 700;
+    font-size: 20px;
+    color: var(--token);
+}
+
+.progress-container {
+    margin: 20px 0;
+}
+
+.progress-info {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    font-size: 14px;
+}
+
+.progress-bar {
+    height: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 5px;
+    overflow: hidden;
+    margin-bottom: 10px;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--token), #FF9800);
+    border-radius: 5px;
+    width: 0%;
+    transition: width 0.5s ease;
+}
+
+.progress-required {
+    font-size: 12px;
+    color: var(--gray);
+    text-align: right;
+}
+
+.community-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.community-stat {
+    background: rgba(255, 255, 255, 0.07);
+    padding: 15px;
+    border-radius: 15px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.community-stat i {
+    font-size: 24px;
+    color: var(--primary);
+}
+
+.community-stat .stat-label {
+    font-size: 11px;
+    color: var(--gray);
+    margin-bottom: 5px;
+}
+
+.community-stat .stat-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--light);
+}
+
+/* Кошелек секция */
+.wallet-section {
+    text-align: center;
+}
+
+.wallet-button {
+    width: 100%;
+    padding: 18px;
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    border: none;
+    border-radius: 15px;
+    color: white;
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 600;
+    font-size: 16px;
+    cursor: pointer;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: all 0.3s ease;
+    box-shadow: 0 8px 25px rgba(123, 97, 255, 0.3);
+}
+
+.wallet-button:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 30px rgba(123, 97, 255, 0.4);
+}
+
+.action-buttons {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.action-button {
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    color: var(--light);
+    font-family: 'Nunito', sans-serif;
+    font-weight: 600;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+}
+
+.action-button:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateY(-2px);
+}
+
+.action-button i {
+    font-size: 18px;
+}
+
+.game-info {
+    background: rgba(0, 212, 170, 0.1);
+    padding: 15px;
+    border-radius: 15px;
+    font-size: 14px;
+    color: var(--energy);
+    border: 1px solid rgba(0, 212, 170, 0.2);
+}
+
+.game-info i {
+    margin-right: 8px;
+}
+
+/* Модальные окна */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    backdrop-filter: blur(5px);
+}
+
+.modal-content {
+    background: linear-gradient(135deg, var(--dark), #252547);
+    border-radius: 20px;
+    width: 100%;
+    max-width: 400px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+}
+
+.modal-header {
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.2);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.modal-header h3 {
+    font-size: 18px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    color: var(--gray);
+    font-size: 28px;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+}
+
+.modal-close:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--light);
+}
+
+.modal-body {
+    padding: 25px;
+}
+
+.wallet-options {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 20px 0;
+}
+
+.wallet-option {
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    color: var(--light);
+    font-family: 'Nunito', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.wallet-option:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateY(-2px);
+}
+
+.modal-info {
+    margin-top: 20px;
+    padding: 15px;
+    background: rgba(255, 107, 107, 0.1);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 107, 107, 0.2);
+    font-size: 13px;
+    color: var(--light);
+}
+
+.boost-cost {
+    text-align: center;
+    margin: 20px 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--token);
+}
+
+.boost-cost .cost {
+    font-size: 24px;
+    color: var(--token);
+}
+
+.confirm-button {
+    width: 100%;
+    padding: 15px;
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    border: none;
+    border-radius: 12px;
+    color: white;
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 600;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.confirm-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(123, 97, 255, 0.4);
+}
+
+/* Уведомления */
+#notification-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 300px;
+}
+
+.notification {
+    padding: 15px 20px;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    animation: slideIn 0.3s ease;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+}
+
+.notification.success {
+    background: rgba(76, 175, 80, 0.2);
+    border-color: rgba(76, 175, 80, 0.3);
+}
+
+.notification.error {
+    background: rgba(255, 107, 107, 0.2);
+    border-color: rgba(255, 107, 107, 0.3);
+}
+
+.notification.info {
+    background: rgba(33, 150, 243, 0.2);
+    border-color: rgba(33, 150, 243, 0.3);
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
     }
-    // Инициализация TON Connect
-    initTONConnect();
-    // Инициализация обработчиков кликов
-    initEventListeners();
-}
-
-// Обработчики событий
-function initEventListeners() {
-    const clickTarget = document.getElementById('clickTarget');
-    if (clickTarget) {
-        // Обработчик для мыши и касаний
-        clickTarget.addEventListener('click', handleClick);
-        clickTarget.addEventListener('touchstart', function(e) {
-            e.preventDefault(); // Предотвращаем вторичный клик на мобильных
-            handleClick(e);
-        }, { passive: false });
+    to {
+        transform: translateX(0);
+        opacity: 1;
     }
 }
 
-// Обработка клика (ОСНОВНАЯ ЛОГИКА)
-function handleClick(event) {
-    // Проверка энергии
-    if (gameData.energy <= 0) {
-        showNotification('⚡ Закончилась энергия!', 'warning');
-        return;
+@keyframes fadeOut {
+    from {
+        opacity: 1;
     }
-    
-    // Обновление данных игры
-    gameData.bones += gameData.clickPower;
-    gameData.totalClicks++;
-    gameData.energy--;
-    
-    // Начисление токенов (x2 если кошелёк подключен)
-    const tokenMultiplier = gameData.walletConnected ? 2 : 1;
-    gameData.zooTokens += 0.0001 * tokenMultiplier;
-    
-    // Визуальный эффект
-    createClickEffect(event);
-    
-    // Виброотклик в Telegram
-    tg.HapticFeedback.impactOccurred('medium');
-    
-    // Обновление интерфейса и сохранение
-    updateUI();
-    saveGame();
-}
-
-// Создание эффекта при клике
-function createClickEffect(event) {
-    const x = event.clientX || (event.touches && event.touches[0].clientX) || 100;
-    const y = event.clientY || (event.touches && event.touches[0].clientY) || 100;
-    
-    const effect = document.createElement('div');
-    effect.className = 'click-effect';
-    effect.textContent = `+${gameData.clickPower}`;
-    effect.style.cssText = `
-        position: fixed;
-        left: ${x - 15}px;
-        top: ${y - 30}px;
-        color: #FFD700;
-        font-weight: 900;
-        font-size: 22px;
-        pointer-events: none;
-        z-index: 10000;
-        text-shadow: 0 0 8px rgba(255,215,0,0.8);
-        animation: floatUp 0.8s ease-out forwards;
-    `;
-    
-    document.body.appendChild(effect);
-    setTimeout(() => effect.remove(), 800);
-}
-
-// Обновление всего интерфейса
-function updateUI() {
-    // Балансы
-    document.getElementById('balanceCount').textContent = Math.floor(gameData.bones).toLocaleString();
-    document.getElementById('zooTokenCount').textContent = gameData.zooTokens.toFixed(4);
-    document.getElementById('zooBalanceAirdrop').textContent = gameData.zooTokens.toFixed(4);
-    
-    // Энергия
-    const energyPercent = (gameData.energy / gameData.maxEnergy) * 100;
-    document.getElementById('energyText').textContent = `${gameData.energy}/${gameData.maxEnergy}`;
-    document.getElementById('energyFill').style.width = `${energyPercent}%`;
-    
-    // Статистика
-    document.getElementById('clickPowerStat').textContent = gameData.clickPower;
-    document.getElementById('totalClicksStat').textContent = gameData.totalClicks;
-    
-    // Прогресс аирдропа
-    const airdropProgress = Math.min((gameData.zooTokens / 10) * 100, 100);
-    document.getElementById('airdropProgress').style.width = `${airdropProgress}%`;
-    document.getElementById('progressPercent').textContent = `${airdropProgress.toFixed(1)}%`;
-    
-    // Улучшения
-    document.getElementById('clickPowerLvl').textContent = gameData.upgrades.clickPower.level;
-    document.getElementById('energyMaxLvl').textContent = gameData.upgrades.energyMax.level;
-}
-
-// Переключение вкладок
-function switchTab(tabName) {
-    // Скрыть все табы, убрать активность с кнопок
-    document.querySelectorAll('.tab-pane').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-    
-    // Показать выбранный таб, подсветить кнопку
-    const tabElement = document.getElementById(`tab${tabName.charAt(0).toUpperCase() + tabName.slice(1)}`);
-    const btnElement = document.querySelector(`.nav-btn[data-tab="${tabName}"]`);
-    
-    if (tabElement) tabElement.classList.add('active');
-    if (btnElement) btnElement.classList.add('active');
-    
-    tg.HapticFeedback.selectionChanged(); // Тактильный отклик
-}
-
-// Покупка улучшений
-function buyUpgrade(type) {
-    const upgrade = gameData.upgrades[type];
-    if (!upgrade || gameData.bones < upgrade.cost) {
-        showNotification('❌ Недостаточно костей!', 'error');
-        tg.HapticFeedback.impactOccurred('heavy');
-        return;
-    }
-    
-    gameData.bones -= upgrade.cost;
-    
-    if (type === 'clickPower') {
-        gameData.clickPower += 1;
-        upgrade.level++;
-        upgrade.cost = Math.floor(upgrade.cost * 1.5);
-        showNotification('✅ Сила клика увеличена!', 'success');
-    } else if (type === 'energyMax') {
-        gameData.maxEnergy += 100;
-        upgrade.level++;
-        upgrade.cost = Math.floor(upgrade.cost * 1.8);
-        showNotification('✅ Ёмкость энергии увеличена!', 'success');
-    }
-    
-    tg.HapticFeedback.notificationOccurred('success');
-    updateUI();
-    saveGame();
-}
-
-// Фоновые игровые процессы
-function startGameIntervals() {
-    // Восстановление энергии каждые 1.5 секунды
-    setInterval(() => {
-        if (gameData.energy < gameData.maxEnergy) {
-            gameData.energy++;
-            updateUI();
-        }
-    }, 1500);
-    
-    // Пассивный доход токенами (каждые 30 секунд)
-    setInterval(() => {
-        const multiplier = gameData.walletConnected ? 2 : 1;
-        gameData.zooTokens += 0.00005 * multiplier;
-        updateUI();
-        saveGame(); // Автосохранение
-    }, 30000);
-}
-
-// Сохранение игры
-function saveGame() {
-    try {
-        localStorage.setItem('zoo_save_v1', JSON.stringify(gameData));
-    } catch (e) {
-        console.log('Ошибка сохранения:', e);
+    to {
+        opacity: 0;
     }
 }
 
-// Функция для показа уведомлений
-function showNotification(text, type = 'info') {
-    const notification = document.getElementById('globalNotification');
-    if (!notification) return;
+/* Адаптивность */
+@media (max-width: 480px) {
+    .container {
+        padding: 10px;
+    }
     
-    notification.textContent = text;
-    notification.className = `notification show ${type}`;
+    .game-header {
+        padding: 12px;
+    }
     
-    setTimeout(() => {
-        notification.classList.remove('show');
-    }, 3000);
+    .title-section h1 {
+        font-size: 20px;
+    }
+    
+    .click-button {
+        width: 160px;
+        height: 160px;
+    }
+    
+    .stat-value {
+        font-size: 18px;
+    }
+    
+    .upgrade-card {
+        flex-direction: column;
+        text-align: center;
+        padding: 12px;
+    }
+    
+    .upgrade-info {
+        margin: 10px 0;
+    }
+    
+    .action-buttons {
+        grid-template-columns: 1fr;
+    }
 }
 
-// Заглушка для инициализации TON Connect (детали в ton-connect.js)
-function initTONConnect() {
-    console.log('TON Connect инициализируется...');
-    // Реальная реализация будет в файле ton-connect.js
+/* Анимации */
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
 }
 
-// Делаем функции глобальными, чтобы они работали в HTML
-window.switchTab = switchTab;
-window.buyUpgrade = buyUpgrade;
-window.showNotification = showNotification;
+.pulse {
+    animation: pulse 0.5s ease;
+}
+
+@keyframes clickEffect {
+    0% { transform: scale(0.8); opacity: 1; }
+    100% { transform: scale(1.5); opacity: 0; }
+}
+
+.click-effect {
+    position: absolute;
+    pointer-events: none;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    animation: clickEffect 0.5s ease-out;
+}

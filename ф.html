@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Dachshund Detective</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root { --primary: #5d4037; --accent: #ff9800; --bg: #f8f9fa; }
+        body { margin: 0; background: var(--bg); font-family: 'Segoe UI', sans-serif; color: var(--primary); display: flex; flex-direction: column; align-items: center; height: 100vh; user-select: none; }
+        
+        #header { width: 100%; padding: 20px; text-align: center; background: white; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        #balance { font-size: 42px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        #payout-rate { font-size: 14px; color: #888; }
+
+        #game-container { flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; position: relative; }
+        
+        .main-hero { width: 260px; height: 260px; border-radius: 50%; background: white; border: 8px solid white; box-shadow: 0 15px 35px rgba(0,0,0,0.1); cursor: pointer; transition: transform 0.05s; z-index: 2; position: relative; overflow: hidden; }
+        .main-hero:active { transform: scale(0.92); }
+        .main-hero img { width: 100%; height: 100%; object-fit: cover; }
+
+        #energy-container { width: 80%; margin-top: 30px; }
+        #energy-bar { width: 100%; height: 12px; background: #ddd; border-radius: 6px; overflow: hidden; }
+        #energy-fill { width: 100%; height: 100%; background: linear-gradient(90deg, #ff9800, #ffeb3b); transition: width 0.3s; }
+        #energy-text { text-align: center; margin-top: 5px; font-weight: bold; font-size: 14px; }
+
+        #nav-menu { width: 100%; display: flex; background: white; padding: 15px 0; border-top: 1px solid #eee; }
+        .nav-item { flex: 1; text-align: center; font-size: 12px; font-weight: bold; opacity: 0.6; cursor: pointer; }
+        .nav-item.active { opacity: 1; color: var(--accent); }
+
+        .floating-text { position: absolute; font-size: 28px; font-weight: 900; color: var(--accent); pointer-events: none; animation: floatUp 0.7s ease-out forwards; z-index: 10; }
+        @keyframes floatUp { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-120px); } }
+    </style>
+</head>
+<body>
+
+    <div id="header">
+        <div id="balance">🦴 <span id="coins">0</span></div>
+        <div id="payout-rate">Прибыль в час: +<span id="pps">0</span></div>
+    </div>
+
+    <div id="game-container">
+        <div class="main-hero" onclick="handleTap(event)">
+            <img src="https://i.ibb.co/XfXfXfX/dachshund.png" alt="Hero">
+        </div>
+
+        <div id="energy-container">
+            <div id="energy-bar"><div id="energy-fill"></div></div>
+            <div id="energy-text">⚡ <span id="cur-energy">1000</span> / 1000</div>
+        </div>
+    </div>
+
+    <div id="nav-menu">
+        <div class="nav-item active">🏠 Игра</div>
+        <div class="nav-item">🛠 Магазин</div>
+        <div class="nav-item">👥 Друзья</div>
+        <div class="nav-item">💰 Кошелек</div>
+    </div>
+
+    <script>
+        let balance = 0;
+        let pps = 0; // Profit Per Second
+        let energy = 1000;
+        const maxEnergy = 1000;
+
+        function handleTap(e) {
+            if (energy <= 0) return;
+
+            balance += 1;
+            energy -= 1;
+            updateUI();
+            
+            // Анимация текста
+            const text = document.createElement('div');
+            text.className = 'floating-text';
+            text.innerText = '+1';
+            text.style.left = e.clientX + 'px';
+            text.style.top = e.clientY + 'px';
+            document.body.appendChild(text);
+            setTimeout(() => text.remove(), 700);
+        }
+
+        function updateUI() {
+            document.getElementById('coins').innerText = Math.floor(balance);
+            document.getElementById('pps').innerText = (pps * 3600).toLocaleString();
+            document.getElementById('cur-energy').innerText = energy;
+            document.getElementById('energy-fill').style.width = (energy / maxEnergy * 100) + '%';
+        }
+
+        // Цикл пассивного дохода и восстановления энергии
+        setInterval(() => {
+            balance += pps;
+            if (energy < maxEnergy) energy += 1;
+            updateUI();
+        }, 1000);
+    </script>
+</body>
+</html>

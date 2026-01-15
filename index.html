@@ -3,127 +3,125 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Zootopia Ultimate</title>
+    <title>Zootopia World</title>
     
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Poppins:wght@400;600&display=swap');
-        :root { --gold: #FFD700; --accent: #00FFFF; --bg: #0A0A12; --card: #1C1C2E; }
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&family=Orbitron:wght@700&display=swap');
         
-        body { font-family: 'Poppins', sans-serif; background: var(--bg); color: white; margin: 0; overflow: hidden; touch-action: none; user-select: none; }
+        :root { 
+            --gold: #FFD700; 
+            --accent: #FF8D29; /* Теплый оранжевый вместо холодного голубого */
+            --bg: #6A5AE0; /* Мультяшный фиолетовый */
+            --card: rgba(255, 255, 255, 0.15); 
+        }
         
-        /* HEADER */
-        .header { text-align: center; padding: 10px; background: rgba(0,0,0,0.9); border-bottom: 1px solid #333; position: sticky; top: 0; z-index: 1000; }
-        .league-info { font-size: 11px; color: var(--accent); font-weight: bold; text-transform: uppercase; margin-bottom: 5px; }
-        .league-bar { width: 60%; height: 4px; background: #222; margin: 0 auto 10px; border-radius: 2px; overflow: hidden; }
-        #league-progress { height: 100%; background: var(--gold); width: 0%; transition: 0.5s; }
-        .balance { font-family: 'Orbitron'; font-size: 26px; color: var(--gold); }
-        .zoo-balance { color: var(--accent); font-size: 12px; font-family: 'Orbitron'; }
-
-        /* TABS */
-        .tab-content { display: none; height: calc(100vh - 170px); overflow-y: auto; padding: 20px; padding-bottom: 100px; }
-        .tab-content.active { display: block; }
-
-        /* GAME TAB */
-        .click-area { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 60vh; position: relative; }
-        .pet-image { width: 250px; filter: drop-shadow(0 0 20px rgba(0,255,255,0.2)); transition: 0.05s; }
-        .energy-container { position: absolute; bottom: 10px; width: 80%; text-align: center; }
-        .energy-bar { width: 100%; height: 10px; background: #111; border-radius: 10px; overflow: hidden; border: 1px solid #333; }
-        #energy-fill { height: 100%; background: var(--accent); width: 100%; transition: 0.2s; }
-
-        /* CARDS & UI */
-        .card { background: var(--card); border-radius: 15px; padding: 15px; margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center; }
-        .btn-action { background: var(--accent); color: black; border: none; padding: 10px 15px; border-radius: 10px; font-weight: bold; cursor: pointer; }
+        body { 
+            font-family: 'Fredoka', sans-serif; 
+            background: radial-gradient(circle, #8E7CFF 0%, #6A5AE0 100%); 
+            color: white; margin: 0; overflow: hidden; touch-action: none; 
+        }
         
-        /* NFT & BOXES */
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .nft-card { background: var(--card); border-radius: 12px; overflow: hidden; border: 1px solid rgba(0,255,255,0.1); text-align: center; padding-bottom: 10px; }
-        .nft-img-sm { width: 100%; height: 100px; object-fit: cover; }
+        /* Кнопка TON */
+        #ton-connect-btn { position: absolute; top: 15px; right: 15px; transform: scale(0.8); z-index: 2000; }
 
-        /* UNBOXING OVERLAY */
-        #unboxing { position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 5000; display: none; flex-direction: column; align-items: center; justify-content: center; }
-        .box-anim { font-size: 80px; animation: shake 0.5s infinite; }
-        @keyframes shake { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(5deg); } 75% { transform: rotate(-5deg); } }
-        .reward-pop { transform: scale(0); transition: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); text-align: center; }
-        .reward-pop.show { transform: scale(1); }
+        .header { text-align: center; padding: 20px 10px 10px; background: rgba(0,0,0,0.2); border-radius: 0 0 30px 30px; }
+        .balance { font-family: 'Orbitron'; font-size: 30px; color: white; text-shadow: 2px 2px 0px rgba(0,0,0,0.2); }
+        .zoo-balance { background: rgba(255,215,0,0.2); display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 14px; font-weight: bold; color: var(--gold); }
 
-        /* NAVIGATION */
-        .nav { position: fixed; bottom: 0; width: 100%; display: flex; background: #000; padding: 12px 0; border-top: 1px solid #222; z-index: 1000; }
-        .nav-item { flex: 1; text-align: center; color: #555; font-size: 10px; }
-        .nav-item.active { color: var(--accent); }
-        .nav-item i { font-size: 20px; display: block; margin-bottom: 4px; }
+        .tab-content { display: none; height: calc(100vh - 180px); overflow-y: auto; padding: 20px; padding-bottom: 120px; }
+        .tab-content.active { display: block; animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        #loading { position: fixed; inset: 0; background: var(--bg); z-index: 9999; display: flex; align-items: center; justify-content: center; color: var(--gold); }
+        /* Главная такса */
+        .click-area { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 50vh; }
+        .pet-wrapper { position: relative; }
+        .pet-image { width: 240px; filter: drop-shadow(0 10px 0px rgba(0,0,0,0.1)); transition: 0.1s; }
+        .pet-image:active { transform: scale(0.9) rotate(2deg); }
+
+        /* Энергия */
+        .energy-box { width: 80%; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 20px; margin-top: 20px; }
+        .energy-bar-bg { width: 100%; height: 12px; background: rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden; }
+        #energy-fill { height: 100%; background: linear-gradient(90deg, #FFEF5E, #FF8D29); width: 100%; }
+
+        /* Карточки */
+        .card { background: var(--card); border-radius: 20px; padding: 15px; margin-bottom: 15px; backdrop-filter: blur(10px); display: flex; justify-content: space-between; align-items: center; border: 2px solid rgba(255,255,255,0.1); }
+        .btn-action { background: #FFEF5E; color: #6A5AE0; border: none; padding: 10px 20px; border-radius: 15px; font-weight: bold; font-family: 'Fredoka'; cursor: pointer; box-shadow: 0 4px 0 #D4AF37; }
+        .btn-action:active { transform: translateY(2px); box-shadow: 0 2px 0 #D4AF37; }
+
+        /* Навигация */
+        .nav { position: fixed; bottom: 20px; left: 5%; width: 90%; display: flex; background: rgba(255,255,255,0.2); backdrop-filter: blur(15px); padding: 10px 0; border-radius: 25px; border: 1px solid rgba(255,255,255,0.3); }
+        .nav-item { flex: 1; text-align: center; color: rgba(255,255,255,0.6); font-size: 10px; }
+        .nav-item.active { color: white; }
+        .nav-item i { font-size: 22px; display: block; margin-bottom: 2px; }
+
+        #loading { position: fixed; inset: 0; background: var(--bg); z-index: 9999; display: flex; align-items: center; justify-content: center; flex-direction: column; }
     </style>
 </head>
 <body>
 
-<div id="loading"><h2>ZOOTOPIA...</h2></div>
-
-<div id="unboxing">
-    <div id="box-icon" class="box-anim">🎁</div>
-    <div id="reward-info" class="reward-pop">
-        <img id="rew-img" src="" style="width:150px; border-radius:20px; border:3px solid var(--accent);">
-        <h2 id="rew-name" style="margin:10px 0;"></h2>
-        <p id="rew-bonus" style="color:var(--accent);"></p>
-        <button class="btn-action" onclick="closeUnboxing()">ЗАБРАТЬ</button>
-    </div>
+<div id="loading">
+    <i class="fas fa-paw fa-spin fa-3x" style="margin-bottom: 20px;"></i>
+    <h2 style="font-family: 'Fredoka'">ZOOTOPIA WORLD</h2>
 </div>
 
+<div id="ton-connect-btn"></div>
+
 <div class="header">
-    <div class="league-info" id="league-name">Бронзовая Лига</div>
-    <div class="league-bar"><div id="league-progress"></div></div>
+    <div class="zoo-balance" id="league-name">Бронзовая лига</div>
     <div class="balance" id="bones">0</div>
-    <div class="zoo-balance">$ZOO: <span id="zoo-val">0.0000</span></div>
+    <div style="font-size: 12px; margin-top:5px;">💰 $ZOO: <span id="zoo-val" style="color:#FFEF5E">0.0000</span></div>
 </div>
 
 <div id="tab-game" class="tab-content active">
     <div class="click-area">
-        <img src="dachshund.png" class="pet-image" id="pet">
-        <div style="margin-top:15px; font-weight:bold; color:var(--accent)">Клик: +<span id="tap-val">1</span> | 🦴/час: <span id="pnl-val">0</span></div>
-        <div class="energy-container">
-            <div style="font-size:12px; margin-bottom:5px;">⚡ <span id="en-cur">1000</span>/1000</div>
-            <div class="energy-bar"><div id="energy-fill"></div></div>
+        <div class="pet-wrapper">
+            <img src="dachshund.png" class="pet-image" id="pet">
+        </div>
+        <div class="energy-box">
+            <div style="font-size: 14px; margin-bottom: 8px; font-weight: 600;">⚡ <span id="en-cur">1000</span> / 1000</div>
+            <div class="energy-bar-bg"><div id="energy-fill"></div></div>
         </div>
     </div>
 </div>
 
-<div id="tab-boost" class="tab-content">
-    <h3 style="color:var(--gold)">УЛУЧШЕНИЯ</h3>
+<div id="tab-shop" class="tab-content">
+    <h2 style="text-align: center;">Магазин Бустов</h2>
     <div class="card">
-        <div><b>Сила тапа</b><br><small id="tap-cost">1000 🦴</small></div>
-        <button class="btn-action" onclick="buyUpgrade('tap')">LVL <span id="tap-lvl">1</span></button>
+        <div><b>Супер-Тап</b><br><small id="tap-cost-txt">500 🦴</small></div>
+        <button class="btn-action" onclick="buyUpgrade('tap')">УР. <span id="tap-lvl">1</span></button>
     </div>
     <div class="card">
-        <div><b>Авто-кормушка</b><br><small id="pnl-cost">2000 🦴</small></div>
-        <button class="btn-action" onclick="buyUpgrade('pnl')">+50/час</button>
+        <div><b>Кейс с NFT</b><br><small>10.0 $ZOO</small></div>
+        <button class="btn-action" onclick="openBox()" style="background: var(--gold)">ОТКРЫТЬ</button>
     </div>
 </div>
 
-<div id="tab-market" class="tab-content">
-    <h3 style="color:var(--gold)">КЕЙСЫ (Lootbox)</h3>
-    <div class="card" style="background: linear-gradient(to right, #1c1c2e, #2a2a4d);">
-        <div><b>Обычный бокс</b><br><small>Цена: 10 $ZOO</small></div>
-        <button class="btn-action" onclick="openBox()">ОТКРЫТЬ</button>
-    </div>
-
-    <h3 style="color:var(--accent); margin-top:20px;">ТВОИ NFT</h3>
-    <div id="nft-inventory" class="grid">
-        </div>
+<div id="tab-top" class="tab-content">
+    <h2 style="text-align: center;">Топ Собаководов</h2>
+    <div id="top-list"></div>
 </div>
 
 <nav class="nav">
-    <div class="nav-item active" onclick="switchTab('tab-game', this)"><i class="fas fa-paw"></i>Игра</div>
-    <div class="nav-item" onclick="switchTab('tab-boost', this)"><i class="fas fa-rocket"></i>Бусты</div>
-    <div class="nav-item" onclick="switchTab('tab-market', this)"><i class="fas fa-box-open"></i>Маркет</div>
+    <div class="nav-item active" onclick="switchTab('tab-game', this)"><i class="fas fa-gamepad"></i>Игра</div>
+    <div class="nav-item" onclick="switchTab('tab-shop', this)"><i class="fas fa-store"></i>Бусты</div>
+    <div class="nav-item" onclick="switchTab('tab-top', this)"><i class="fas fa-trophy"></i>Лидеры</div>
 </nav>
 
 <script>
+    // --- ИНИЦИАЛИЗАЦИЯ TON CONNECT ---
+    const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+        manifestUrl: 'https://raw.githubusercontent.com/ton-connect/demo-dapp-with-react-ui/master/public/tonconnect-manifest.json',
+        buttonRootId: 'ton-connect-btn'
+    });
+
+    // --- FIREBASE (старый конфиг остается) ---
     const firebaseConfig = {
         apiKey: "AIzaSyAT4Qt--BNvqA953AQNUbbpiDHbSvO3BfE",
         authDomain: "zootopia-f046d.firebaseapp.com",
@@ -136,127 +134,73 @@
     const db = firebase.firestore();
     const tg = window.Telegram.WebApp;
 
-    const items = [
-        { id: 'c1', name: 'Cyber Collar', bonus: 10, img: 'https://cdn-icons-png.flaticon.com/512/6065/6065011.png' },
-        { id: 'c2', name: 'Neon Glasses', bonus: 25, img: 'https://cdn-icons-png.flaticon.com/512/3233/3233379.png' },
-        { id: 'c3', name: 'Golden Bone', bonus: 100, img: 'https://cdn-icons-png.flaticon.com/512/2916/2916133.png' }
-    ];
-
-    const leagues = [
-        { name: "Бронза", max: 10000 }, { name: "Серебро", max: 100000 }, { name: "Золото", max: 1000000 }
-    ];
-
-    let state = { bones: 0, zoo: 0, energy: 1000, tapLvl: 1, pnl: 0, nfts: [], lastSave: Date.now() };
+    let state = { bones: 0, zoo: 0, energy: 1000, tapLvl: 1, pnl: 0, nfts: [], name: tg.initDataUnsafe?.user?.first_name || "Игрок" };
+    const uid = tg.initDataUnsafe?.user?.id?.toString() || "dev";
 
     async function init() {
-        const uid = tg.initDataUnsafe?.user?.id?.toString() || "dev";
         const doc = await db.collection("users").doc(uid).get();
         if (doc.exists) state = { ...state, ...doc.data() };
-        
-        // Оффлайн доход
-        const passed = (Date.now() - state.lastSave) / 3600000;
-        if (state.pnl > 0) state.bones += (state.pnl * passed);
-
         updateUI();
-        renderInventory();
         document.getElementById('loading').style.display = 'none';
     }
 
     function updateUI() {
-        const nftBonus = state.nfts.reduce((sum, id) => sum + (items.find(i => i.id === id)?.bonus || 0), 0);
-        const totalTap = state.tapLvl + nftBonus;
-
         document.getElementById('bones').innerText = Math.floor(state.bones).toLocaleString();
         document.getElementById('zoo-val').innerText = state.zoo.toFixed(4);
         document.getElementById('en-cur').innerText = Math.floor(state.energy);
         document.getElementById('energy-fill').style.width = (state.energy/10) + "%";
-        document.getElementById('tap-val').innerText = totalTap;
         document.getElementById('tap-lvl').innerText = state.tapLvl;
-        document.getElementById('pnl-val').innerText = state.pnl;
-
-        // Лиги
-        let l = leagues.find(l => state.bones < l.max) || leagues[leagues.length-1];
-        document.getElementById('league-name').innerText = l.name;
-        document.getElementById('league-progress').style.width = (state.bones / l.max * 100) + "%";
+        document.getElementById('tap-cost-txt').innerText = `${state.tapLvl * 500} 🦴`;
     }
 
     function handleTap() {
-        const nftBonus = state.nfts.reduce((sum, id) => sum + (items.find(i => i.id === id)?.bonus || 0), 0);
-        const power = state.tapLvl + nftBonus;
         if (state.energy >= 1) {
-            state.bones += power;
-            state.zoo += (power * 0.0001);
+            state.bones += state.tapLvl;
+            state.zoo += (state.tapLvl * 0.0001);
             state.energy -= 1;
             updateUI();
-            tg.HapticFeedback.impactOccurred('light');
+            tg.HapticFeedback.impactOccurred('medium');
         }
     }
 
     function buyUpgrade(type) {
-        if (type === 'tap') {
-            let cost = state.tapLvl * 500;
-            if (state.bones >= cost) { state.bones -= cost; state.tapLvl++; }
-        } else {
-            let cost = (state.pnl + 50) * 40;
-            if (state.bones >= cost) { state.bones -= cost; state.pnl += 50; }
-        }
-        updateUI();
-        saveToDb();
-    }
-
-    function openBox() {
-        if (state.zoo < 10) return tg.showAlert("Нужно 10 $ZOO!");
-        state.zoo -= 10;
-        
-        const over = document.getElementById('unboxing');
-        const box = document.getElementById('box-icon');
-        const rew = document.getElementById('reward-info');
-        
-        over.style.display = 'flex';
-        box.style.display = 'block';
-        rew.classList.remove('show');
-
-        setTimeout(() => {
-            box.style.display = 'none';
-            const item = items[Math.floor(Math.random()*items.length)];
-            state.nfts.push(item.id);
-            document.getElementById('rew-img').src = item.img;
-            document.getElementById('rew-name').innerText = item.name;
-            document.getElementById('rew-bonus').innerText = `+${item.bonus} к силе клика`;
-            rew.classList.add('show');
-            renderInventory();
+        let cost = state.tapLvl * 500;
+        if (state.bones >= cost) {
+            state.bones -= cost;
+            state.tapLvl++;
+            updateUI();
             saveToDb();
-        }, 2000);
+        }
     }
-
-    function renderInventory() {
-        const inv = document.getElementById('nft-inventory');
-        inv.innerHTML = '';
-        state.nfts.forEach(id => {
-            const item = items.find(i => i.id === id);
-            inv.innerHTML += `<div class="nft-card"><img src="${item.img}" class="nft-img-sm"><br><small>${item.name}</small></div>`;
-        });
-    }
-
-    function closeUnboxing() { document.getElementById('unboxing').style.display = 'none'; updateUI(); }
 
     function switchTab(id, el) {
         document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
         document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
         document.getElementById(id).classList.add('active');
         el.classList.add('active');
+        if(id === 'tab-top') loadTop();
+    }
+
+    async function loadTop() {
+        const list = document.getElementById('top-list');
+        list.innerHTML = 'Загрузка...';
+        const snap = await db.collection("users").orderBy("bones", "desc").limit(10).get();
+        let h = '';
+        snap.forEach((d, i) => {
+            const u = d.data();
+            h += `<div class="card"><span>#${i+1} ${u.name}</span><b>${Math.floor(u.bones)}</b></div>`;
+        });
+        list.innerHTML = h;
     }
 
     async function saveToDb() {
-        state.lastSave = Date.now();
-        const uid = tg.initDataUnsafe?.user?.id?.toString() || "dev";
         try { await db.collection("users").doc(uid).set(state); } catch(e){}
     }
 
     document.getElementById('pet').addEventListener('touchstart', (e) => { e.preventDefault(); handleTap(); });
-    setInterval(() => { if(state.energy < 1000) { state.energy = Math.min(1000, state.energy + 2); updateUI(); } }, 1000);
-    setInterval(() => { if(state.pnl > 0) { state.bones += (state.pnl/3600); updateUI(); } }, 1000);
+    setInterval(() => { if(state.energy < 1000) { state.energy = Math.min(1000, state.energy + 3); updateUI(); } }, 1000);
     setInterval(saveToDb, 15000);
+
     init();
 </script>
 </body>

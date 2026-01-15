@@ -3,208 +3,1005 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Zootopia Cliker</title>
+    <title>Zootopia: Final Edition</title>
     
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐶</text></svg>">
+    
+    <!-- Telegram WebApp SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    
+    <!-- TON Connect UI -->
     <script src="https://unpkg.com/@tonconnect/ui@2.0.3/dist/tonconnect-ui.min.js"></script>
+    
+    <!-- Font Awesome -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
     
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&family=Orbitron:wght@700&display=swap');
-        
-        :root { --blue: #1A5CC7; --gold: #FFD700; --accent: #FF8D29; }
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
-
-        body { 
-            font-family: 'Fredoka', sans-serif; 
-            background: linear-gradient(180deg, #2A75FF 0%, #1A5CC7 100%);
-            color: white; margin: 0; height: 100vh; overflow: hidden;
-            display: flex; flex-direction: column;
-        }
-
-        /* ВЕРХНЯЯ ПАНЕЛЬ (как на скриншоте) */
-        .header { text-align: center; padding-top: calc(env(safe-area-inset-top) + 10px); z-index: 100; }
-        .score { font-family: 'Orbitron'; font-size: 48px; font-weight: 700; }
-        .zoo-val { font-family: 'Orbitron'; font-size: 16px; color: var(--gold); margin-bottom: 10px; }
-        
-        /* ОБЛАЧКА (BUBBLES) */
-        .bubble {
-            position: absolute; background: white; border-radius: 20px;
-            padding: 8px 12px; color: #E57373; font-weight: 600; font-size: 13px;
-            text-align: center; box-shadow: 0 4px 0 rgba(0,0,0,0.1);
-            cursor: pointer; z-index: 50; min-width: 85px;
-            border: 2px solid #eee;
-        }
-        .bubble::after { /* Хвостик облачка */
-            content: ''; position: absolute; width: 10px; height: 10px;
-            background: white; transform: rotate(45deg);
-        }
-        .b-left::after { left: -5px; top: 50%; margin-top: -5px; }
-        .b-right::after { right: -5px; top: 50%; margin-top: -5px; }
-
-        /* Позиции из скриншота */
-        .pos-1 { top: 20%; left: 5%; }  /* ТОП */
-        .pos-2 { top: 38%; left: 5%; }  /* Новости */
-        .pos-3 { top: 56%; left: 5%; }  /* 3 в ряд */
-        .pos-4 { top: 20%; right: 5%; } /* NFT */
-        .pos-5 { top: 38%; right: 5%; } /* Кошелек */
-        .pos-6 { top: 56%; right: 5%; } /* Магазин */
-
-        /* ЦЕНТРАЛЬНАЯ ТАКСА */
-        .main-view { flex-grow: 1; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .evo-tag { background: rgba(255,255,255,0.2); padding: 5px 15px; border-radius: 15px; font-size: 14px; margin-bottom: 20px; }
-        
-        .character-box { position: relative; width: 60vw; max-width: 250px; }
-        .main-pet { width: 100%; filter: drop-shadow(0 10px 20px rgba(0,0,0,0.3)); }
-        .nft-overlay { position: absolute; inset: 0; pointer-events: none; display: none; z-index: 10; }
-        .nft-overlay.active { display: block; }
-
-        /* ЭНЕРГИЯ */
-        .energy-box { width: 85%; background: rgba(0,0,0,0.3); border-radius: 20px; padding: 15px; margin-bottom: 20px; }
-        .energy-bar { height: 12px; background: rgba(255,255,255,0.1); border-radius: 6px; overflow: hidden; margin-top: 8px; }
-        .energy-fill { height: 100%; background: #FFD700; width: 100%; transition: 0.3s; }
-
-        /* НИЖНЯЯ НАВИГАЦИЯ */
-        .nav-bar { height: 70px; display: flex; background: rgba(0,0,0,0.2); border-top: 1px solid rgba(255,255,255,0.1); }
-        .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 12px; color: #88aaff; }
-        .nav-item.active { color: white; }
-        .nav-item i { font-size: 20px; margin-bottom: 4px; }
-
-        /* МОДАЛКИ (ДЛЯ НОВОСТЕЙ И ИГРЫ) */
-        .modal { 
-            position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 1000; 
-            display: none; flex-direction: column; padding: 30px 20px; 
-        }
-        .modal.active { display: flex; }
-        .close-modal { align-self: flex-end; font-size: 30px; margin-bottom: 20px; }
+        /* ВАШ СТИЛЬ (остается без изменений) */
+        /* ... весь CSS из предыдущего ответа ... */
     </style>
 </head>
 <body>
 
-<header class="header">
-    <div class="score" id="bones">357</div>
-    <div class="zoo-val">$ZOO: <span id="zoo">0.0788</span></div>
-</header>
+<!-- Загрузчик -->
+<div class="loader" id="loader">
+    <div class="loader-spinner"></div>
+    <div>Загрузка Zootopia...</div>
+</div>
 
-<main class="main-view">
-    <div class="bubble b-right pos-1" onclick="showTab('tab-top')">топ<br>участников</div>
-    <div class="bubble b-right pos-2" onclick="openModal('news-modal')">новости</div>
-    <div class="bubble b-right pos-3" onclick="openModal('game-modal')">3 в ряд</div>
+<!-- Уведомления -->
+<div class="notification" id="notification"></div>
 
-    <div class="bubble b-left pos-4" onclick="openModal('nft-modal')">NFT</div>
-    <div class="bubble b-left pos-5" id="ton-btn">мой<br>кошелек</div>
-    <div class="bubble b-left pos-6" onclick="showTab('tab-shop')">магазин</div>
-
-    <div class="evo-tag">МАЛЫШ ТАКСА 🐾</div>
-
-    <div class="character-box" onclick="handleTap(event)">
-        <img src="nft_glasses.png" id="nft-glasses" class="nft-overlay">
-        <img src="nft_hat.png" id="nft-hat" class="nft-overlay">
-        <img src="dachshund.png" class="main-pet" id="pet">
-    </div>
-
-    <div class="energy-box">
-        <div style="display:flex; justify-content:space-between; font-size:12px;">
-            <span>⚡ ЭНЕРГИЯ</span>
-            <span id="en-text">999</span>
-        </div>
-        <div class="energy-bar"><div class="energy-fill" id="en-fill"></div></div>
-    </div>
-</main>
-
-<div id="news-modal" class="modal">
-    <div class="close-modal" onclick="closeModal('news-modal')">&times;</div>
-    <h2>НОВОСТИ 🐾</h2>
-    <div style="background:rgba(255,255,255,0.1); padding:15px; border-radius:15px;">
-        <p><b>Дизайн обновлен!</b> Мы вернули любимые облачка и добавили мини-игру.</p>
-        <hr opacity="0.1">
-        <p><b>Листинг скоро:</b> Копите $ZOO для будущего обмена.</p>
+<!-- Модальное окно достижений -->
+<div class="modal" id="achievement-modal">
+    <div class="modal-content">
+        <h2>🎉 Новое достижение!</h2>
+        <p id="achievement-text"></p>
+        <button class="btn-action" onclick="hideModal('achievement-modal')" style="width: 100%; margin-top: 20px;">
+            Отлично!
+        </button>
     </div>
 </div>
 
-<div id="game-modal" class="modal">
-    <div class="close-modal" onclick="closeModal('game-modal')">&times;</div>
-    <h2>Zootopia Match</h2>
-    <div id="grid" style="display:grid; grid-template-columns:repeat(5,1fr); gap:5px;"></div>
-    <p style="text-align:center; margin-top:20px;">Награда: <span id="game-reward" style="color:var(--gold)">0</span> $ZOO</p>
-</div>
-
-<nav class="nav-bar">
-    <div class="nav-item active"><i class="fas fa-bone"></i>ГЛАВНАЯ</div>
-    <div class="nav-item" onclick="openModal('shop-modal')"><i class="fas fa-rocket"></i>ПРОКАЧКА</div>
-</nav>
+<!-- ВАШ HTML (остается без изменений) -->
+<!-- ... весь HTML из предыдущего ответа ... -->
 
 <script>
-    let state = { bones: 357, zoo: 0.0788, energy: 999, tapLvl: 1 };
-    const tg = window.Telegram.WebApp;
-
-    // Инициализация TON Connect
-    const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-        manifestUrl: 'https://raw.githubusercontent.com/ton-connect/demo-dapp-with-react-ui/master/public/tonconnect-manifest.json',
-        buttonRootId: 'ton-btn' 
+    // ==================== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ====================
+    let tg = null;
+    let tonConnectUI = null;
+    let lastTapTime = 0;
+    let gameScore = 0;
+    let dailyRewardsClaimed = [];
+    let achievements = [];
+    
+    // Состояние игры
+    let state = {
+        bones: 1000, // Начальные кости для тестирования
+        zoo: 0.5000, // Начальные токены для тестирования
+        energy: 1000,
+        tapLvl: 1,
+        energyLvl: 1,
+        ownedNFTs: [],
+        level: 1,
+        exp: 0,
+        achievements: [],
+        gameHighScore: 0,
+        referralCode: '',
+        referrals: 0
+    };
+    
+    // Цены улучшений
+    const upgradeCosts = {
+        tap: [500, 1000, 2000, 4000, 8000, 16000, 32000, 64000, 128000, 256000],
+        energy: [1000, 2000, 4000, 8000, 16000, 32000, 64000, 128000, 256000, 512000]
+    };
+    
+    // Ежедневные награды
+    const dailyRewards = [100, 200, 300, 500, 800, 1300, 2100];
+    
+    // Достижения
+    const achievementList = [
+        { id: 'first_tap', name: 'Первый клик!', desc: 'Сделайте первый клик', goal: 1, reward: 100 },
+        { id: '100_clicks', name: 'Начало пути', desc: 'Сделайте 100 кликов', goal: 100, reward: 500 },
+        { id: '1000_clicks', name: 'Уверенный кликер', desc: 'Сделайте 1000 кликов', goal: 1000, reward: 2000 },
+        { id: '10000_clicks', name: 'Мастер кликов', desc: 'Сделайте 10000 кликов', goal: 10000, reward: 10000 },
+        { id: 'first_upgrade', name: 'Первый апгрейд', desc: 'Улучшите силу тапа', goal: 1, reward: 200 },
+        { id: 'first_nft', name: 'Модник', desc: 'Купите первый NFT', goal: 1, reward: 500 },
+        { id: 'level_10', name: 'Опытный игрок', desc: 'Достигните 10 уровня', goal: 10, reward: 5000 },
+        { id: 'level_20', name: 'Ветеран', desc: 'Достигните 20 уровня', goal: 20, reward: 15000 },
+        { id: 'rich', name: 'Богач', desc: 'Накопите 100 $ZOO', goal: 100, reward: 10000 },
+        { id: 'referral_master', name: 'Социальная бабочка', desc: 'Пригласите 5 друзей', goal: 5, reward: 5000 }
+    ];
+    
+    // ==================== ИНИЦИАЛИЗАЦИЯ ====================
+    document.addEventListener('DOMContentLoaded', function() {
+        // Инициализация Telegram WebApp
+        try {
+            tg = window.Telegram?.WebApp;
+            if (tg) {
+                tg.ready();
+                tg.expand();
+                tg.enableClosingConfirmation();
+                
+                // Устанавливаем тему Telegram
+                document.documentElement.style.setProperty('--tg-theme-bg-color', tg.themeParams.bg_color || '#1A5CC7');
+                document.documentElement.style.setProperty('--tg-theme-text-color', tg.themeParams.text_color || '#ffffff');
+                document.documentElement.style.setProperty('--tg-theme-hint-color', tg.themeParams.hint_color || '#aaaaaa');
+                document.documentElement.style.setProperty('--tg-theme-link-color', tg.themeParams.link_color || '#FFD700');
+                document.documentElement.style.setProperty('--tg-theme-button-color', tg.themeParams.button_color || '#FFD700');
+                document.documentElement.style.setProperty('--tg-theme-button-text-color', tg.themeParams.button_text_color || '#1A5CC7');
+                
+                // Получаем данные пользователя
+                const user = tg.initDataUnsafe?.user;
+                if (user) {
+                    console.log('Пользователь Telegram:', user);
+                    state.referralCode = 'ref_' + (user.id || Date.now()).toString().slice(-8);
+                    
+                    // Показываем приветствие
+                    setTimeout(() => {
+                        showNotification(`Привет, ${user.first_name || 'друг'}! 👋`, 'success');
+                    }, 1000);
+                    
+                    // Проверяем реферала
+                    const startParam = tg.initDataUnsafe?.start_param;
+                    if (startParam && startParam.startsWith('ref_')) {
+                        handleReferral(startParam);
+                    }
+                }
+                
+                // Обработка нажатия кнопки "Назад"
+                tg.BackButton.onClick(() => {
+                    if (document.getElementById('tab-daily').classList.contains('active')) {
+                        showTab('tab-main');
+                    }
+                });
+            }
+        } catch (e) {
+            console.log('Не в Telegram или ошибка:', e);
+        }
+        
+        // Инициализация TON Connect с ВАШИМ манифестом
+        try {
+            tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+                manifestUrl: 'https://dimazmlbig-dev.github.io/zootopia-clicker/tonconnect-manifest.json',
+                buttonRootId: 'ton-connect-button',
+                language: 'ru',
+                uiPreferences: {
+                    theme: 'DARK',
+                    colorsSet: {
+                        [TON_CONNECT_UI.COLORS_SET.LIGHT]: {
+                            connectButton: {
+                                background: '#FFD700',
+                                foreground: '#1A5CC7'
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Проверяем подключенный кошелек
+            tonConnectUI.connectionRestored.then((connected) => {
+                if (connected) {
+                    console.log('TON кошелек подключен');
+                    updateWalletInfo();
+                }
+            });
+            
+            // Подписываемся на изменения подключения
+            tonConnectUI.onStatusChange((wallet) => {
+                if (wallet) {
+                    console.log('Кошелек подключен:', wallet);
+                    updateWalletInfo();
+                    showNotification('TON кошелек подключен!', 'success');
+                } else {
+                    console.log('Кошелек отключен');
+                }
+            });
+            
+        } catch (e) {
+            console.log('Ошибка TON Connect:', e);
+            showNotification('Ошибка инициализации кошелька', 'error');
+        }
+        
+        // Загрузка сохраненной игры
+        loadGame();
+        
+        // Инициализация мини-игры
+        initGame();
+        
+        // Загрузка ежедневных наград
+        loadDailyRewards();
+        
+        // Обновление UI
+        updateUI();
+        
+        // Скрываем загрузчик
+        setTimeout(() => {
+            document.getElementById('loader').classList.add('hidden');
+        }, 1000);
+        
+        // Восстановление энергии
+        setInterval(restoreEnergy, 1000);
+        
+        // Автосохранение каждые 30 секунд
+        setInterval(saveGame, 30000);
+        
+        // Показываем реферальную секцию если есть код
+        if (state.referralCode) {
+            document.getElementById('referral-section').style.display = 'block';
+            document.getElementById('referral-link').textContent = 
+                `https://t.me/ZootopiaGameBot/app?startapp=${state.referralCode}`;
+        }
     });
-
-    function handleTap(e) {
+    
+    // ==================== ОСНОВНЫЕ ФУНКЦИИ ====================
+    
+    function handleTap(event) {
+        const now = Date.now();
+        if (now - lastTapTime < 50) return; // Защита от спама
+        lastTapTime = now;
+        
         if (state.energy >= 2) {
-            state.bones += state.tapLvl;
-            state.zoo += 0.0001;
+            // Анимация клика
+            createTapAnimation(event);
+            
+            // Обновление состояния
+            const tapPower = getTapPower();
+            state.bones += tapPower;
+            state.zoo += (tapPower * 0.0001);
             state.energy -= 2;
+            state.exp += tapPower;
+            
+            // Проверка достижений
+            checkAchievements();
+            
+            // Проверка эволюции
+            checkEvolution();
+            
+            // Проверка уровня
+            checkLevelUp();
+            
+            // Обновление UI
             updateUI();
-            tg.HapticFeedback.impactOccurred('medium');
-            createTapText(e);
+            
+            // Вибрация (если доступно)
+            try {
+                if (tg?.HapticFeedback) {
+                    tg.HapticFeedback.impactOccurred('light');
+                }
+            } catch (e) {}
+        } else {
+            showNotification('Недостаточно энергии!', 'warning');
         }
     }
-
-    function createTapText(e) {
-        const span = document.createElement('span');
-        span.innerText = `+${state.tapLvl}`;
-        span.style.position = 'fixed';
-        span.style.left = e.clientX + 'px';
-        span.style.top = e.clientY + 'px';
-        span.style.color = '#FFD700';
-        span.style.fontWeight = 'bold';
-        span.style.animation = 'fadeOut 1s forwards';
-        document.body.appendChild(span);
-        setTimeout(() => span.remove(), 1000);
+    
+    function createTapAnimation(event) {
+        const anim = document.createElement('div');
+        anim.className = 'tap-animation';
+        anim.innerText = '+' + getTapPower();
+        anim.style.color = getRandomColor();
+        
+        // Позиционируем анимацию
+        const x = event.clientX || window.innerWidth / 2;
+        const y = event.clientY || window.innerHeight / 2;
+        
+        anim.style.left = (x - 20) + 'px';
+        anim.style.top = (y - 20) + 'px';
+        
+        document.body.appendChild(anim);
+        setTimeout(() => anim.remove(), 1000);
     }
-
-    function updateUI() {
-        document.getElementById('bones').innerText = state.bones;
-        document.getElementById('zoo').innerText = state.zoo.toFixed(4);
-        document.getElementById('en-text').innerText = Math.floor(state.energy);
-        document.getElementById('en-fill').style.width = (state.energy / 10) + '%';
+    
+    function getRandomColor() {
+        const colors = ['#FFD700', '#FF8D29', '#FF5252', '#4CAF50', '#2196F3', '#9C27B0'];
+        return colors[Math.floor(Math.random() * colors.length)];
     }
-
-    function openModal(id) { 
-        document.getElementById(id).classList.add('active'); 
-        if(id === 'game-modal') initMatch3();
+    
+    function getTapPower() {
+        return state.tapLvl * (state.tapLvl < 5 ? 1 : state.tapLvl < 10 ? 2 : state.tapLvl < 15 ? 3 : 5);
     }
-    function closeModal(id) { document.getElementById(id).classList.remove('active'); }
-
-    function initMatch3() {
+    
+    function upgradeTap() {
+        const cost = upgradeCosts.tap[state.tapLvl - 1] || state.tapLvl * 500;
+        
+        if (state.bones >= cost) {
+            state.bones -= cost;
+            state.tapLvl++;
+            
+            // Анимация улучшения
+            document.getElementById('pet-img').style.animation = 'none';
+            setTimeout(() => {
+                document.getElementById('pet-img').style.animation = 'pulse 0.5s';
+            }, 10);
+            
+            showNotification(`Сила тапа улучшена до уровня ${state.tapLvl}!`, 'success');
+            
+            // Проверяем достижение
+            if (state.tapLvl === 2 && !state.achievements.includes('first_upgrade')) {
+                unlockAchievement('first_upgrade');
+            }
+            
+            updateUI();
+            saveGame();
+        } else {
+            showNotification(`Недостаточно костей! Нужно: ${cost.toLocaleString()} 🦴`, 'error');
+        }
+    }
+    
+    function upgradeEnergy() {
+        const cost = upgradeCosts.energy[state.energyLvl - 1] || state.energyLvl * 1000;
+        
+        if (state.bones >= cost) {
+            state.bones -= cost;
+            state.energyLvl++;
+            
+            showNotification(`Восстановление энергии улучшено до уровня ${state.energyLvl}!`, 'success');
+            updateUI();
+            saveGame();
+        } else {
+            showNotification(`Недостаточно костей! Нужно: ${cost.toLocaleString()} 🦴`, 'error');
+        }
+    }
+    
+    function restoreEnergy() {
+        if (state.energy < 1000) {
+            const restoreRate = 1 + (state.energyLvl * 0.5);
+            state.energy = Math.min(1000, state.energy + restoreRate);
+            
+            // Обновляем только индикатор энергии
+            document.getElementById('en-cur').textContent = Math.floor(state.energy);
+            document.getElementById('en-fill').style.width = (state.energy / 10) + '%';
+        }
+    }
+    
+    function buyNFT(id, price) {
+        if (state.zoo >= price && !state.ownedNFTs.includes(id)) {
+            state.zoo -= price;
+            state.ownedNFTs.push(id);
+            
+            // Показываем NFT на персонаже
+            const overlay = document.getElementById(`nft-${id}`);
+            if (overlay) {
+                overlay.classList.add('visible');
+                overlay.style.animation = 'pulse 0.5s';
+            }
+            
+            // Обновляем кнопку
+            const button = document.getElementById(`buy-${id}`);
+            if (button) {
+                button.innerHTML = '<i class="fas fa-check"></i> Надето';
+                button.disabled = true;
+                button.style.background = 'linear-gradient(135deg, #4CAF50, #2E7D32)';
+            }
+            
+            showNotification(`NFT "${getNFTName(id)}" куплен и надет!`, 'success');
+            
+            // Проверяем достижение
+            if (!state.achievements.includes('first_nft')) {
+                unlockAchievement('first_nft');
+            }
+            
+            updateUI();
+            saveGame();
+        } else if (state.ownedNFTs.includes(id)) {
+            showNotification('Этот NFT уже куплен!', 'warning');
+        } else {
+            showNotification(`Недостаточно $ZOO! Нужно: ${price} $ZOO`, 'error');
+        }
+    }
+    
+    function getNFTName(id) {
+        const names = {
+            'glasses': 'Очки Cyber',
+            'hat': 'Шляпа Gentleman',
+            'crown': 'Корона Короля'
+        };
+        return names[id] || id;
+    }
+    
+    function checkEvolution() {
+        const label = document.getElementById('evo-label');
+        if (state.tapLvl >= 15) {
+            label.innerHTML = '🤖 Кибер-Такса <small style="font-size:12px;">(Уровень 15+)</small>';
+        } else if (state.tapLvl >= 10) {
+            label.innerHTML = '🦸 Такса-Супергерой <small style="font-size:12px;">(Уровень 10+)</small>';
+        } else if (state.tapLvl >= 5) {
+            label.innerHTML = '💪 Сильная Такса <small style="font-size:12px;">(Уровень 5+)</small>';
+        } else {
+            label.innerHTML = '🐶 Малыш Такса <small style="font-size:12px;">(Уровень 1)</small>';
+        }
+    }
+    
+    function checkLevelUp() {
+        const expNeeded = state.level * 1000;
+        if (state.exp >= expNeeded) {
+            state.level++;
+            state.exp = state.exp - expNeeded;
+            
+            // Анимация уровня
+            document.querySelector('.score').style.animation = 'none';
+            setTimeout(() => {
+                document.querySelector('.score').style.animation = 'pulse 0.5s';
+            }, 10);
+            
+            showNotification(`🎉 Новый уровень: ${state.level}!`, 'success');
+            
+            // Награда за уровень
+            const levelReward = state.level * 500;
+            state.bones += levelReward;
+            state.zoo += state.level * 0.01;
+            
+            // Проверяем достижения
+            if (state.level === 10 && !state.achievements.includes('level_10')) {
+                unlockAchievement('level_10');
+            }
+            if (state.level === 20 && !state.achievements.includes('level_20')) {
+                unlockAchievement('level_20');
+            }
+            
+            updateUI();
+        }
+    }
+    
+    // ==================== СИСТЕМА ДОСТИЖЕНИЙ ====================
+    
+    function checkAchievements() {
+        // Проверяем достижения по кликам
+        const totalClicks = Math.floor(state.bones / getTapPower());
+        
+        achievementList.forEach(achievement => {
+            if (state.achievements.includes(achievement.id)) return;
+            
+            let unlocked = false;
+            
+            switch(achievement.id) {
+                case 'first_tap':
+                    unlocked = totalClicks >= 1;
+                    break;
+                case '100_clicks':
+                    unlocked = totalClicks >= 100;
+                    break;
+                case '1000_clicks':
+                    unlocked = totalClicks >= 1000;
+                    break;
+                case '10000_clicks':
+                    unlocked = totalClicks >= 10000;
+                    break;
+                case 'first_upgrade':
+                    unlocked = state.tapLvl > 1;
+                    break;
+                case 'rich':
+                    unlocked = state.zoo >= 100;
+                    break;
+                case 'referral_master':
+                    unlocked = state.referrals >= 5;
+                    break;
+            }
+            
+            if (unlocked) {
+                unlockAchievement(achievement.id);
+            }
+        });
+    }
+    
+    function unlockAchievement(achievementId) {
+        const achievement = achievementList.find(a => a.id === achievementId);
+        if (!achievement) return;
+        
+        state.achievements.push(achievementId);
+        state.bones += achievement.reward;
+        
+        // Показываем уведомление
+        document.getElementById('achievement-text').innerHTML = 
+            `<h3>${achievement.name}</h3>
+             <p>${achievement.desc}</p>
+             <p style="color: var(--gold); font-weight: bold; margin-top: 10px;">
+                Награда: ${achievement.reward.toLocaleString()} 🦴
+             </p>`;
+        showModal('achievement-modal');
+        
+        showNotification(`🎉 Достижение: ${achievement.name}`, 'success');
+        saveGame();
+    }
+    
+    // ==================== МИНИ-ИГРА ====================
+    
+    function initGame() {
         const grid = document.getElementById('grid');
+        if (!grid) return;
+        
         grid.innerHTML = '';
-        for(let i=0; i<25; i++) {
+        gameScore = 0;
+        
+        // Создаем сетку 5x5 с разными эмодзи
+        const emojis = ['🦴', '🐶', '🐾', '🌟', '💎', '🎯'];
+        
+        for (let i = 0; i < 25; i++) {
             const cell = document.createElement('div');
-            cell.style = "aspect-ratio:1; background:rgba(255,255,255,0.1); display:flex; align-items:center; justify-content:center; border-radius:8px; font-size:20px;";
-            cell.innerText = '🦴';
-            cell.onclick = () => {
-                state.zoo += 0.001;
-                cell.innerText = '💎';
-                updateUI();
-                document.getElementById('game-reward').innerText = (parseFloat(document.getElementById('game-reward').innerText) + 0.001).toFixed(3);
-            };
+            cell.className = 'cell';
+            cell.innerHTML = emojis[Math.floor(Math.random() * emojis.length)];
+            cell.dataset.value = cell.innerHTML;
+            cell.onclick = () => handleGameCellClick(cell, i);
             grid.appendChild(cell);
         }
+        
+        document.getElementById('game-score').textContent = gameScore;
+        document.getElementById('claim-game-btn').disabled = true;
     }
-
-    setInterval(() => { if(state.energy < 1000) { state.energy += 1; updateUI(); } }, 1000);
-    updateUI();
+    
+    function handleGameCellClick(cell, index) {
+        if (cell.style.opacity === '0.5') return;
+        
+        const value = cell.dataset.value;
+        let score = 1;
+        
+        // Разные очки за разные символы
+        if (value === '🌟') score = 2;
+        if (value === '💎') score = 3;
+        if (value === '🎯') score = 5;
+        
+        gameScore += score;
+        cell.style.opacity = '0.5';
+        cell.style.transform = 'scale(0.8)';
+        cell.style.background = 'rgba(255, 215, 0, 0.3)';
+        
+        document.getElementById('game-score').textContent = gameScore;
+        
+        // Анимация клика
+        const anim = document.createElement('div');
+        anim.className = 'tap-animation';
+        anim.innerText = `+${score}`;
+        anim.style.left = cell.getBoundingClientRect().left + 'px';
+        anim.style.top = cell.getBoundingClientRect().top + 'px';
+        document.body.appendChild(anim);
+        setTimeout(() => anim.remove(), 1000);
+        
+        // Вибрация
+        try {
+            if (tg?.HapticFeedback) {
+                tg.HapticFeedback.impactOccurred('soft');
+            }
+        } catch (e) {}
+        
+        // Проверяем награду
+        if (gameScore >= 20) {
+            document.getElementById('claim-game-btn').disabled = false;
+            if (gameScore === 20) {
+                showNotification('🎯 Задание выполнено! Можете забрать награду.', 'success');
+            }
+        }
+        
+        // Случайное восстановление ячейки
+        setTimeout(() => {
+            if (Math.random() > 0.7 && cell.style.opacity === '0.5') {
+                cell.style.opacity = '1';
+                cell.style.transform = 'scale(1)';
+                cell.style.background = '';
+                gameScore -= score;
+                document.getElementById('game-score').textContent = gameScore;
+            }
+        }, 3000 + Math.random() * 2000);
+    }
+    
+    function claimGameRewards() {
+        if (gameScore >= 20) {
+            const reward = gameScore * 10;
+            const zooReward = gameScore * 0.001;
+            
+            state.bones += reward;
+            state.zoo += zooReward;
+            
+            showNotification(`🎁 Получено: ${reward} 🦴 и ${zooReward.toFixed(4)} $ZOO`, 'success');
+            
+            // Сбрасываем игру
+            initGame();
+            
+            updateUI();
+            saveGame();
+        }
+    }
+    
+    function resetGame() {
+        initGame();
+        showNotification('Игра перезапущена!', 'success');
+    }
+    
+    // ==================== ЕЖЕДНЕВНЫЕ НАГРАДЫ ====================
+    
+    function loadDailyRewards() {
+        try {
+            const saved = localStorage.getItem('zootopia_daily');
+            if (saved) {
+                dailyRewardsClaimed = JSON.parse(saved);
+            }
+        } catch (e) {
+            console.log('Ошибка загрузки ежедневных наград:', e);
+        }
+        
+        updateDailyRewardsUI();
+    }
+    
+    function updateDailyRewardsUI() {
+        const today = new Date().toDateString();
+        const lastClaim = localStorage.getItem('last_daily_claim');
+        const streak = parseInt(localStorage.getItem('daily_streak') || '0');
+        
+        document.getElementById('current-streak').textContent = streak;
+        document.getElementById('day-streak').textContent = streak;
+        
+        // Сбрасываем серию если пропустили день
+        if (lastClaim && lastClaim !== today) {
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            
+            if (lastClaim !== yesterday.toDateString()) {
+                localStorage.setItem('daily_streak', '0');
+                dailyRewardsClaimed = [];
+                localStorage.setItem('zootopia_daily', JSON.stringify([]));
+            }
+        }
+        
+        // Обновляем отображение дней
+        for (let i = 1; i <= 7; i++) {
+            const dayElement = document.getElementById('day' + i);
+            if (!dayElement) continue;
+            
+            dayElement.classList.remove('claimed', 'today');
+            
+            if (dailyRewardsClaimed.includes(i)) {
+                dayElement.classList.add('claimed');
+                dayElement.innerHTML = `<div>День ${i}</div><div>✅</div>`;
+            } else if (i === streak + 1 && lastClaim !== today) {
+                dayElement.classList.add('today');
+                dayElement.innerHTML = `<div>День ${i}</div><div>${dailyRewards[i-1]} 🦴</div>`;
+            } else {
+                dayElement.innerHTML = `<div>День ${i}</div><div>${dailyRewards[i-1]} 🦴</div>`;
+            }
+        }
+    }
+    
+    function showDailyRewards() {
+        showTab('tab-daily');
+        updateDailyRewardsUI();
+        
+        // Показываем кнопку "Назад" в Telegram
+        if (tg) {
+            tg.BackButton.show();
+        }
+    }
+    
+    function claimDaily(day) {
+        const today = new Date().toDateString();
+        const lastClaim = localStorage.getItem('last_daily_claim');
+        const streak = parseInt(localStorage.getItem('daily_streak') || '0');
+        
+        if (lastClaim === today) {
+            showNotification('Вы уже получали награду сегодня!', 'warning');
+            return;
+        }
+        
+        if (day !== streak + 1) {
+            showNotification(`Сначала получите награду за день ${streak + 1}`, 'error');
+            return;
+        }
+        
+        const reward = dailyRewards[day - 1] || 100;
+        state.bones += reward;
+        state.zoo += reward * 0.001;
+        
+        dailyRewardsClaimed.push(day);
+        
+        try {
+            localStorage.setItem('zootopia_daily', JSON.stringify(dailyRewardsClaimed));
+            localStorage.setItem('last_daily_claim', today);
+            localStorage.setItem('daily_streak', streak + 1);
+        } catch (e) {
+            console.log('Ошибка сохранения ежедневной награды:', e);
+        }
+        
+        showNotification(`🎁 Ежедневная награда: ${reward} 🦴`, 'success');
+        
+        updateDailyRewardsUI();
+        updateUI();
+        saveGame();
+    }
+    
+    // ==================== РЕФЕРАЛЬНАЯ СИСТЕМА ====================
+    
+    function handleReferral(refCode) {
+        if (refCode === state.referralCode) {
+            showNotification('Нельзя пригласить самого себя!', 'warning');
+            return;
+        }
+        
+        try {
+            const referrals = JSON.parse(localStorage.getItem('zootopia_referrals') || '{}');
+            
+            if (!referrals[refCode]) {
+                referrals[refCode] = true;
+                localStorage.setItem('zootopia_referrals', JSON.stringify(referrals));
+                
+                // Награда за реферала
+                state.bones += 1000;
+                state.referrals++;
+                
+                showNotification('🎉 Вы зашли по реферальной ссылке! +1000 🦴', 'success');
+                
+                updateUI();
+                saveGame();
+                
+                // Проверяем достижение
+                if (state.referrals === 5 && !state.achievements.includes('referral_master')) {
+                    unlockAchievement('referral_master');
+                }
+            }
+        } catch (e) {
+            console.log('Ошибка обработки реферала:', e);
+        }
+    }
+    
+    function copyReferralLink() {
+        const link = document.getElementById('referral-link').textContent;
+        
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(link).then(() => {
+                showNotification('Ссылка скопирована в буфер обмена!', 'success');
+            }).catch(err => {
+                fallbackCopyText(link);
+            });
+        } else {
+            fallbackCopyText(link);
+        }
+    }
+    
+    function fallbackCopyText(text) {
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        
+        try {
+            document.execCommand('copy');
+            showNotification('Ссылка скопирована!', 'success');
+        } catch (err) {
+            showNotification('Не удалось скопировать ссылку', 'error');
+        }
+        
+        document.body.removeChild(textArea);
+    }
+    
+    // ==================== TON КОШЕЛЕК ====================
+    
+    function connectWallet() {
+        try {
+            if (tonConnectUI) {
+                tonConnectUI.openModal();
+            } else {
+                showNotification('TON Connect не инициализирован', 'error');
+            }
+        } catch (e) {
+            console.log('Ошибка подключения кошелька:', e);
+            showNotification('Ошибка подключения кошелька', 'error');
+        }
+    }
+    
+    function updateWalletInfo() {
+        const wallet = tonConnectUI.wallet;
+        if (wallet) {
+            console.log('Информация о кошельке:', wallet);
+            
+            // Здесь можно добавить логику для работы с кошельком
+            // Например, проверка баланса, отправка транзакций и т.д.
+        }
+    }
+    
+    // ==================== UI ФУНКЦИИ ====================
+    
+    function showTab(tabId, element) {
+        // Скрываем все вкладки
+        document.querySelectorAll('.tab-panel').forEach(tab => {
+            tab.classList.remove('active');
+        });
+        
+        // Показываем выбранную вкладку
+        const tab = document.getElementById(tabId);
+        if (tab) {
+            tab.classList.add('active');
+        }
+        
+        // Обновляем навигацию
+        if (element) {
+            document.querySelectorAll('.nav-item').forEach(nav => {
+                nav.classList.remove('active');
+            });
+            element.classList.add('active');
+        } else {
+            // Для вкладки daily обновляем навигацию вручную
+            if (tabId === 'tab-daily') {
+                document.querySelectorAll('.nav-item').forEach(nav => {
+                    nav.classList.remove('active');
+                });
+            }
+        }
+        
+        // Инициализируем игру при открытии вкладки с игрой
+        if (tabId === 'tab-game') {
+            initGame();
+        }
+        
+        // Управление кнопкой "Назад" в Telegram
+        if (tg) {
+            if (tabId === 'tab-daily') {
+                tg.BackButton.show();
+            } else {
+                tg.BackButton.hide();
+            }
+        }
+    }
+    
+    function updateUI() {
+        // Обновляем основные показатели
+        document.getElementById('bones').textContent = Math.floor(state.bones).toLocaleString();
+        document.getElementById('zoo-val').textContent = state.zoo.toFixed(4);
+        document.getElementById('en-cur').textContent = Math.floor(state.energy);
+        document.getElementById('en-fill').style.width = (state.energy / 10) + '%';
+        
+        // Обновляем улучшения
+        document.getElementById('tap-lvl').textContent = state.tapLvl;
+        document.getElementById('tap-power').textContent = getTapPower();
+        document.getElementById('energy-lvl').textContent = state.energyLvl;
+        
+        const tapCost = upgradeCosts.tap[state.tapLvl - 1] || state.tapLvl * 500;
+        const energyCost = upgradeCosts.energy[state.energyLvl - 1] || state.energyLvl * 1000;
+        
+        document.getElementById('tap-price').textContent = tapCost.toLocaleString() + ' 🦴';
+        document.getElementById('energy-price').textContent = energyCost.toLocaleString() + ' 🦴';
+        
+        // Обновляем уровень
+        document.getElementById('level').textContent = state.level;
+        const expNeeded = state.level * 1000;
+        const expPercent = Math.min(100, (state.exp / expNeeded) * 100);
+        document.getElementById('level-fill').style.width = expPercent + '%';
+        document.getElementById('level-progress').textContent = 
+            Math.floor(state.exp).toLocaleString() + '/' + expNeeded.toLocaleString();
+        
+        // Обновляем NFT кнопки
+        ['glasses', 'hat', 'crown'].forEach(id => {
+            const button = document.getElementById('buy-' + id);
+            if (button) {
+                if (state.ownedNFTs.includes(id)) {
+                    button.innerHTML = '<i class="fas fa-check"></i> Надето';
+                    button.disabled = true;
+                    button.style.background = 'linear-gradient(135deg, #4CAF50, #2E7D32)';
+                    
+                    // Показываем NFT
+                    const overlay = document.getElementById('nft-' + id);
+                    if (overlay) {
+                        overlay.classList.add('visible');
+                    }
+                } else {
+                    button.innerHTML = 'Купить';
+                    button.disabled = false;
+                    button.style.background = 'linear-gradient(135deg, var(--gold), #FF8D29)';
+                    
+                    // Скрываем NFT
+                    const overlay = document.getElementById('nft-' + id);
+                    if (overlay) {
+                        overlay.classList.remove('visible');
+                    }
+                }
+            }
+        });
+        
+        // Обновляем топ
+        updateTopList();
+        
+        // Обновляем эволюцию
+        checkEvolution();
+    }
+    
+    function showNotification(message, type = 'success') {
+        const notification = document.getElementById('notification');
+        if (!notification) return;
+        
+        notification.textContent = message;
+        notification.className = 'notification';
+        
+        switch(type) {
+            case 'success':
+                notification.style.background = 'rgba(76, 175, 80, 0.9)';
+                break;
+            case 'error':
+                notification.style.background = 'rgba(244, 67, 54, 0.9)';
+                break;
+            case 'warning':
+                notification.style.background = 'rgba(255, 141, 41, 0.9)';
+                break;
+        }
+        
+        notification.classList.add('active');
+        
+        // Автоматическое скрытие
+        clearTimeout(notification.hideTimeout);
+        notification.hideTimeout = setTimeout(() => {
+            notification.classList.remove('active');
+        }, 3000);
+    }
+    
+    function showModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.classList.add('active');
+        }
+    }
+    
+    function hideModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.classList.remove('active');
+        }
+    }
+    
+    // ==================== СОХРАНЕНИЕ И ЗАГРУЗКА ====================
+    
+    function saveGame() {
+        try {
+            localStorage.setItem('zootopia_save', JSON.stringify(state));
+            console.log('Игра сохранена');
+        } catch (e) {
+            console.log('Ошибка сохранения:', e);
+        }
+    }
+    
+    function loadGame() {
+        try {
+            const saved = localStorage.getItem('zootopia_save');
+            if (saved) {
+                const loaded = JSON.parse(saved);
+                state = { ...state, ...loaded };
+                console.log('Игра загружена');
+                
+                // Восстанавливаем NFT
+                state.ownedNFTs.forEach(id => {
+                    const overlay = document.getElementById('nft-' + id);
+                    if (overlay) {
+                        overlay.classList.add('visible');
+                    }
+                });
+            }
+        } catch (e) {
+            console.log('Ошибка загрузки:', e);
+        }
+    }
+    
+    // ==================== ТОП ИГРОКОВ ====================
+    
+    function updateTopList() {
+        // В реальном приложении здесь был бы запрос к серверу
+        // Для демо используем заглушку с рандомными данными
+        
+        const userRank = Math.max(1, Math.floor(Math.random() * 50) + 1);
+        document.getElementById('user-rank').textContent = '#' + userRank;
+    }
+    
+    function loadTop(type) {
+        const topList = document.getElementById('top-list');
+        const typeName = type === 'bones' ? 'костям' : type === 'zoo' ? '$ZOO' : 'силе тапа';
+        
+        topList.innerHTML = `
+            <div class="card">
+                <div style="text-align: center; padding: 20px;">
+                    <i class="fas fa-sync fa-spin" style="font-size: 24px; margin-bottom: 10px;"></i>
+                    <p>Загрузка топ ${typeName}...</p>
+                </div>
+            </div>
+        `;
+        
+        // Имитация загрузки
+        setTimeout(() => {
+            updateTopList();
+        }, 1000);
+    }
+    
+    // ==================== ЭКСПОРТ ДЛЯ ГЛОБАЛЬНОГО ДОСТУПА ====================
+    window.handleTap = handleTap;
+    window.upgradeTap = upgradeTap;
+    window.upgradeEnergy = upgradeEnergy;
+    window.buyNFT = buyNFT;
+    window.showTab = showTab;
+    window.initGame = initGame;
+    window.claimGameRewards = claimGameRewards;
+    window.resetGame = resetGame;
+    window.showDailyRewards = showDailyRewards;
+    window.claimDaily = claimDaily;
+    window.connectWallet = connectWallet;
+    window.copyReferralLink = copyReferralLink;
+    window.updateTopList = updateTopList;
+    window.loadTop = loadTop;
+    window.hideModal = hideModal;
 </script>
-
-<style>
-@keyframes fadeOut { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-50px); } }
-</style>
-
 </body>
 </html>

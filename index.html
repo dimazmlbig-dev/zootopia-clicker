@@ -3,99 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Zootopia Clicker | Cloud</title>
-    
+    <title>Zootopia Clicker</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&family=Orbitron:wght@700;900&display=swap');
-        :root { --gold: #FFD700; --accent: #00FFFF; --bg: #0A0A12; --card: #1C1C2E; }
-        body { font-family: 'Poppins', sans-serif; background: var(--bg); color: white; margin: 0; overflow: hidden; user-select: none; touch-action: none; }
-        .header { text-align: center; padding: 10px; background: rgba(0,0,0,0.5); border-bottom: 1px solid #333; }
-        .balance { font-family: 'Orbitron'; font-size: 32px; color: var(--gold); }
-        .tab-content { display: none; height: calc(100vh - 160px); overflow-y: auto; padding: 20px; }
-        .tab-content.active { display: block; }
-        .card { background: var(--card); border-radius: 12px; padding: 15px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px solid rgba(255,255,255,0.05); }
-        .btn-action { background: var(--gold); color: black; border: none; padding: 8px 12px; border-radius: 8px; font-weight: bold; cursor: pointer; }
-        .btn-action:disabled { background: #444; color: #888; }
-        .click-area { display: flex; justify-content: center; align-items: center; height: 280px; position: relative; }
-        .pet-image { width: 200px; transition: transform 0.05s; }
-        .pet-image:active { transform: scale(0.92); }
-        .energy-bar { height: 8px; background: #333; border-radius: 4px; overflow: hidden; }
-        .energy-fill { height: 100%; background: linear-gradient(90deg, #00FF88, #0088FF); width: 100%; transition: width 0.2s; }
-        .nav { position: fixed; bottom: 0; width: 100%; display: flex; background: #111; padding: 12px 0; border-top: 1px solid #333; }
-        .nav-item { flex: 1; text-align: center; color: #666; font-size: 10px; }
-        .nav-item.active { color: var(--accent); }
-        .nav-item i { font-size: 18px; margin-bottom: 4px; display: block; }
-        .floating-text { position: absolute; color: var(--gold); font-family: 'Orbitron'; font-weight: bold; font-size: 24px; pointer-events: none; animation: floatUp 0.6s forwards; }
-        @keyframes floatUp { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-80px); } }
-        #loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 9999; display: flex; align-items: center; justify-content: center; flex-direction: column; }
+        body { font-family: sans-serif; background: #0A0A12; color: white; text-align: center; margin: 0; overflow: hidden; touch-action: none; }
+        .header { padding: 20px; border-bottom: 1px solid #333; }
+        #bones { font-size: 40px; color: #FFD700; font-weight: bold; }
+        .pet-image { width: 200px; margin-top: 50px; cursor: pointer; transition: 0.1s; }
+        .pet-image:active { transform: scale(0.9); }
+        .nav { position: fixed; bottom: 0; width: 100%; display: flex; background: #111; padding: 15px 0; }
+        .nav-item { flex: 1; color: #666; font-size: 12px; }
+        .active { color: #00FFFF !important; }
+        #loading { position: fixed; top:0; left:0; width:100%; height:100%; background:#0A0A12; z-index:99; display:flex; align-items:center; justify-content:center; }
     </style>
 </head>
 <body>
 
-<div id="loading-overlay">
-    <h2 style="font-family: 'Orbitron'; color: var(--gold);">ZOOTOPIA</h2>
-    <p>Loading Cloud Data...</p>
-</div>
+<div id="loading">Загрузка данных...</div>
 
 <div class="header">
-    <div class="balance" id="bones">0</div>
-    <div style="color: var(--accent); font-size: 12px;">$ZOO: <span id="zoo">0.0000</span></div>
+    <div id="bones">0</div>
+    <div style="color:#00FFFF">$ZOO: <span id="zoo">0.0000</span></div>
 </div>
 
-<div id="tab-game" class="tab-content active">
-    <div class="click-area">
-        <img src="dachshund.png" class="pet-image" id="pet" alt="Pet" onerror="this.src='https://cdn-icons-png.flaticon.com/512/616/616408.png'">
-    </div>
-    <div style="padding: 10px;">
-        <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 5px;">
-            <span>⚡ Energy</span>
-            <span id="energy-text">1000/1000</span>
-        </div>
-        <div class="energy-bar"><div class="energy-fill" id="energy-fill"></div></div>
-    </div>
-</div>
-
-<div id="tab-shop" class="tab-content">
-    <h3 style="color: var(--gold)">Shop</h3>
-    <div class="card">
-        <div><b>Stronger Tap</b><br><small id="price-tap">500</small> 🦴</div>
-        <button class="btn-action" onclick="buyUpgrade('tap')">BUY</button>
-    </div>
-    <div class="card">
-        <div><b>Auto-Doge</b><br><small id="price-auto">1000</small> 🦴</div>
-        <button class="btn-action" onclick="buyUpgrade('auto')">BUY</button>
-    </div>
-</div>
-
-<div id="tab-earn" class="tab-content">
-    <h3 style="color: var(--accent)">Tasks & Friends</h3>
-    
-    <div class="card" style="background: linear-gradient(45deg, #1c1c2e, #2a2a3e);">
-        <div><b>Invite Friend</b><br><small>Get 50,000 Bones!</small></div>
-        <button class="btn-action" onclick="shareReferral()">INVITE</button>
-    </div>
-
-    <div class="card">
-        <div><b>Join Channel</b><br><small>+5,000 Bones</small></div>
-        <button class="btn-action" id="btn-sub" onclick="doTask('sub', 'https://t.me/zootopiaclik')">START</button>
-    </div>
-    <div id="ton-connect" style="display:flex; justify-content:center; margin-top:20px;"></div>
+<div id="game">
+    <img src="dachshund.png" class="pet-image" id="pet" alt="Doge">
+    <p>⚡ Энергия: <span id="energy">1000</span>/1000</p>
 </div>
 
 <div class="nav">
-    <div class="nav-item active" onclick="switchTab('tab-game', this)"><i class="fas fa-paw"></i>Game</div>
-    <div class="nav-item" onclick="switchTab('tab-shop', this)"><i class="fas fa-shopping-cart"></i>Shop</div>
-    <div class="nav-item" onclick="switchTab('tab-earn', this)"><i class="fas fa-tasks"></i>Earn</div>
+    <div class="nav-item active"><i class="fas fa-paw"></i><br>Игра</div>
+    <div class="nav-item" onclick="alert('Скоро!')"><i class="fas fa-shopping-cart"></i><br>Магазин</div>
 </div>
 
 <script>
-    // --- CONFIG ---
     const firebaseConfig = {
         apiKey: "AIzaSyAT4Qt--BNvqA953AQNUbbpiDHbSvO3BfE",
         authDomain: "zootopia-f046d.firebaseapp.com",
@@ -104,146 +49,47 @@
         messagingSenderId: "531125789476",
         appId: "1:531125789476:web:7e504c4d855fd397fa49b1"
     };
+    
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
-
     const tg = window.Telegram.WebApp;
-    const userId = tg.initDataUnsafe?.user?.id?.toString() || "local_dev";
-    tg.expand();
+    const uid = tg.initDataUnsafe?.user?.id?.toString() || "test_user";
 
-    let state = {
-        bones: 0, zoo: 0, energy: 1000, maxE: 1000,
-        tapPower: 1, autoPower: 0,
-        prices: { tap: 500, auto: 1000 },
-        tasks: { sub: false }
-    };
+    let state = { bones: 0, zoo: 0, energy: 1000 };
 
-    // --- LOGIC ---
-    async function initGame() {
+    async function load() {
         try {
-            await checkReferral(); // Проверка реферала
-            const doc = await db.collection("users").doc(userId).get();
-            if (doc.exists) {
-                state = { ...state, ...doc.data() };
-            } else {
-                await save(); // Создаем профиль в базе
-            }
-            document.getElementById('loading-overlay').style.display = 'none';
-            update();
+            const doc = await db.collection("users").doc(uid).get();
+            if (doc.exists) state = doc.data();
+            document.getElementById('loading').style.display = 'none';
+            updateUI();
         } catch (e) {
-            console.error("Firebase Error:", e);
+            console.error(e);
+            document.getElementById('loading').innerText = "Ошибка базы. Проверьте Rules!";
         }
     }
 
-    async function checkReferral() {
-        const startParam = tg.initDataUnsafe?.start_param;
-        if (startParam && startParam !== userId) {
-            const userDoc = await db.collection("users").doc(userId).get();
-            if (!userDoc.exists) {
-                const referrerRef = db.collection("users").doc(startParam);
-                const referrerDoc = await referrerRef.get();
-                if (referrerDoc.exists) {
-                    await referrerRef.update({
-                        bones: firebase.firestore.FieldValue.increment(50000)
-                    });
-                    tg.showPopup({ message: "Welcome! Your friend got a bonus!" });
-                }
-            }
-        }
-    }
-
-    function shareReferral() {
-        const link = `https://t.me/zooclikbot?start=${userId}`;
-        const text = "Join Zootopia and earn $ZOO together!";
-        tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`);
-    }
-
-    async function save() {
-        await db.collection("users").doc(userId).set(state);
-    }
-
-    function update() {
+    function updateUI() {
         document.getElementById('bones').innerText = Math.floor(state.bones);
         document.getElementById('zoo').innerText = state.zoo.toFixed(4);
-        document.getElementById('energy-text').innerText = state.energy + '/' + state.maxE;
-        document.getElementById('energy-fill').style.width = (state.energy/state.maxE*100) + '%';
-        document.getElementById('price-tap').innerText = state.prices.tap;
-        document.getElementById('price-auto').innerText = state.prices.auto;
-        if(state.tasks.sub) document.getElementById('btn-sub').disabled = true;
+        document.getElementById('energy').innerText = state.energy;
     }
 
-    function handleTap(e) {
-        if (state.energy < state.tapPower) return;
-        const x = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
-        const y = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
-        
-        state.bones += state.tapPower;
-        state.zoo += (0.0001 * state.tapPower);
-        state.energy -= state.tapPower;
-
-        const txt = document.createElement('div');
-        txt.className = 'floating-text';
-        txt.innerText = '+' + state.tapPower;
-        txt.style.left = x + 'px'; txt.style.top = y + 'px';
-        document.body.appendChild(txt);
-        setTimeout(() => txt.remove(), 600);
-
-        tg.HapticFeedback.impactOccurred('light');
-        update();
-    }
-
-    function buyUpgrade(type) {
-        if (state.bones >= state.prices[type]) {
-            state.bones -= state.prices[type];
-            if (type === 'tap') {
-                state.tapPower++;
-                state.prices.tap = Math.floor(state.prices.tap * 1.5);
-            } else {
-                state.autoPower++;
-                state.prices.auto = Math.floor(state.prices.auto * 1.6);
-            }
-            save(); update();
+    document.getElementById('pet').addEventListener('click', () => {
+        if (state.energy > 0) {
+            state.bones++;
+            state.zoo += 0.0001;
+            state.energy--;
+            updateUI();
+            db.collection("users").doc(uid).set(state); // Сохраняем в облако
         }
-    }
-
-    function doTask(taskId, url) {
-        tg.openTelegramLink(url);
-        setTimeout(() => {
-            state.tasks[taskId] = true;
-            state.bones += 5000;
-            save(); update();
-            alert("Reward: +5000 Bones!");
-        }, 5000);
-    }
-
-    function switchTab(id, el) {
-        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-        document.getElementById(id).classList.add('active');
-        el.classList.add('active');
-    }
-
-    setInterval(() => {
-        if (state.autoPower > 0) {
-            state.bones += state.autoPower;
-            state.zoo += (0.0001 * state.autoPower);
-        }
-        if (state.energy < state.maxE) state.energy = Math.min(state.maxE, state.energy + 2);
-        update();
-    }, 1000);
-
-    setInterval(save, 10000); // Автосохранение каждые 10 сек
-
-    const pet = document.getElementById('pet');
-    pet.addEventListener('touchstart', (e) => { e.preventDefault(); handleTap(e); });
-    pet.addEventListener('mousedown', handleTap);
-
-    new TONConnectUI.TonConnectUI({
-        manifestUrl: 'https://dimazmlbig-dev.github.io/zootopia-clicker/tonconnect-manifest.json',
-        buttonRootId: 'ton-connect'
     });
 
-    initGame();
+    setInterval(() => {
+        if (state.energy < 1000) { state.energy++; updateUI(); }
+    }, 2000);
+
+    load();
 </script>
 </body>
 </html>

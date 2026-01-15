@@ -1,0 +1,32 @@
+{
+  "name": "Zootopia Clicker",
+  "short_name": "Zootopia",
+  "description": "Кликер игра в стиле Zootopia с токенами SZOO",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1A1A2E",
+  "theme_color": "#7B61FF",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://cdn.jsdelivr.net/npm/emoji-datasource-apple/img/apple/64/1f98a.png",
+      "sizes": "64x64",
+      "type": "image/png"
+    },
+    {
+      "src": "https://cdn.jsdelivr.net/npm/emoji-datasource-apple/img/apple/128/1f98a.png",
+      "sizes": "128x128",
+      "type": "image/png"
+    },
+    {
+      "src": "https://cdn.jsdelivr.net/npm/emoji-datasource-apple/img/apple/192/1f98a.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://cdn.jsdelivr.net/npm/emoji-datasource-apple/img/apple/512/1f98a.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

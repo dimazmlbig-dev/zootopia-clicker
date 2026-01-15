@@ -3,193 +3,137 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Zootopia Web3: @zooclikbot</title>
+    <title>Zootopia: $ZOO Token</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
     <style>
-        :root { --accent: #0088cc; --bg: #0b0b0b; --text: #ffffff; --glass: rgba(255, 255, 255, 0.05); }
+        :root { --accent: #0088cc; --bg: #0b0b0b; --text: #ffffff; --glass: rgba(255, 255, 255, 0.05); --gold: #ffd700; }
         body { margin: 0; background: var(--bg); font-family: 'Inter', sans-serif; color: var(--text); overflow: hidden; height: 100vh; }
         
-        #splash {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #000; z-index: 9999; display: flex; flex-direction: column;
-            align-items: center; justify-content: center; transition: opacity 0.5s;
-        }
-
         #header { padding: 15px; background: rgba(0,0,0,0.8); text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
-        #balance { font-size: 38px; font-weight: 900; color: #fff; text-shadow: 0 0 20px var(--accent); }
+        #balance { font-size: 38px; font-weight: 900; text-shadow: 0 0 20px var(--accent); }
         
         .page { display: none; flex-direction: column; align-items: center; width: 100%; padding: 20px; box-sizing: border-box; overflow-y: auto; height: calc(100vh - 150px); }
         .page.active { display: flex; }
 
-        .hero-img { 
-            width: 250px; height: 250px; object-fit: contain; cursor: pointer; 
-            transition: transform 0.05s; filter: drop-shadow(0 0 15px rgba(0,136,204,0.3));
-        }
+        .token-card { background: linear-gradient(135deg, rgba(0,136,204,0.2), rgba(0,0,0,0.5)); border: 1px solid var(--accent); border-radius: 20px; padding: 20px; width: 100%; text-align: center; margin-bottom: 20px; }
+        .token-symbol { font-size: 24px; font-weight: bold; color: var(--gold); }
+
+        .hero-img { width: 250px; height: 250px; object-fit: contain; cursor: pointer; transition: transform 0.05s; }
         .hero-img:active { transform: scale(0.9); }
 
-        .card { background: var(--glass); border-radius: 20px; padding: 15px; width: 100%; margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.08); }
-        .buy-btn { background: var(--accent); border: none; color: #fff; padding: 14px; border-radius: 15px; font-weight: bold; width: 100%; font-size: 14px; margin-top: 10px; }
+        .buy-btn { background: var(--accent); border: none; color: #fff; padding: 14px; border-radius: 15px; font-weight: bold; width: 100%; margin-top: 10px; }
         
-        /* Стили для кнопки TON */
-        #ton-connect-button { margin-bottom: 20px; }
-
         #nav { position: fixed; bottom: 25px; left: 5%; width: 90%; display: flex; background: rgba(20,20,20,0.95); border-radius: 25px; padding: 5px; backdrop-filter: blur(10px); }
-        .nav-btn { flex: 1; text-align: center; font-size: 11px; font-weight: bold; color: white; opacity: 0.4; padding: 14px 0; border-radius: 20px; }
+        .nav-btn { flex: 1; text-align: center; font-size: 10px; font-weight: bold; color: white; opacity: 0.4; padding: 14px 0; border-radius: 20px; }
         .nav-btn.active { opacity: 1; background: var(--accent); color: #fff; }
 
-        .tap-anim { position: absolute; color: #fff; font-weight: 900; font-size: 32px; pointer-events: none; animation: float 0.6s ease-out forwards; }
-        @keyframes float { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-120px); } }
+        /* Эффект свечения для токена */
+        .glow { animation: glow-anim 2s infinite alternate; }
+        @keyframes glow-anim { from { box-shadow: 0 0 10px rgba(0,136,204,0.3); } to { box-shadow: 0 0 25px rgba(0,136,204,0.6); } }
     </style>
 </head>
 <body>
 
-    <div id="splash">
-        <h1 style="color: var(--accent); letter-spacing: 5px;">ZOOTOPIA <span style="font-size: 14px;">WEB3</span></h1>
-        <div style="font-size: 12px; opacity: 0.5;">Connecting to TON...</div>
-    </div>
-
     <div id="header">
         <div id="balance">🦴 <span id="coins">0</span></div>
-        <div style="font-size: 11px; opacity: 0.5; margin-top: 5px;">PPS: +<span id="pps-display">0</span> | POWER: <span id="tap-val">1</span></div>
+        <div style="font-size: 11px; opacity: 0.5;">ФАРМИНГ $ZOO: <span id="token-rate">0.01</span>/ч</div>
     </div>
 
     <div id="tab-game" class="page active">
         <img id="hero" src="dachshund.png" class="hero-img" onclick="handleTap(event)" onerror="this.src='https://i.ibb.co/XfXfXfX/dachshund.png'">
         <div style="width: 100%; margin-top: 20px;">
-            <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 5px;"><span>ENERGY</span><span id="energy-text">1000/1000</span></div>
-            <div style="width: 100%; height: 10px; background: rgba(255,255,255,0.05); border-radius: 10px;"><div id="energy-fill" style="height: 100%; background: var(--accent); width: 100%; border-radius: 10px;"></div></div>
+            <div id="energy-text" style="font-size: 12px; margin-bottom: 5px;">ЭНЕРГИЯ: 1000/1000</div>
+            <div style="width: 100%; height: 8px; background: var(--glass); border-radius: 10px;"><div id="energy-fill" style="height: 100%; background: var(--accent); width: 100%; border-radius: 10px;"></div></div>
         </div>
     </div>
 
-    <div id="tab-wallet" class="page">
-        <h2>CRYPTO CENTER</h2>
+    <div id="tab-airdrop" class="page">
+        <div class="token-card glow">
+            <div class="token-symbol">$ZOO TOKEN</div>
+            <div style="font-size: 32px; margin: 10px 0;" id="zoo-balance">0.000</div>
+            <div style="font-size: 12px; opacity: 0.7;">Ваш накопленный прогресс для дропа</div>
+        </div>
+
         <div id="ton-connect-button"></div>
+
+        <div class="card" style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 15px; width: 100%;">
+            <h4 style="margin: 0 0 10px 0;">Задания для листинга:</h4>
+            <div style="font-size: 13px; text-align: left;">
+                ✅ Подключить кошелек (x2 к фармингу)<br>
+                ❌ Пригласить 5 друзей<br>
+                ❌ Накопить 1,000,000 косточек
+            </div>
+        </div>
         
-        <div class="card">
-            <b>Вывод косточек</b>
-            <p style="font-size: 12px; opacity: 0.6;">Минимум для обмена: 1,000,000 🦴</p>
-            <button class="buy-btn" onclick="tg.showAlert('Сбор косточек продолжается! Обмен будет доступен после листинга.')">SWAP TO TON</button>
-        </div>
-
-        <div class="card" style="border: 1px solid gold;">
-            <b style="color: gold;">⭐ VIP СТАТУС</b>
-            <p style="font-size: 12px; opacity: 0.6;">Бесконечная энергия и x5 к тапу.</p>
-            <button class="buy-btn" style="background: gold; color: #000;" onclick="payVIP()">КУПИТЬ ЗА 0.5 TON</button>
-        </div>
-    </div>
-
-    <div id="tab-shop" class="page">
-        <h2>MARKET</h2>
-        <div class="card">
-            <b>Upgrade Tap</b>
-            <button id="btn-power" class="buy-btn" onclick="buyUpgrade()">500 🦴</button>
-        </div>
+        <button class="buy-btn" style="background: #222;" onclick="tg.showAlert('Листинг ожидается в Q1 2026!')">ВЫВЕСТИ $ZOO</button>
     </div>
 
     <div id="nav">
-        <div class="nav-btn active" onclick="showTab(0)">GAME</div>
-        <div class="nav-btn" onclick="showTab(1)">WALLET</div>
-        <div class="nav-btn" onclick="showTab(2)">SHOP</div>
+        <div class="nav-btn active" onclick="showTab(0)">ИГРА</div>
+        <div class="nav-btn" onclick="showTab(1)">AIRDROP</div>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        // 1. ИНИЦИАЛИЗАЦИЯ TON CONNECT
         const tonConnectUI = new TONConnectUI.TonConnectUI({
-    manifestUrl: 'https://dimazmlbig-dev.github.io/zootopia-clicker/tonconnect-manifest.json',
-    buttonRootId: 'ton-connect-button'
-    });
+            manifestUrl: 'https://dimazmlbig-dev.github.io/zootopia-clicker/tonconnect-manifest.json',
+            buttonRootId: 'ton-connect-button'
+        });
 
-        // 2. ДАННЫЕ
-        const BOT_USERNAME = 'zooclikbot'; 
         const userId = tg.initDataUnsafe?.user?.id || "guest";
-        let gameData = JSON.parse(localStorage.getItem(`zoo_web3_${userId}`)) || {
-            balance: 0, energy: 1000, pps: 0, tapPower: 1
+        let gameData = JSON.parse(localStorage.getItem(`zoo_token_v8_${userId}`)) || {
+            balance: 0,
+            energy: 1000,
+            zooTokens: 0,
+            tapPower: 1,
+            isWalletConnected: false
         };
 
-        // 3. ФУНКЦИЯ ОПЛАТЫ (Пример)
-        async function payVIP() {
-            if (!tonConnectUI.connected) {
-                tg.showAlert("Сначала подключи кошелек!");
-                return;
-            }
-
-            const transaction = {
-                validUntil: Math.floor(Date.now() / 1000) + 60,
-                messages: [{
-                    address: "ВАШ_ТОН_АДРЕС_ЗДЕСЬ", // ЗАМЕНИ НА СВОЙ АДРЕС
-                    amount: "500000000" // 0.5 TON в нанотонах
-                }]
-            };
-
-            try {
-                await tonConnectUI.sendTransaction(transaction);
-                tg.showAlert("Транзакция отправлена! VIP активируется после подтверждения.");
-            } catch (e) {
-                console.error(e);
-            }
-        }
-
-        // Остальная логика (Тапы, UI)
         function handleTap(e) {
             if (gameData.energy <= 0) return;
-            tg.HapticFeedback.impactOccurred('medium');
             gameData.balance += gameData.tapPower;
             gameData.energy -= 1;
             
-            const x = e.clientX || (e.touches ? e.touches[0].clientX : 0);
-            const y = e.clientY || (e.touches ? e.touches[0].clientY : 0);
-            createTapAnim(x, y);
+            // За каждый тап даем микро-долю токена $ZOO
+            gameData.zooTokens += 0.0001;
+            
+            tg.HapticFeedback.impactOccurred('medium');
             updateUI();
-        }
-
-        function createTapAnim(x, y) {
-            const el = document.createElement('div');
-            el.className = 'tap-anim';
-            el.innerText = `+${gameData.tapPower}`;
-            el.style.left = `${x-10}px`; el.style.top = `${y-40}px`;
-            document.body.appendChild(el);
-            setTimeout(() => el.remove(), 600);
         }
 
         function updateUI() {
             document.getElementById('coins').innerText = Math.floor(gameData.balance).toLocaleString();
-            document.getElementById('pps-display').innerText = gameData.pps;
-            document.getElementById('tap-val').innerText = gameData.tapPower;
-            document.getElementById('energy-text').innerText = `${gameData.energy}/1000`;
+            document.getElementById('zoo-balance').innerText = gameData.zooTokens.toFixed(4);
+            document.getElementById('energy-text').innerText = `ЭНЕРГИЯ: ${gameData.energy}/1000`;
             document.getElementById('energy-fill').style.width = (gameData.energy / 10) + '%';
-            document.getElementById('btn-power').innerText = (gameData.tapPower * 500).toLocaleString() + " 🦴";
+            
+            // Если кошелек подключен, скорость фарминга выше
+            const rate = tonConnectUI.connected ? "0.02" : "0.01";
+            document.getElementById('token-rate').innerText = rate;
+            
             saveData();
         }
 
         function showTab(idx) {
-            const tabs = ['tab-game', 'tab-wallet', 'tab-shop'];
+            const tabs = ['tab-game', 'tab-airdrop'];
             document.querySelectorAll('.page').forEach((p, i) => p.classList.toggle('active', i === idx));
             document.querySelectorAll('.nav-btn').forEach((b, i) => b.classList.toggle('active', i === idx));
         }
 
-        function buyUpgrade() {
-            let cost = gameData.tapPower * 500;
-            if (gameData.balance >= cost) {
-                gameData.balance -= cost;
-                gameData.tapPower++;
-                updateUI();
-            }
-        }
+        function saveData() { localStorage.setItem(`zoo_token_v8_${userId}`, JSON.stringify(gameData)); }
 
-        function saveData() { localStorage.setItem(`zoo_web3_${userId}`, JSON.stringify(gameData)); }
-
+        // Пассивный фарминг токенов
         setInterval(() => {
-            if (gameData.energy < 1000) gameData.energy++;
+            const multiplier = tonConnectUI.connected ? 2 : 1;
+            gameData.zooTokens += (0.00001 * multiplier);
+            if (gameData.energy < 1000) gameData.energy += 1;
             updateUI();
         }, 1000);
 
-        setTimeout(() => { document.getElementById('splash').style.display = 'none'; }, 2000);
         updateUI();
     </script>
 </body>
 </html>
-

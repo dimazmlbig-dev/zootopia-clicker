@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Zootopia: NFT Marketplace</title>
+    <title>Zootopia NFT Project</title>
 
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://unpkg.com/@tonconnect/ui@2.0.3/dist/tonconnect-ui.min.js"></script>
@@ -15,7 +15,7 @@
 
 <div id="loader">
     <div class="loader-spin"></div>
-    <div style="margin-top: 20px; font-family: 'Orbitron'">ZOOTOPIA</div>
+    <div style="margin-top: 20px; font-family: 'Orbitron'; letter-spacing: 5px;">LOADING...</div>
 </div>
 
 <header class="header">
@@ -35,8 +35,9 @@
     <div class="bubble b-right pos-3" onclick="openModal('boost-modal')"><i class="fas fa-bolt"></i>Бусты</div>
 
     <div class="character-wrapper" id="tap-zone">
-        <img src="assets/nft_glasses.png" id="layer-glasses" class="nft-layer">
-        <img src="assets/nft_hat.png" id="layer-hat" class="nft-layer">
+        <img src="assets/nft/glasses_layer.png" id="layer-glasses" class="nft-layer">
+        <img src="assets/nft/hat_layer.png" id="layer-hat" class="nft-layer">
+        
         <img src="assets/dachshund.png" class="pet-base">
     </div>
 
@@ -50,71 +51,27 @@
 
 <div id="nft-modal" class="modal">
     <div class="modal-header">
-        <h3>NFT Assets</h3>
+        <h3>NFT COLLECTION</h3>
         <i class="fas fa-times close-icon" onclick="closeModal('nft-modal')"></i>
     </div>
     <div class="modal-body">
         <div class="tabs">
-            <div class="tab active" onclick="switchNftTab('market')">Маркет</div>
-            <div class="tab" onclick="switchNftTab('inventory')">Мои NFT</div>
+            <div class="tab active" onclick="switchNftTab('market')">МАРКЕТ</div>
+            <div class="tab" onclick="switchNftTab('inventory')">МОИ АКТИВЫ</div>
         </div>
+
         <div id="view-market" class="nft-grid">
-            <div class="nft-card">
-                <img src="assets/nft_glasses.png" class="nft-img">
-                <div style="font-weight:bold">Cyber Glasses</div>
-                <div class="badge">Common</div>
-                <div style="font-size:10px; color:#94a3b8; margin:5px 0">+5 к тапу</div>
-                <button class="btn" onclick="mintNFT('glasses', 'Cyber Glasses', 10, 5)">10 $ZOO</button>
             </div>
-            <div class="nft-card">
-                <img src="assets/nft_hat.png" class="nft-img">
-                <div style="font-weight:bold">Sheriff Hat</div>
-                <div class="badge" style="background:rgba(251, 191, 36, 0.2); color:#fbbf24">Rare</div>
-                <div style="font-size:10px; color:#94a3b8; margin:5px 0">+15 к тапу</div>
-                <button class="btn" onclick="mintNFT('hat', 'Sheriff Hat', 25, 15)">25 $ZOO</button>
+
+        <div id="view-inventory" class="nft-grid" style="display:none;">
             </div>
-        </div>
-        <div id="view-inventory" class="nft-grid" style="display:none;"></div>
     </div>
 </div>
 
-<div id="game-modal" class="modal">
-    <div class="modal-header">
-        <h3>Mining Game</h3>
-        <i class="fas fa-times close-icon" onclick="closeModal('game-modal')"></i>
-    </div>
-    <div class="modal-body" style="display:flex; flex-direction:column; align-items:center;">
-        <div id="game-grid" style="display:grid; grid-template-columns:repeat(5, 1fr); gap:8px; width:100%; max-width:300px;"></div>
-        <p style="margin-top:20px; color:var(--text-sec)">Добыто: <span id="game-score" style="color:white">0</span> $ZOO</p>
-    </div>
-</div>
+<div id="game-modal" class="modal">...</div>
+<div id="boost-modal" class="modal">...</div>
 
-<div id="boost-modal" class="modal">
-    <div class="modal-header">
-        <h3>Upgrade Center</h3>
-        <i class="fas fa-times close-icon" onclick="closeModal('boost-modal')"></i>
-    </div>
-    <div class="modal-body">
-        <div class="nft-card" style="flex-direction:row; justify-content:space-between; text-align:left;">
-            <div>
-                <div style="font-weight:bold">Multitap</div>
-                <div style="font-size:11px; color:var(--text-sec)">Уровень: <span id="tap-lvl">1</span></div>
-            </div>
-            <button class="btn" style="width:auto; padding:5px 15px;" onclick="upgradeTap()">Upgrade <br><small id="upg-cost">500</small> 🦴</button>
-        </div>
-    </div>
-</div>
-
-<div id="news-modal" class="modal">
-    <div class="modal-header"><h3>Новости</h3><i class="fas fa-times close-icon" onclick="closeModal('news-modal')"></i></div>
-    <div class="modal-body"><p>Добро пожаловать в Zootopia NFT!</p></div>
-</div>
-
-<div id="top-modal" class="modal">
-    <div class="modal-header"><h3>Топ игроков</h3><i class="fas fa-times close-icon" onclick="closeModal('top-modal')"></i></div>
-    <div class="modal-body"><p>Загрузка...</p></div>
-</div>
-
+<script src="js/nft_manager.js"></script>
 <script src="js/app.js"></script>
 
 </body>

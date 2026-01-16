@@ -3,58 +3,84 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Zootopia NFT Project</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://unpkg.com/@tonconnect/ui@2.0.3/dist/tonconnect-ui.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    <title>Zootopia Premium</title>
     <link rel="stylesheet" href="css/style.css">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
 </head>
 <body>
 
-<div id="loader">
-    <div class="loader-spin"></div>
-</div>
+    <div class="bg-glow"></div>
 
-<header class="header">
-    <div class="balance-card">
-        <div class="score" id="bones-display">0</div>
-        <div class="zoo-sub">$ZOO: <span id="zoo-display">0.0000</span></div>
-    </div>
-</header>
-
-<main class="game-area">
-    <div class="character-container" id="tap-zone">
-        <img src="assets/main-dog.png" class="main-dog" id="dog-hero">
+    <div class="app-container">
         
-        <div class="nft-layers">
-            <img src="assets/nft/glasses_cyber.png" id="layer-glasses" class="nft-item">
-            <img src="assets/nft/hat_sheriff.png" id="layer-hat" class="nft-item">
+        <header class="main-header">
+            <div class="user-profile">
+                <img src="assets/avatar-placeholder.png" class="avatar">
+                <span id="user-name">Player</span>
+            </div>
+            <div id="ton-connect-btn"></div> </header>
+
+        <section class="balance-section">
+            <div class="coin-glow"></div>
+            <img src="assets/coin-logo.png" class="main-coin-icon">
+            <h1 id="balance">0</h1>
+            <div class="zoo-status">
+                <span class="badge-gold">Gold Member</span>
+                <span id="zoo-balance">0.00 $ZOO</span>
+            </div>
+        </section>
+
+        <main class="game-area">
+            <div class="character-card" id="tap-zone">
+                <div class="layers-wrapper">
+                    <img src="assets/main-dog.png" class="dog-base" id="dog-img">
+                    <img src="" id="slot-hat" class="nft-overlay">
+                    <img src="" id="slot-glasses" class="nft-overlay">
+                </div>
+            </div>
+        </main>
+
+        <div class="energy-footer">
+            <div class="energy-info">
+                <span>⚡ <span id="current-energy">1000</span>/1000</span>
+                <span id="boost-timer">Ready</span>
+            </div>
+            <div class="progress-container">
+                <div class="progress-fill" id="energy-bar"></div>
+            </div>
+        </div>
+
+        <nav class="bottom-nav">
+            <button class="nav-item active" onclick="showTab('main')">
+                <i class="fas fa-paw"></i>
+                <span>Игра</span>
+            </button>
+            <button class="nav-item" onclick="showTab('mine')">
+                <i class="fas fa-pickaxe"></i>
+                <span>Майнинг</span>
+            </button>
+            <button class="nav-item" onclick="showTab('nft')">
+                <i class="fas fa-eth"></i>
+                <span>NFT</span>
+            </button>
+            <button class="nav-item" onclick="showTab('tasks')">
+                <i class="fas fa-tasks"></i>
+                <span>Задания</span>
+            </button>
+        </nav>
+    </div>
+
+    <div id="nft-sheet" class="bottom-sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-content">
+            <h2>Коллекция NFT</h2>
+            <div class="nft-grid" id="inventory-grid">
+                </div>
         </div>
     </div>
 
-    <div class="energy-section">
-        <div class="energy-bar"><div class="energy-fill" id="en-fill"></div></div>
-        <div class="energy-text"><span id="en-curr">1000</span> / 1000 ⚡</div>
-    </div>
-</main>
-
-<nav class="bottom-nav">
-    <div class="nav-item" onclick="openNFTModal()"><i class="fas fa-store"></i><span>NFT Маркет</span></div>
-    <div class="nav-item" id="ton-btn"></div>
-    <div class="nav-item" onclick="openInventory()"><i class="fas fa-briefcase"></i><span>Инвентарь</span></div>
-</nav>
-
-<div id="nft-modal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2 id="modal-title">Маркетплейс</h2>
-            <i class="fas fa-times" onclick="closeModal()"></i>
-        </div>
-        <div id="nft-list" class="nft-grid"></div>
-    </div>
-</div>
-
-<script src="js/nft_manager.js"></script>
-<script src="js/app.js"></script>
+    <script src="js/nft_manager.js"></script>
+    <script src="js/app.js"></script>
 </body>
 </html>

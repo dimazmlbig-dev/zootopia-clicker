@@ -1,24 +1,21 @@
-// Логика управления уникальными NFT
-const NFTManager = {
-    // Генерация уникального цифрового отпечатка предмета
-    generateUniqueCode: function(itemType) {
-        const prefix = itemType.toUpperCase().substring(0, 3);
-        const randomHex = Math.floor(Math.random() * 0xffffff).toString(16).toUpperCase();
-        const timestamp = Date.now().toString().slice(-4);
-        return `${prefix}-${randomHex}-${timestamp}`; // Пример: GLA-A1B2C3-4567
-    },
+const NFT_DATA = {
+    'glasses': { name: 'Cyber Glasses', price: 10, power: 5 },
+    'hat': { name: 'Sheriff Hat', price: 25, power: 15 }
+};
 
-    // Создание объекта NFT для сохранения в профиль игрока
-    mint: function(baseItem) {
-        const uniqueId = this.generateUniqueCode(baseItem.type);
+const NFTManager = {
+    generateNFT: function(type) {
+        const item = NFT_DATA[type];
+        const randomId = Math.random().toString(36).substr(2, 6).toUpperCase();
+        const tokenId = `ZOO-${type.toUpperCase()}-${randomId}`;
+        
         return {
-            ...baseItem,
-            token_id: uniqueId,
-            minted_at: new Date().toISOString(),
-            owner_wallet: window.userWalletAddress || "Not Connected",
-            qr_link: `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${uniqueId}`
+            id: tokenId,
+            type: type,
+            name: item.name,
+            power: item.power,
+            qr: `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${tokenId}`,
+            image: `assets/nft/${type}_cyber.png` // или другое имя файла
         };
     }
 };
-
-window.NFTManager = NFTManager;

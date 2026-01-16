@@ -1,0 +1,22 @@
+{
+  "market_items": [
+    {
+      "id": "glasses_01",
+      "type": "glasses",
+      "name": "Cyber Glasses",
+      "price": 10,
+      "power_boost": 5,
+      "rarity": "Common",
+      "image": "assets/nft/glasses_cyber.png"
+    },
+    {
+      "id": "hat_01",
+      "type": "hat",
+      "name": "Sheriff Hat",
+      "price": 25,
+      "power_boost": 15,
+      "rarity": "Rare",
+      "image": "assets/nft/hat_sheriff.png"
+    }
+  ]
+}

@@ -4,75 +4,57 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Zootopia NFT Project</title>
-
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://unpkg.com/@tonconnect/ui@2.0.3/dist/tonconnect-ui.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
-
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
 <div id="loader">
     <div class="loader-spin"></div>
-    <div style="margin-top: 20px; font-family: 'Orbitron'; letter-spacing: 5px;">LOADING...</div>
 </div>
 
 <header class="header">
-    <div class="balance-container">
+    <div class="balance-card">
         <div class="score" id="bones-display">0</div>
         <div class="zoo-sub">$ZOO: <span id="zoo-display">0.0000</span></div>
     </div>
 </header>
 
-<main class="main-view">
-    <div class="bubble b-left pos-1" onclick="openModal('top-modal')"><i class="fas fa-trophy"></i>ТОП</div>
-    <div class="bubble b-left pos-2" onclick="openModal('news-modal')"><i class="fas fa-newspaper"></i>Инфо</div>
-    <div class="bubble b-left pos-3" onclick="openModal('game-modal')"><i class="fas fa-gamepad"></i>Игра</div>
-
-    <div class="bubble b-right pos-1" onclick="openNFTModal()"><i class="fas fa-fingerprint"></i>NFT</div>
-    <div class="bubble b-right pos-2" id="ton-btn"><i class="fas fa-wallet"></i>Wallet</div>
-    <div class="bubble b-right pos-3" onclick="openModal('boost-modal')"><i class="fas fa-bolt"></i>Бусты</div>
-
-    <div class="character-wrapper" id="tap-zone">
-        <img src="assets/nft/glasses_layer.png" id="layer-glasses" class="nft-layer">
-        <img src="assets/nft/hat_layer.png" id="layer-hat" class="nft-layer">
+<main class="game-area">
+    <div class="character-container" id="tap-zone">
+        <img src="assets/main-dog.png" class="main-dog" id="dog-hero">
         
-        <img src="assets/dachshund.png" class="pet-base">
+        <div class="nft-layers">
+            <img src="assets/nft/glasses_cyber.png" id="layer-glasses" class="nft-item">
+            <img src="assets/nft/hat_sheriff.png" id="layer-hat" class="nft-item">
+        </div>
     </div>
 
-    <div style="margin-top: 20px; width:100%; display:flex; justify-content:center;">
-        <div class="energy-cont">
-            <div class="energy-bar"><div class="energy-fill" id="en-fill"></div></div>
-            <div class="energy-text"><span id="en-curr">1000</span> / 1000 ⚡</div>
-        </div>
+    <div class="energy-section">
+        <div class="energy-bar"><div class="energy-fill" id="en-fill"></div></div>
+        <div class="energy-text"><span id="en-curr">1000</span> / 1000 ⚡</div>
     </div>
 </main>
 
+<nav class="bottom-nav">
+    <div class="nav-item" onclick="openNFTModal()"><i class="fas fa-store"></i><span>NFT Маркет</span></div>
+    <div class="nav-item" id="ton-btn"></div>
+    <div class="nav-item" onclick="openInventory()"><i class="fas fa-briefcase"></i><span>Инвентарь</span></div>
+</nav>
+
 <div id="nft-modal" class="modal">
-    <div class="modal-header">
-        <h3>NFT COLLECTION</h3>
-        <i class="fas fa-times close-icon" onclick="closeModal('nft-modal')"></i>
-    </div>
-    <div class="modal-body">
-        <div class="tabs">
-            <div class="tab active" onclick="switchNftTab('market')">МАРКЕТ</div>
-            <div class="tab" onclick="switchNftTab('inventory')">МОИ АКТИВЫ</div>
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="modal-title">Маркетплейс</h2>
+            <i class="fas fa-times" onclick="closeModal()"></i>
         </div>
-
-        <div id="view-market" class="nft-grid">
-            </div>
-
-        <div id="view-inventory" class="nft-grid" style="display:none;">
-            </div>
+        <div id="nft-list" class="nft-grid"></div>
     </div>
 </div>
 
-<div id="game-modal" class="modal">...</div>
-<div id="boost-modal" class="modal">...</div>
-
 <script src="js/nft_manager.js"></script>
 <script src="js/app.js"></script>
-
 </body>
 </html>

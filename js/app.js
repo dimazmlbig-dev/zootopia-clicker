@@ -1,103 +1,58 @@
-let state = {
-    bones: 0,
-    zoo: 0,
-    energy: 1000,
-    inventory: [],
-    equipped: { glasses: false, hat: false }
-};
-
-const tg = window.Telegram.WebApp;
-tg.expand();
-
-// Обновление цифр
-function updateUI() {
-    document.getElementById('bones-display').innerText = Math.floor(state.bones).toLocaleString();
-    document.getElementById('zoo-display').innerText = state.zoo.toFixed(4);
-    document.getElementById('en-curr').innerText = Math.floor(state.energy);
-    document.getElementById('en-fill').style.width = (state.energy / 10) + '%';
-}
-
-// Тап по таксе
+// Обработка тапа
 document.getElementById('tap-zone').addEventListener('touchstart', (e) => {
     e.preventDefault();
-    if (state.energy >= 1) {
-        let power = 1;
-        if(state.equipped.glasses) power += 5;
-        if(state.equipped.hat) power += 15;
+    
+    // Проверка энергии
+    if (state.energy >= state.tapCost) {
+        const touch = e.touches[0];
+        
+        // 1. Рассчитываем силу удара (база + NFT)
+        let power = state.tapPower;
+        
+        // Проверяем надетые слои (активны ли они)
+        if (document.getElementById('layer-glasses').classList.contains('active')) power += 5;
+        if (document.getElementById('layer-hat').classList.contains('active')) power += 15;
 
+        // 2. Обновляем состояние
         state.bones += power;
         state.zoo += (power * 0.0001);
-        state.energy -= 1;
+        state.energy -= state.tapCost;
+
+        // 3. Визуальные эффекты
+        createParticle(touch.clientX, touch.clientY, `+${power}`);
+        createRipple(touch.clientX, touch.clientY);
         
-        document.getElementById('dog-hero').style.transform = 'scale(0.95)';
-        setTimeout(() => document.getElementById('dog-hero').style.transform = 'scale(1)', 50);
-        
+        // Хэптик (вибрация) для Telegram
+        if (window.Telegram.WebApp.HapticFeedback) {
+            window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
+        }
+
         updateUI();
-        tg.HapticFeedback.impactOccurred('light');
+    } else {
+        // Эффект тряски, если нет энергии
+        document.getElementById('tap-zone').classList.add('shake');
+        setTimeout(() => document.getElementById('tap-zone').classList.remove('shake'), 300);
     }
 });
 
-// Работа с модалками
-function openNFTModal() {
-    document.getElementById('modal-title').innerText = "Маркетплейс";
-    const list = document.getElementById('nft-list');
-    list.innerHTML = `
-        <div class="nft-card">
-            <img src="assets/nft/glasses_cyber.png">
-            <b>Cyber Glasses</b><br><small>+5 к тапу</small>
-            <button onclick="buyNFT('glasses')" style="width:100%; margin-top:10px;">10 $ZOO</button>
-        </div>
-    `;
-    document.getElementById('nft-modal').style.display = 'block';
+function createParticle(x, y, text) {
+    const p = document.createElement('div');
+    p.className = 'tap-particle';
+    p.innerText = text;
+    p.style.left = `${x - 10}px`;
+    p.style.top = `${y - 20}px`;
+    document.body.appendChild(p);
+    
+    setTimeout(() => p.remove(), 800);
 }
 
-function buyNFT(type) {
-    const price = (type === 'glasses') ? 10 : 25;
-    if (state.zoo >= price) {
-        state.zoo -= price;
-        const newNft = NFTManager.generateNFT(type);
-        state.inventory.push(newNft);
-        updateUI();
-        tg.showAlert("NFT куплено! Проверьте инвентарь.");
-    } else {
-        tg.showAlert("Недостаточно $ZOO");
-    }
+function createRipple(x, y) {
+    const r = document.createElement('div');
+    r.className = 'tap-glow';
+    // Центрируем относительно места нажатия
+    r.style.left = `${x - 100}px`;
+    r.style.top = `${y - 100}px`;
+    document.body.appendChild(r);
+    
+    setTimeout(() => r.remove(), 400);
 }
-
-function openInventory() {
-    document.getElementById('modal-title').innerText = "Мои NFT";
-    const list = document.getElementById('nft-list');
-    list.innerHTML = state.inventory.map((item, index) => `
-        <div class="nft-card">
-            <div style="font-size:10px; color:#fbbf24">${item.id}</div>
-            <img src="${item.qr}" class="qr-small">
-            <div>${item.name}</div>
-            <button onclick="equipNFT('${item.type}', ${index})" style="width:100%; margin-top:5px;">
-                ${state.equipped[item.type] ? 'Снять' : 'Надеть'}
-            </button>
-        </div>
-    `).join('');
-    document.getElementById('nft-modal').style.display = 'block';
-}
-
-function equipNFT(type, index) {
-    state.equipped[type] = !state.equipped[type];
-    const layer = document.getElementById(`layer-${type}`);
-    if(state.equipped[type]) {
-        layer.classList.add('active');
-    } else {
-        layer.classList.remove('active');
-    }
-    closeModal();
-}
-
-function closeModal() { document.getElementById('nft-modal').style.display = 'none'; }
-
-// Регенерация энергии
-setInterval(() => { if(state.energy < 1000) { state.energy++; updateUI(); }}, 1000);
-
-// Инициализация TON Connect
-const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-    manifestUrl: 'https://raw.githubusercontent.com/ton-connect/demo-dapp-with-react-ui/master/public/tonconnect-manifest.json',
-    buttonRootId: 'ton-btn'
-});

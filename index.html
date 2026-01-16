@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Zootopia Clicker</title>
+    <title>Zootopia Ultimate</title>
 
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://unpkg.com/@tonconnect/ui@2.0.3/dist/tonconnect-ui.min.js"></script>
@@ -12,268 +12,102 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&family=Orbitron:wght@700&display=swap');
 
-        :root {
-            --blue: #1A5CC7;
-            --gold: #FFD700;
-            --accent: #FF8D29;
-            --dark: #0f2345;
-        }
-
-        * {
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
-            user-select: none;
-        }
+        :root { --blue: #1A5CC7; --gold: #FFD700; --accent: #FF8D29; --dark: #0f2345; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
 
         body {
             font-family: 'Fredoka', sans-serif;
             background: linear-gradient(165deg, #2A75FF 0%, #1A5CC7 70%, #0f2345 100%);
-            color: white;
-            margin: 0;
-            height: 100vh;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
+            color: white; margin: 0; height: 100vh; overflow: hidden;
+            display: flex; flex-direction: column;
         }
 
-        .header {
-            text-align: center;
-            padding: calc(env(safe-area-inset-top) + 12px) 16px 8px;
-            z-index: 100;
-            background: rgba(0,0,0,0.15);
-            backdrop-filter: blur(8px);
-        }
+        /* --- UI ЭЛЕМЕНТЫ --- */
+        .header { text-align: center; padding: calc(env(safe-area-inset-top) + 12px) 16px 8px; z-index: 100; background: rgba(0,0,0,0.15); backdrop-filter: blur(8px); }
+        .score { font-family: 'Orbitron', sans-serif; font-size: 42px; font-weight: 700; line-height: 1; }
+        .zoo-val { font-family: 'Orbitron', sans-serif; font-size: 14px; color: var(--gold); margin-top: 4px; opacity: 0.9; }
 
-        .score {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 3.8rem;
-            font-weight: 700;
-            line-height: 0.9;
-            letter-spacing: -1px;
-        }
+        .main-view { flex: 1; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 
-        .zoo-val {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 1.1rem;
-            color: var(--gold);
-            margin-top: 4px;
-            opacity: 0.9;
-        }
-
-        /* Облачка */
+        /* ОБЛАЧКА */
         .bubble {
-            position: absolute;
-            background: rgba(255,255,255,0.92);
-            color: #1A5CC7;
-            border-radius: 24px;
-            padding: 10px 14px;
-            font-weight: 600;
-            font-size: 13px;
-            text-align: center;
-            box-shadow: 0 6px 0 rgba(0,0,0,0.18);
-            border: 3px solid #fff;
-            backdrop-filter: blur(4px);
-            cursor: pointer;
-            z-index: 50;
-            min-width: 92px;
-            transition: transform 0.12s;
+            position: absolute; background: rgba(255,255,255,0.95); color: #1A5CC7;
+            border-radius: 20px; padding: 8px 12px; font-weight: 600; font-size: 12px;
+            text-align: center; box-shadow: 0 4px 0 rgba(0,0,0,0.15); border: 2px solid #fff;
+            cursor: pointer; z-index: 50; min-width: 85px; transition: 0.1s;
         }
-
-        .bubble:active {
-            transform: scale(0.92);
-        }
-
+        .bubble:active { transform: scale(0.95); }
         .bubble::after {
-            content: '';
-            position: absolute;
-            width: 14px;
-            height: 14px;
-            background: rgba(255,255,255,0.92);
-            border: 3px solid #fff;
-            border-top: none;
-            border-left: none;
-            transform: rotate(45deg);
+            content: ''; position: absolute; width: 10px; height: 10px;
+            background: rgba(255,255,255,0.95); border: 2px solid #fff;
+            border-top: none; border-left: none; transform: rotate(45deg);
         }
+        .b-left::after { right: -6px; top: 50%; margin-top: -6px; }
+        .b-right::after { left: -6px; top: 50%; margin-top: -6px; }
 
-        .b-left::after  { right: -7px; top: 50%; margin-top: -7px; }
-        .b-right::after { left:  -7px; top: 50%; margin-top: -7px; }
+        /* Позиции */
+        .pos-1 { top: 15%; left: 4%; }  .pos-4 { top: 15%; right: 4%; }
+        .pos-2 { top: 35%; left: 4%; }  .pos-5 { top: 35%; right: 4%; }
+        .pos-3 { top: 55%; left: 4%; }  .pos-6 { top: 55%; right: 4%; }
 
-        .pos-1 { top: 18%; left: 4%; }
-        .pos-2 { top: 38%; left: 4%; }
-        .pos-3 { top: 58%; left: 4%; }
-        .pos-4 { top: 18%; right: 4%; }
-        .pos-5 { top: 38%; right: 4%; }
-        .pos-6 { top: 58%; right: 4%; }
+        /* ТАКСА И СЛОИ */
+        .character-box { position: relative; width: 65vw; max-width: 280px; aspect-ratio: 1; cursor: pointer; }
+        .main-pet { width: 100%; filter: drop-shadow(0 10px 20px rgba(0,0,0,0.4)); transition: 0.1s; }
+        .character-box:active .main-pet { transform: scale(1.05); }
+        
+        .nft-overlay { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity 0.3s; z-index: 10; width: 100%; }
+        .nft-overlay.active { opacity: 1; }
 
-        .main-view {
-            flex: 1;
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 0 16px;
-        }
+        .evo-tag { background: rgba(255,255,255,0.2); backdrop-filter: blur(5px); padding: 5px 15px; border-radius: 20px; font-size: 14px; margin-bottom: 15px; font-weight: 600; }
 
-        .evo-tag {
-            background: rgba(255,255,255,0.18);
-            backdrop-filter: blur(6px);
-            padding: 6px 18px;
-            border-radius: 30px;
-            font-size: 15px;
-            margin-bottom: 16px;
-            font-weight: 600;
-        }
+        /* ЭНЕРГИЯ */
+        .energy-box { width: 85%; max-width: 360px; background: rgba(0,0,0,0.3); border-radius: 20px; padding: 12px 18px; margin-top: 20px; backdrop-filter: blur(6px); }
+        .energy-bar { height: 12px; background: rgba(255,255,255,0.1); border-radius: 6px; overflow: hidden; margin-top: 5px; }
+        .energy-fill { height: 100%; background: linear-gradient(90deg, #FFD700, #FFAB00); width: 100%; transition: width 0.4s; }
 
-        .character-box {
-            position: relative;
-            width: 62vw;
-            max-width: 260px;
-            aspect-ratio: 1;
-            cursor: pointer;
-        }
+        /* МОДАЛКИ */
+        .modal { position: fixed; inset: 0; background: rgba(10,20,50,0.95); backdrop-filter: blur(10px); z-index: 1000; display: none; flex-direction: column; padding: 30px 20px; color: white; }
+        .modal.active { display: flex; animation: fadeIn 0.2s; }
+        .close-btn { align-self: flex-end; font-size: 30px; margin-bottom: 10px; cursor: pointer; }
+        @keyframes fadeIn { from {opacity: 0;} to {opacity: 1;} }
 
-        .main-pet {
-            width: 100%;
-            filter: drop-shadow(0 14px 28px rgba(0,0,0,0.45));
-            transition: transform 0.15s;
-        }
+        /* СЕТКА ИГРЫ И МАГАЗИНА */
+        .grid-container { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-top: 10px; }
+        .game-cell { aspect-ratio: 1; background: rgba(255,255,255,0.1); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 20px; cursor: pointer; }
+        
+        .shop-item { background: rgba(255,255,255,0.1); padding: 15px; border-radius: 15px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .btn-action { background: var(--gold); border: none; padding: 8px 15px; border-radius: 10px; font-weight: bold; color: #000; cursor: pointer; }
+        .btn-owned { background: #4CAF50; color: white; cursor: default; }
 
-        .character-box:active .main-pet {
-            transform: scale(1.08);
-        }
-
-        .nft-overlay {
-            position: absolute;
-            inset: 0;
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.4s;
-        }
-
-        .nft-overlay.active {
-            opacity: 1;
-        }
-
-        .energy-box {
-            width: 86%;
-            max-width: 360px;
-            background: rgba(0,0,0,0.35);
-            border-radius: 24px;
-            padding: 14px 18px;
-            margin-top: 24px;
-            backdrop-filter: blur(6px);
-        }
-
-        .energy-bar {
-            height: 14px;
-            background: rgba(255,255,255,0.12);
-            border-radius: 7px;
-            overflow: hidden;
-            margin-top: 8px;
-        }
-
-        .energy-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #FFD700, #FFAB00);
-            width: 100%;
-            transition: width 0.4s ease-out;
-        }
-
-        .nav-bar {
-            height: 78px;
-            display: flex;
-            background: rgba(0,0,0,0.4);
-            border-top: 1px solid rgba(255,255,255,0.12);
-            backdrop-filter: blur(10px);
-        }
-
-        .nav-item {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            font-size: 11px;
-            color: #a0c0ff;
-            transition: color 0.2s;
-        }
-
-        .nav-item.active {
-            color: white;
-        }
-
-        .nav-item i {
-            font-size: 22px;
-            margin-bottom: 3px;
-        }
-
-        /* Модальные окна */
-        .modal {
-            position: fixed;
-            inset: 0;
-            background: rgba(10,20,50,0.94);
-            backdrop-filter: blur(8px);
-            z-index: 1000;
-            display: none;
-            flex-direction: column;
-            padding: 24px 20px;
-            color: white;
-        }
-
-        .modal.active {
-            display: flex;
-        }
-
-        .close-modal {
-            align-self: flex-end;
-            font-size: 36px;
-            font-weight: 300;
-            margin-bottom: 12px;
-            opacity: 0.7;
-        }
-
-        /* Анимация +tap */
-        @keyframes tapFade {
-            0%   { opacity: 1; transform: translateY(0) scale(1); }
-            100% { opacity: 0; transform: translateY(-80px) scale(1.4); }
-        }
-
-        .tap-text {
-            position: fixed;
-            pointer-events: none;
-            font-family: 'Orbitron', sans-serif;
-            font-weight: bold;
-            font-size: 28px;
-            color: var(--gold);
-            text-shadow: 0 0 12px rgba(255,215,0,0.8);
-            z-index: 200;
-            animation: tapFade 1.1s forwards;
-        }
+        /* НАВИГАЦИЯ */
+        .nav-bar { height: 75px; display: flex; background: rgba(0,0,0,0.3); border-top: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px); }
+        .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 11px; color: #a0c0ff; }
+        .nav-item.active { color: white; }
+        .nav-item i { font-size: 22px; margin-bottom: 4px; }
     </style>
 </head>
 <body>
 
 <header class="header">
-    <div class="score" id="bones">357</div>
-    <div class="zoo-val">$ZOO: <span id="zoo">0.0788</span></div>
+    <div class="score" id="bones">0</div>
+    <div class="zoo-val">$ZOO: <span id="zoo">0.0000</span></div>
 </header>
 
 <main class="main-view">
+    <div class="bubble b-right pos-1" onclick="tg.showAlert('Топ игроков загружается...')">ТОП</div>
+    <div class="bubble b-right pos-2" onclick="openModal('news-modal')">НОВОСТИ</div>
+    <div class="bubble b-right pos-3" onclick="openModal('game-modal')">3 В РЯД</div>
 
-    <div class="bubble b-right pos-1">ТОП</div>
-    <div class="bubble b-right pos-2">НОВОСТИ</div>
-    <div class="bubble b-right pos-3">3 В РЯД</div>
-    <div class="bubble b-left pos-4">NFT</div>
-    <div class="bubble b-left pos-5" id="ton-connect-btn-root">КОШЕЛЁК</div>
-    <div class="bubble b-left pos-6">МАГАЗИН</div>
+    <div class="bubble b-left pos-4" onclick="openModal('nft-modal')">NFT</div>
+    <div class="bubble b-left pos-5" id="ton-connect-btn">КОШЕЛЁК</div>
+    <div class="bubble b-left pos-6" onclick="openModal('shop-modal')">МАГАЗИН</div>
 
     <div class="evo-tag" id="evo-label">МАЛЫШ ТАКСА 🐾</div>
 
     <div class="character-box" id="tap-area">
-        <img src="nft_glasses.png"   id="nft-glasses"   class="nft-overlay">
-        <img src="nft_hat.png"       id="nft-hat"       class="nft-overlay">
-        <img src="dachshund.png"     id="main-pet"      class="main-pet">
+        <img src="nft_glasses.png" id="layer-glasses" class="nft-overlay">
+        <img src="nft_hat.png" id="layer-hat" class="nft-overlay">
+        <img src="dachshund.png" class="main-pet">
     </div>
 
     <div class="energy-box">
@@ -281,146 +115,203 @@
             <span>⚡ ЭНЕРГИЯ</span>
             <span id="energy-text">999 / 1000</span>
         </div>
-        <div class="energy-bar">
-            <div class="energy-fill" id="energy-fill"></div>
-        </div>
+        <div class="energy-bar"><div class="energy-fill" id="energy-fill"></div></div>
     </div>
 </main>
 
-<!-- Пример простого модального окна (можно расширить) -->
-<div id="simple-modal" class="modal">
-    <span class="close-modal" onclick="closeModal('simple-modal')">×</span>
-    <h2 style="margin:0 0 16px 0">Заголовок</h2>
-    <p>Содержимое модального окна...</p>
+<div id="game-modal" class="modal">
+    <div class="close-btn" onclick="closeModal('game-modal')">&times;</div>
+    <h2>Zootopia Match</h2>
+    <p>Кликай по элементам!</p>
+    <div id="game-grid" class="grid-container"></div>
+    <p style="text-align:center; margin-top:20px;">Награда: <span id="game-reward" style="color:var(--gold)">0</span> $ZOO</p>
+</div>
+
+<div id="news-modal" class="modal">
+    <div class="close-btn" onclick="closeModal('news-modal')">&times;</div>
+    <h2>Новости 📰</h2>
+    <div class="shop-item">
+        <div><b>Глобальное обновление</b><br><small>Добавлена мини-игра и NFT!</small></div>
+    </div>
+    <div class="shop-item">
+        <div><b>Листинг $ZOO</b><br><small>Скоро на биржах...</small></div>
+    </div>
+</div>
+
+<div id="shop-modal" class="modal">
+    <div class="close-btn" onclick="closeModal('shop-modal')">&times;</div>
+    <h2>Магазин Бустов 🚀</h2>
+    <div class="shop-item">
+        <div><b>Сила клика</b><br><small id="tap-price">500 🦴</small></div>
+        <button class="btn-action" onclick="upgradeTap()">Lvl <span id="tap-lvl">1</span></button>
+    </div>
+</div>
+
+<div id="nft-modal" class="modal">
+    <div class="close-btn" onclick="closeModal('nft-modal')">&times;</div>
+    <h2>NFT Гардероб 🧢</h2>
+    <div class="shop-item">
+        <div style="display:flex; align-items:center; gap:10px;">
+            <img src="nft_glasses.png" width="40">
+            <div><b>Очки Cyber</b><br><small>10 $ZOO</small></div>
+        </div>
+        <button id="btn-glasses" class="btn-action" onclick="buyNFT('glasses', 10)">Купить</button>
+    </div>
+    <div class="shop-item">
+        <div style="display:flex; align-items:center; gap:10px;">
+            <img src="nft_hat.png" width="40">
+            <div><b>Шляпа Шерифа</b><br><small>25 $ZOO</small></div>
+        </div>
+        <button id="btn-hat" class="btn-action" onclick="buyNFT('hat', 25)">Купить</button>
+    </div>
 </div>
 
 <nav class="nav-bar">
     <div class="nav-item active"><i class="fas fa-bone"></i>Главная</div>
-    <div class="nav-item"><i class="fas fa-rocket"></i>Прокачка</div>
-    <div class="nav-item"><i class="fas fa-trophy"></i>Достижения</div>
+    <div class="nav-item" onclick="openModal('shop-modal')"><i class="fas fa-rocket"></i>Прокачка</div>
+    <div class="nav-item" onclick="tg.showAlert('Скоро!')"><i class="fas fa-trophy"></i>Достижения</div>
 </nav>
 
 <script>
-// ==================== СОСТОЯНИЕ ИГРЫ ====================
-const tg = window.Telegram?.WebApp || {};
-if (tg?.ready) {
-    tg.ready();
+    const tg = window.Telegram.WebApp;
     tg.expand();
-}
 
-const state = {
-    bones: 357,
-    zoo: 0.0788,
-    energy: 999,
-    maxEnergy: 1000,
-    tapPower: 1,
-    tapLevel: 1,
-    energyRegenLevel: 1,
-    lastUpdate: Date.now(),
-    // Для будущей защиты
-    integrityHash: null
-};
+    // СОСТОЯНИЕ
+    let state = {
+        bones: 357, zoo: 50.0788, energy: 999, maxEnergy: 1000,
+        tapLvl: 1, ownedNFTs: []
+    };
 
-// ==================== TON CONNECT ====================
-let tonConnectUI;
+    // TON CONNECT
+    const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+        manifestUrl: 'https://raw.githubusercontent.com/ton-connect/demo-dapp-with-react-ui/master/public/tonconnect-manifest.json',
+        buttonRootId: 'ton-connect-btn'
+    });
 
-try {
-    tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-        manifestUrl: 'https://your-domain.com/tonconnect-manifest.json', // ← ОБЯЗАТЕЛЬНО СВОЙ!
-        buttonRootId: 'ton-connect-btn-root',
-        uiPreferences: {
-            theme: 'DARK'
+    // ОБНОВЛЕНИЕ UI
+    function updateUI() {
+        document.getElementById('bones').innerText = Math.floor(state.bones).toLocaleString();
+        document.getElementById('zoo').innerText = state.zoo.toFixed(4);
+        document.getElementById('energy-text').innerText = `${Math.floor(state.energy)} / ${state.maxEnergy}`;
+        document.getElementById('energy-fill').style.width = (state.energy / state.maxEnergy * 100) + '%';
+        
+        document.getElementById('tap-lvl').innerText = state.tapLvl;
+        document.getElementById('tap-price').innerText = (state.tapLvl * 500) + " 🦴";
+
+        // Эволюция текста
+        let label = document.getElementById('evo-label');
+        if(state.tapLvl >= 10) label.innerText = "КИБЕР ТАКСА 😎";
+        else if(state.tapLvl >= 5) label.innerText = "ОПЫТНЫЙ ПЁС 🐕";
+    }
+
+    // ТАП
+    document.getElementById('tap-area').addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        if (state.energy >= 2) {
+            state.energy -= 2;
+            state.bones += state.tapLvl;
+            state.zoo += 0.0001 * state.tapLvl;
+            updateUI();
+            tg.HapticFeedback.impactOccurred('medium');
+            
+            // Анимация цифры
+            let touch = e.touches[0];
+            let el = document.createElement('div');
+            el.innerText = `+${state.tapLvl}`;
+            el.style.position = 'fixed';
+            el.style.left = touch.clientX + 'px';
+            el.style.top = touch.clientY + 'px';
+            el.style.color = '#FFD700';
+            el.style.fontWeight = 'bold';
+            el.style.zIndex = 100;
+            el.style.animation = 'floatUp 1s forwards';
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 1000);
         }
     });
 
-    tonConnectUI.onStatusChange(wallet => {
-        if (wallet) {
-            console.log('Wallet connected:', wallet);
-            tg?.showPopup?.({title:'Успех', message:'Кошелёк подключён!'});
+    // МАГАЗИН БУСТОВ
+    function upgradeTap() {
+        let cost = state.tapLvl * 500;
+        if (state.bones >= cost) {
+            state.bones -= cost;
+            state.tapLvl++;
+            updateUI();
+            tg.showAlert(`Уровень повышен до ${state.tapLvl}!`);
+        } else {
+            tg.showAlert("Не хватает костей!");
         }
-    });
-} catch(e) {
-    console.warn('TON Connect init failed', e);
-}
+    }
 
-// ==================== ОСНОВНАЯ ЛОГИКА ====================
-function updateUI() {
-    document.getElementById('bones').textContent = Math.floor(state.bones).toLocaleString();
-    document.getElementById('zoo').textContent = state.zoo.toFixed(4);
-    document.getElementById('energy-text').textContent = `${Math.floor(state.energy)} / ${state.maxEnergy}`;
-    document.getElementById('energy-fill').style.width = (state.energy / state.maxEnergy * 100) + '%';
+    // ПОКУПКА NFT
+    function buyNFT(id, price) {
+        if (state.zoo >= price && !state.ownedNFTs.includes(id)) {
+            state.zoo -= price;
+            state.ownedNFTs.push(id);
+            
+            // Надеваем вещь
+            document.getElementById(`layer-${id}`).classList.add('active');
+            
+            // Меняем кнопку
+            let btn = document.getElementById(`btn-${id}`);
+            btn.innerText = "КУПЛЕНО";
+            btn.classList.add('btn-owned');
+            btn.onclick = null;
+            
+            updateUI();
+            tg.showAlert("Предмет успешно надет!");
+        } else {
+            tg.showAlert("Недостаточно $ZOO или предмет уже куплен!");
+        }
+    }
 
-    // Эволюция (пример)
-    let evo = "МАЛЫШ ТАКСА 🐾";
-    if (state.tapLevel >= 10) evo = "БОГАТЫЙ ТАКС 🤑";
-    else if (state.tapLevel >= 5) evo = "КРУТОЙ ТАКС 💪";
-    document.getElementById('evo-label').textContent = evo;
-}
+    // МИНИ-ИГРА 3 В РЯД (Упрощенная)
+    function initGame() {
+        const grid = document.getElementById('game-grid');
+        grid.innerHTML = '';
+        const icons = ['🦴','🥩','🎾','💎'];
+        
+        for(let i=0; i<25; i++) {
+            let cell = document.createElement('div');
+            cell.className = 'game-cell';
+            cell.innerText = icons[Math.floor(Math.random() * icons.length)];
+            cell.onclick = () => {
+                state.zoo += 0.005;
+                cell.innerText = icons[Math.floor(Math.random() * icons.length)];
+                let reward = document.getElementById('game-reward');
+                reward.innerText = (parseFloat(reward.innerText) + 0.005).toFixed(3);
+                updateUI();
+                tg.HapticFeedback.selectionChanged();
+            };
+            grid.appendChild(cell);
+        }
+    }
 
-function createTapText(x, y, value) {
-    const el = document.createElement('div');
-    el.className = 'tap-text';
-    el.textContent = '+' + value;
-    el.style.left = x + 'px';
-    el.style.top  = y + 'px';
-    document.body.appendChild(el);
-    setTimeout(() => el.remove(), 1200);
-}
+    // УПРАВЛЕНИЕ МОДАЛКАМИ
+    function openModal(id) {
+        document.getElementById(id).classList.add('active');
+        if(id === 'game-modal') initGame();
+    }
+    function closeModal(id) {
+        document.getElementById(id).classList.remove('active');
+    }
 
-function handleTap(e) {
-    if (state.energy < 2) return;
+    // РЕГЕНЕРАЦИЯ
+    setInterval(() => {
+        if (state.energy < state.maxEnergy) {
+            state.energy = Math.min(state.maxEnergy, state.energy + 2);
+            updateUI();
+        }
+    }, 1000);
 
-    const now = Date.now();
-    const power = state.tapPower;
-
-    state.bones += power;
-    state.zoo += 0.00015 * power;     // чуть более ощутимая экономика
-    state.energy -= 2;
-
-    // Анимация
-    const x = e.touches ? e.touches[0].clientX : e.clientX;
-    const y = e.touches ? e.touches[0].clientY : e.clientY;
-    createTapText(x, y, power);
-
-    tg?.HapticFeedback?.impactOccurred('medium');
+    // СТИЛИ АНИМАЦИИ
+    const style = document.createElement('style');
+    style.innerHTML = `
+        @keyframes floatUp { 0% { opacity:1; transform:translateY(0); } 100% { opacity:0; transform:translateY(-50px); } }
+    `;
+    document.head.appendChild(style);
 
     updateUI();
-    // saveGame(); // пока локально, потом на сервер
-}
-
-// Восстановление энергии
-function restoreEnergy() {
-    const now = Date.now();
-    const deltaSec = (now - state.lastUpdate) / 1000;
-
-    const regenRate = 0.8 + (state.energyRegenLevel * 0.4); // базово 0.8 → 2.0 в сек
-    const restored = deltaSec * regenRate;
-
-    state.energy = Math.min(state.maxEnergy, state.energy + restored);
-    state.lastUpdate = now;
-
-    updateUI();
-}
-
-setInterval(restoreEnergy, 800); // чуть чаще, чем секунда для плавности
-
-// ==================== СОБЫТИЯ ====================
-document.getElementById('tap-area').addEventListener('click', handleTap);
-document.getElementById('tap-area').addEventListener('touchstart', e => {
-    e.preventDefault();
-    handleTap(e);
-}, {passive: false});
-
-updateUI();
-restoreEnergy(); // первый вызов
-
-// Для разработки: быстрый способ дать себе ресурсы (удалить перед продакшеном!)
-window.giveMeMoney = function(amount = 10000) {
-    state.bones += amount;
-    state.zoo += amount * 0.001;
-    updateUI();
-    console.warn(`Добавлено ${amount} костей (для теста)`);
-};
 </script>
 </body>
 </html>

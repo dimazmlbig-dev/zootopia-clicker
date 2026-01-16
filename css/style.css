@@ -1,86 +1,41 @@
-:root {
-    --bg: #05080f;
-    --card: rgba(255, 255, 255, 0.05);
-    --accent: #007aff;
-    --gold: linear-gradient(45deg, #f39c12, #f1c40f);
-    --glass: rgba(255, 255, 255, 0.08);
-}
-
-body {
-    background: var(--bg);
-    color: white;
-    font-family: 'Inter', sans-serif;
-    overflow: hidden;
-}
-
-/* Эффект свечения на фоне */
-.bg-glow {
+/* Стиль для всплывающих цифр при клике */
+.tap-particle {
     position: fixed;
-    top: -10%; left: -10%;
-    width: 40%; height: 40%;
-    background: radial-gradient(circle, rgba(0, 122, 255, 0.15), transparent);
-    filter: blur(80px);
-    z-index: -1;
+    pointer-events: none;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 24px;
+    font-weight: 800;
+    color: #ffffff;
+    text-shadow: 0 0 10px rgba(59, 130, 246, 0.8), 0 0 20px rgba(59, 130, 246, 0.4);
+    z-index: 1000;
+    animation: flyUp 0.8s ease-out forwards;
 }
 
-/* Карточка персонажа */
-.character-card {
-    background: radial-gradient(circle at center, var(--glass), transparent);
+@keyframes flyUp {
+    0% {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(-120px) scale(1.5);
+        opacity: 0;
+    }
+}
+
+/* Эффект свечения под собакой при тапе */
+.tap-glow {
+    position: absolute;
+    width: 200px;
+    height: 200px;
+    background: radial-gradient(circle, rgba(59, 130, 246, 0.4) 0%, transparent 70%);
     border-radius: 50%;
-    width: 85vw;
-    height: 85vw;
-    max-width: 350px;
-    max-height: 350px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 0 50px rgba(0,0,0,0.5);
-    border: 1px solid rgba(255,255,255,0.1);
+    pointer-events: none;
+    z-index: 5;
+    transform: scale(0);
+    animation: ripple 0.4s ease-out;
 }
 
-.dog-base {
-    width: 100%;
-    filter: drop-shadow(0 20px 30px rgba(0,0,0,0.8));
-    animation: floating 4s ease-in-out infinite;
-}
-
-/* Нижнее меню */
-.bottom-nav {
-    position: fixed;
-    bottom: 20px;
-    left: 20px; right: 20px;
-    background: rgba(15, 15, 15, 0.8);
-    backdrop-filter: blur(20px);
-    border-radius: 25px;
-    display: flex;
-    justify-content: space-around;
-    padding: 12px;
-    border: 1px solid rgba(255,255,255,0.1);
-}
-
-.nav-item {
-    background: none; border: none; color: #666;
-    display: flex; flex-direction: column; align-items: center; gap: 5px;
-    font-size: 10px; transition: 0.3s;
-}
-
-.nav-item.active { color: var(--accent); transform: translateY(-5px); }
-.nav-item i { font-size: 20px; }
-
-/* NFT Карточки */
-.nft-card {
-    background: var(--card);
-    border-radius: 15px;
-    padding: 10px;
-    border: 1px solid rgba(255,255,255,0.1);
-    text-align: center;
-}
-
-.nft-card .qr-mini {
-    width: 40px; height: 40px; background: white; margin: 5px auto; border-radius: 5px;
-}
-
-@keyframes floating {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-15px); }
+@keyframes ripple {
+    from { transform: scale(0.5); opacity: 1; }
+    to { transform: scale(2); opacity: 0; }
 }

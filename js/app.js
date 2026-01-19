@@ -22,13 +22,13 @@ const state = {
 function init() {
     tg.ready();
     WalletManager.init();
+    SwapManager.init(); // ИНИЦИАЛИЗИРУЕМ ОБМЕННИК
 
     const user = tg.initDataUnsafe?.user;
     if (user) {
         document.getElementById('user-name').innerText = user.first_name || 'Player';
-        const avatarImg = document.querySelector('.avatar');
         if (user.photo_url) {
-            avatarImg.src = user.photo_url;
+            document.querySelector('.avatar').src = user.photo_url;
         }
     }
 
@@ -37,7 +37,6 @@ function init() {
     MiningManager.updateMiningUI();
     TaskManager.updateTasksUI();
     
-    // Основной игровой цикл
     setInterval(() => {
         regenerateEnergy();
         if (document.getElementById('page-mine').style.display === 'block') {
@@ -45,7 +44,6 @@ function init() {
         }
     }, 1000);
     
-    // Назначаем обработчики
     const tapZone = document.getElementById('tap-zone');
     tapZone.addEventListener('touchstart', handleTap);
     tapZone.addEventListener('mousedown', handleTap);
@@ -56,37 +54,50 @@ function updateUI() {
     document.getElementById('balance').innerText = Math.floor(state.bones);
     document.getElementById('zoo-balance').innerText = `${state.zoo.toFixed(4)} $ZOO`;
     document.getElementById('current-energy').innerText = state.energy;
-    
-    const energyPercentage = (state.energy / state.maxEnergy) * 100;
-    document.getElementById('energy-bar').style.width = `${energyPercentage}%`;
+    document.getElementById('energy-bar').style.width = `${(state.energy / state.maxEnergy) * 100}%`;
 }
 
 // --- Логика вкладок ---
 function showTab(tabName) {
-    // ... (код без изменений)
+    const pages = document.querySelectorAll('.page-content');
+    pages.forEach(p => p.style.display = 'none');
+    
+    const nftSheet = document.getElementById('nft-sheet');
+    if (tabName === 'nft') {
+        nftSheet.classList.add('visible');
+        document.getElementById('page-main').style.display = 'block';
+    } else {
+        nftSheet.classList.remove('visible');
+        const pageToShow = document.getElementById(`page-${tabName}`);
+        if (pageToShow) pageToShow.style.display = 'block';
+    }
+
+    if (tabName === 'mine') MiningManager.updateMiningUI();
+    if (tabName === 'tasks') TaskManager.updateTasksUI();
+    if (tabName === 'swap') SwapManager.updateUI(); // ОБНОВЛЯЕМ UI ОБМЕННИКА
+
+    const navItems = document.querySelectorAll('.nav-item');
+    navItems.forEach(item => {
+        item.classList.remove('active');
+        if (item.getAttribute('onclick').includes(`'${tabName}'`)) {
+            item.classList.add('active');
+        }
+    });
 }
 
 // --- ЕДИНЫЙ ОБРАБОТЧИК ТАПОВ/КЛИКОВ ---
 function handleTap(e) {
     e.preventDefault();
-    
-    // Для mousedown используем сам объект события, для touchstart - массив touches
     const points = e.touches ? e.touches : [e];
-
-    if (state.energy < state.tapCost * points.length) {
-        // Эффект тряски, если нет энергии
-        return;
-    }
+    if (state.energy < state.tapCost * points.length) return;
 
     for (let i = 0; i < points.length; i++) {
         const point = points[i];
         let power = state.tapPower;
-
         state.bones += power;
         state.zoo += (power * 0.0001);
         state.energy -= state.tapCost;
         state.tasks.totalTaps++;
-
         createParticle(point.clientX, point.clientY, `+${power}`);
     }
 
@@ -94,7 +105,6 @@ function handleTap(e) {
     updateUI();
 }
 
-// --- Восстановление энергии ---
 function regenerateEnergy() {
     if (state.energy < state.maxEnergy) {
         state.energy = Math.min(state.energy + 1, state.maxEnergy);
@@ -102,7 +112,6 @@ function regenerateEnergy() {
     }
 }
 
-// --- ВИЗУАЛЬНЫЕ ЭФФЕКТЫ (ВОССТАНОВЛЕНО) ---
 function createParticle(x, y, text) {
     const p = document.createElement('div');
     p.className = 'tap-particle';
@@ -113,22 +122,12 @@ function createParticle(x, y, text) {
     setTimeout(() => p.remove(), 900);
 }
 
-// --- Запуск приложения ---
-init();
-
-// --- СТИЛИ ДЛЯ ЧАСТИЦ (чтобы не зависеть от css) ---
 (function() {
     const style = document.createElement('style');
     style.innerHTML = `
         .tap-particle {
-            position: fixed;
-            pointer-events: none;
-            font-size: 32px;
-            font-weight: 800;
-            color: #ffffff;
-            text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
-            z-index: 1001;
-            animation: flyUp 1s ease-out forwards;
+            position: fixed; pointer-events: none; font-size: 32px; font-weight: 800; color: #ffffff;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.8); z-index: 1001; animation: flyUp 1s ease-out forwards;
         }
         @keyframes flyUp {
             0% { transform: translateY(0) scale(1); opacity: 1; }
@@ -137,3 +136,5 @@ init();
     `;
     document.head.appendChild(style);
 })();
+
+init();

@@ -18,11 +18,39 @@ const state = {
     }
 };
 
-// --- Инициализация приложения ---
-function init() {
+// --- Логика ЗАСТАВКИ ---
+function handleSplashScreen() {
+    const splashScreen = document.getElementById('splash-screen');
+    const splashVideo = document.getElementById('splash-video');
+    const appContainer = document.querySelector('.app-container');
+
+    function showApp() {
+        if (appContainer.classList.contains('visible')) return; // Защита от повторного вызова
+        
+        if (splashScreen) {
+            splashScreen.classList.add('hidden');
+        }
+        if (appContainer) {
+            appContainer.style.visibility = 'visible';
+        }
+        initializeApp();
+    }
+
+    if (splashVideo) {
+        splashVideo.onended = showApp;
+        splashVideo.onerror = showApp;
+        splashVideo.play().catch(e => { console.error('Video play failed', e); showApp(); });
+        setTimeout(showApp, 5000); // Запасной вариант, если событие не сработает
+    } else {
+        showApp();
+    }
+}
+
+// --- Инициализация ОСНОВНОГО приложения ---
+function initializeApp() {
     tg.ready();
     WalletManager.init();
-    SwapManager.init(); // ИНИЦИАЛИЗИРУЕМ ОБМЕННИК
+    SwapManager.init();
 
     const user = tg.initDataUnsafe?.user;
     if (user) {
@@ -74,7 +102,7 @@ function showTab(tabName) {
 
     if (tabName === 'mine') MiningManager.updateMiningUI();
     if (tabName === 'tasks') TaskManager.updateTasksUI();
-    if (tabName === 'swap') SwapManager.updateUI(); // ОБНОВЛЯЕМ UI ОБМЕННИКА
+    if (tabName === 'swap') SwapManager.updateUI();
 
     const navItems = document.querySelectorAll('.nav-item');
     navItems.forEach(item => {
@@ -113,82 +141,29 @@ function regenerateEnergy() {
 }
 
 function createParticle(x, y, text) {
-    const p = document.createElement(const tg = window.Telegram.WebApp;
-
-// --- Глобальное состояние приложения ---
-const state = { /* ... */ };
-
-// --- Инициализация ОСНОВНОГО приложения (после заставки) ---
-function initializeApp() {
-    tg.ready();
-    WalletManager.init();
-    SwapManager.init();
-
-    const user = tg.initDataUnsafe?.user;
-    if (user) {
-        document.getElementById('user-name').innerText = user.first_name || 'Player';
-        if (user.photo_url) {
-            document.querySelector('.avatar').src = user.photo_url;
-        }
-    }
-
-    showTab('main');
-    updateUI();
-    MiningManager.updateMiningUI();
-    TaskManager.updateTasksUI();
-    
-    setInterval(() => {
-        regenerateEnergy();
-        if (document.getElementById('page-mine').style.display === 'block') {
-            MiningManager.updateMiningUI();
-        }
-    }, 1000);
-    
-    const tapZone = document.getElementById('tap-zone');
-    tapZone.addEventListener('touchstart', handleTap);
-    tapZone.addEventListener('mousedown', handleTap);
+    const p = document.createElement('div');
+    p.className = 'tap-particle';
+    p.innerText = text;
+    p.style.left = `${x}px`;
+    p.style.top = `${y}px`;
+    document.body.appendChild(p);
+    setTimeout(() => p.remove(), 900);
 }
 
-// --- Логика ЗАСТАВКИ ---
-function handleSplashScreen() {
-    const splashScreen = document.getElementById('splash-screen');
-    const splashVideo = document.getElementById('splash-video');
-    const appContainer = document.querySelector('.app-container');
-
-    function showApp() {
-        if (splashScreen) {
-            splashScreen.classList.add('hidden');
+(function() {
+    const style = document.createElement('style');
+    style.innerHTML = `
+        .tap-particle {
+            position: fixed; pointer-events: none; font-size: 32px; font-weight: 800; color: #ffffff;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.8); z-index: 1001; animation: flyUp 1s ease-out forwards;
         }
-        if (appContainer) {
-            appContainer.classList.add('visible');
+        @keyframes flyUp {
+            0% { transform: translateY(0) scale(1); opacity: 1; }
+            100% { transform: translateY(-150px) scale(1.5); opacity: 0; }
         }
-        initializeApp();
-    }
-
-    if (splashVideo) {
-        splashVideo.onended = showApp; // Показать приложение, когда видео закончится
-        splashVideo.onerror = showApp; // Показать приложение, если видео не загрузится
-        
-        // Пытаемся запустить видео
-        splashVideo.play().catch(error => {
-            console.error("Video autoplay failed, showing app immediately:", error);
-            showApp(); // Если авто-проигрывание заблокировано, сразу показать приложение
-        });
-
-        // Дополнительная подстраховка: если видео зависло, показать приложение через 5 секунд
-        setTimeout(showApp, 5000);
-    } else {
-        showApp(); // Если видео-элемента нет, просто показать приложение
-    }
-}
-
-// --- Остальные функции (updateUI, showTab, handleTap, etc.) ---
-function updateUI() { /* ... */ }
-function showTab(tabName) { /* ... */ }
-function handleTap(e) { /* ... */ }
-function regenerateEnergy() { /* ... */ }
-function createParticle(x, y, text) { /* ... */ }
+    `;
+    document.head.appendChild(style);
+})();
 
 // --- ГЛАВНАЯ ТОЧКА ВХОДА --- 
-// Запускаем логику заставки после полной загрузки страницы
 window.addEventListener('load', handleSplashScreen);

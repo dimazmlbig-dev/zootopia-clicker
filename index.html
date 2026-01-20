@@ -22,7 +22,7 @@
                 <img src="assets/avatar-placeholder.png" class="avatar">
                 <span id="user-name">Player</span>
             </div>
-            <div id="ton-connect-btn"></div> 
+            <!-- КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ: Убираем контейнер для стандартной кнопки -->
         </header>
 
         <div class="content-wrapper">
@@ -85,6 +85,15 @@
             <div id="page-tasks" class="page-content" style="display: none;">
                 <div class="tasks-container"><div class="tasks-header"><h2><i class="fas fa-tasks"></i> Задания</h2><p>Выполняйте задания и получайте ценные награды.</p></div><div id="tasks-list" class="tasks-list-container"></div></div>
             </div>
+            
+            <div id="page-about" class="page-content" style="display: none;">
+                <div class="about-container">
+                    <div class="about-card">
+                        <h3>Зоотопия: Где каждый клик превращается в заботу 🐾❤️</h3>
+                        <p>Друзья, наша «Добрая такса» вырастает! Мы хотим, чтобы вы знали: «Зоотопия» — это не просто игра, где можно заработать ZOO-коины. Это экосистема с душой и миссией.</p>
+                    </div>
+                </div>
+            </div>
 
         </div>
 
@@ -93,7 +102,8 @@
             <button class="nav-item" onclick="showTab('nft')"><i class="fas fa-star"></i><span>NFT</span></button>
             <button class="nav-item" onclick="showTab('swap')"><i class="fas fa-exchange-alt"></i><span>Обмен</span></button>
             <button class="nav-item" onclick="showTab('tasks')"><i class="fas fa-tasks"></i><span>Задания</span></button>
-            <button class="nav-item" onclick="WalletManager.tonConnectUI.openModal()"><i class="fas fa-wallet"></i><span>Wallet</span></button>
+            <!-- КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ: Наша кастомная кнопка вызывает модальное окно -->
+            <button class="nav-item" onclick="WalletManager.openModal()"><i class="fas fa-wallet"></i><span>Wallet</span></button>
         </nav>
 
         <div id="nft-sheet" class="bottom-sheet">

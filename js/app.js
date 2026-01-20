@@ -116,8 +116,9 @@ function showTab(tabName) {
     const navItems = document.querySelectorAll('.nav-item');
     navItems.forEach(item => {
         item.classList.remove('active');
-        if(item.getAttribute('onclick').includes(`showTab('${tabName}')`)) {
-            item.classList.add('active');
+        // ИСПРАВЛЕНИЕ: Проверяем и для кнопки Wallet, и для других
+        if (item.getAttribute('onclick').includes(tabName) || (tabName === 'wallet' && item.getAttribute('onclick').includes('WalletManager'))) {
+             item.classList.add('active');
         }
     });
 }

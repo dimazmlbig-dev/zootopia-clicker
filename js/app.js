@@ -1,13 +1,27 @@
 const tg = window.Telegram.WebApp;
 
-// --- Глобальное состояние приложения ---
+// --- КОНФИГУРАЦИЯ УРОВНЕЙ ---
+const LEVEL_CONFIG = [
+    { level: 1, xpToNext: 100, tapPower: 1 },
+    { level: 2, xpToNext: 250, tapPower: 1.5 },
+    { level: 3, xpToNext: 500, tapPower: 2 },
+    { level: 4, xpToNext: 800, tapPower: 2.5 },
+    { level: 5, xpToNext: 1200, tapPower: 3 },
+    { level: 6, xpToNext: 1700, tapPower: 3.5 },
+    { level: 7, xpToNext: 2500, tapPower: 4 },
+    { level: 8, xpToNext: 4000, tapPower: 4.5 },
+    { level: 9, xpToNext: Infinity, tapPower: 5 },
+];
+
+// --- ГЛОБАЛЬНОЕ СОСТОЯНИЕ ---
 const state = {
     bones: 1000,
     zoo: 0,
     energy: 1000,
     maxEnergy: 1000,
-    tapPower: 1,
-    tapCost: 1,
+    level: 1,
+    xp: 0,
+    tapPower: LEVEL_CONFIG[0].tapPower,
     mining: {
         level: 1,
         availableToCollect: 0,
@@ -18,16 +32,16 @@ const state = {
     }
 };
 
-let isAppInitialized = false; // ГЛАВНЫЙ ФЛАГ ДЛЯ ПРЕДОТВРАЩЕНИЯ ПОВТОРНОЙ ИНИЦИАЛИЗАЦИИ
+let isAppInitialized = false;
 
-// --- Логика ЗАСТАВКИ ---
+// --- ЛОГИКА ЗАСТАВКИ ---
 function handleSplashScreen() {
     const splashScreen = document.getElementById('splash-screen');
     const splashVideo = document.getElementById('splash-video');
     const appContainer = document.querySelector('.app-container');
 
     function showApp() {
-        if (isAppInitialized) return; // Если приложение уже инициализировано, ничего не делаем
+        if (isAppInitialized) return;
         
         if (splashScreen) {
             splashScreen.classList.add('hidden');
@@ -45,16 +59,15 @@ function handleSplashScreen() {
             console.error('Video play failed, showing app immediately.', e);
             showApp(); 
         });
-        // Запасной вариант, если видео зависнет
-        setTimeout(showApp, 4000); 
+        setTimeout(showApp, 4000);
     } else {
         showApp();
     }
 }
 
-// --- Инициализация ОСНОВНОГО приложения ---
+// --- ИНИЦИАЛИЗАЦИЯ ПРИЛОЖЕНИЯ ---
 function initializeApp() {
-    if (isAppInitialized) return; // КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ: Предотвращаем повторный запуск
+    if (isAppInitialized) return;
     isAppInitialized = true;
 
     tg.ready();
@@ -86,23 +99,39 @@ function initializeApp() {
     tapZone.addEventListener('mousedown', handleTap);
 }
 
-// --- Обновление UI ---
+// --- ОБНОВЛЕНИЕ UI ---
 function updateUI() {
     document.getElementById('balance').innerText = Math.floor(state.bones);
     document.getElementById('zoo-balance').innerText = `${state.zoo.toFixed(4)} $ZOO`;
-    document.getElementById('current-energy').innerText = state.energy;
+    document.getElementById('current-energy').innerText = `${Math.floor(state.energy)}/${state.maxEnergy}`;
     document.getElementById('energy-bar').style.width = `${(state.energy / state.maxEnergy) * 100}%`;
+
+    const currentLevelInfo = LEVEL_CONFIG[state.level - 1];
+    const xpForCurrentLevel = (state.level > 1) ? LEVEL_CONFIG[state.level - 2].xpToNext : 0;
+    const currentLevelXp = state.xp - xpForCurrentLevel;
+    const neededXp = currentLevelInfo.xpToNext - xpForCurrentLevel;
+
+    document.getElementById('current-level').innerText = state.level;
+    
+    if (isFinite(neededXp)) {
+        document.getElementById('level-progress').innerText = `${Math.floor(currentLevelXp)}/${neededXp}`;
+        document.getElementById('level-bar').style.width = `${(currentLevelXp / neededXp) * 100}%`;
+    } else {
+        document.getElementById('level-progress').innerText = 'МАКС';
+        document.getElementById('level-bar').style.width = '100%';
+    }
 }
 
-// --- Логика вкладок ---
+// --- ЛОГИКА ВКЛАДОК ---
 function showTab(tabName) {
     const pages = document.querySelectorAll('.page-content');
-    pages.forEach(p => p.style.display = 'none');
+    pages.forEach(p => { if(p) p.style.display = 'none'; });
     
     const nftSheet = document.getElementById('nft-sheet');
     if (tabName === 'nft') {
         nftSheet.classList.add('visible');
-        document.getElementById('page-main').style.display = 'block'; 
+        const mainPage = document.getElementById('page-main');
+        if(mainPage) mainPage.style.display = 'block';
     } else {
         nftSheet.classList.remove('visible');
         const pageToShow = document.getElementById(`page-${tabName}`);
@@ -116,40 +145,57 @@ function showTab(tabName) {
     const navItems = document.querySelectorAll('.nav-item');
     navItems.forEach(item => {
         item.classList.remove('active');
-        // ИСПРАВЛЕНИЕ: Проверяем и для кнопки Wallet, и для других
-        if (item.getAttribute('onclick').includes(tabName) || (tabName === 'wallet' && item.getAttribute('onclick').includes('WalletManager'))) {
-             item.classList.add('active');
+        const onclickAttr = item.getAttribute('onclick');
+        if (onclickAttr && (onclickAttr.includes(`'${tabName}'`))) {
+            item.classList.add('active');
         }
     });
 }
 
-// --- ЕДИНЫЙ ОБРАБОТЧИК ТАПОВ/КЛИКОВ ---
+// --- ПРОВЕРКА И ПОВЫШЕНИЕ УРОВНЯ ---
+function checkLevelUp() {
+    if (state.level >= LEVEL_CONFIG.length) return;
+
+    const currentLevelInfo = LEVEL_CONFIG[state.level - 1];
+    if (state.xp >= currentLevelInfo.xpToNext) {
+        state.level++;
+        const newLevelInfo = LEVEL_CONFIG[state.level - 1];
+        state.tapPower = newLevelInfo.tapPower;
+        alert(`Поздравляем! Вы достигли ${state.level} уровня! Сила клика увеличена до ${state.tapPower}.`);
+    }
+}
+
+// --- ОБРАБОТЧИК ТАПОВ/КЛИКОВ ---
 function handleTap(e) {
     e.preventDefault();
     const points = e.touches ? e.touches : [e];
-    if (state.energy < state.tapCost * points.length) return;
+    if (state.energy < points.length) return;
 
     for (let i = 0; i < points.length; i++) {
         const point = points[i];
-        let power = state.tapPower;
-        state.bones += power;
-        state.zoo += (power * 0.0001);
-        state.energy -= state.tapCost;
-        state.tasks.totalTaps++;
-        createParticle(point.clientX, point.clientY, `+${power}`);
+        if (state.energy >= 1) {
+            state.bones += state.tapPower;
+            state.zoo += (state.tapPower * 0.0001);
+            state.energy--;
+            state.xp++; 
+            createParticle(point.clientX, point.clientY, `+${state.tapPower.toFixed(1)}`);
+        }
     }
 
+    checkLevelUp();
     if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
     updateUI();
 }
 
+// --- РЕГЕНЕРАЦИЯ ЭНЕРГИИ ---
 function regenerateEnergy() {
     if (state.energy < state.maxEnergy) {
-        state.energy = Math.min(state.energy + 1, state.maxEnergy);
+        state.energy = Math.min(state.energy + 3, state.maxEnergy);
         updateUI();
     }
 }
 
+// --- ВИЗУАЛЬНЫЕ ЭФФЕКТЫ ---
 function createParticle(x, y, text) {
     const p = document.createElement('div');
     p.className = 'tap-particle';
@@ -160,6 +206,7 @@ function createParticle(x, y, text) {
     setTimeout(() => p.remove(), 900);
 }
 
+// --- СТИЛИ ДЛЯ ЧАСТИЦ ---
 (function() {
     const style = document.createElement('style');
     style.innerHTML = `
@@ -175,4 +222,5 @@ function createParticle(x, y, text) {
     document.head.appendChild(style);
 })();
 
+// --- ГЛАВНАЯ ТОЧКА ВХОДА ---
 window.addEventListener('load', handleSplashScreen);

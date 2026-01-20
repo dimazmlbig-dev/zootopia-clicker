@@ -18,6 +18,8 @@ const state = {
     }
 };
 
+let isAppInitialized = false; // ГЛАВНЫЙ ФЛАГ ДЛЯ ПРЕДОТВРАЩЕНИЯ ПОВТОРНОЙ ИНИЦИАЛИЗАЦИИ
+
 // --- Логика ЗАСТАВКИ ---
 function handleSplashScreen() {
     const splashScreen = document.getElementById('splash-screen');
@@ -25,7 +27,7 @@ function handleSplashScreen() {
     const appContainer = document.querySelector('.app-container');
 
     function showApp() {
-        if (appContainer.classList.contains('visible')) return; // Защита от повторного вызова
+        if (isAppInitialized) return; // Если приложение уже инициализировано, ничего не делаем
         
         if (splashScreen) {
             splashScreen.classList.add('hidden');
@@ -39,8 +41,12 @@ function handleSplashScreen() {
     if (splashVideo) {
         splashVideo.onended = showApp;
         splashVideo.onerror = showApp;
-        splashVideo.play().catch(e => { console.error('Video play failed', e); showApp(); });
-        setTimeout(showApp, 5000); // Запасной вариант, если событие не сработает
+        splashVideo.play().catch(e => { 
+            console.error('Video play failed, showing app immediately.', e);
+            showApp(); 
+        });
+        // Запасной вариант, если видео зависнет
+        setTimeout(showApp, 4000); 
     } else {
         showApp();
     }
@@ -48,6 +54,9 @@ function handleSplashScreen() {
 
 // --- Инициализация ОСНОВНОГО приложения ---
 function initializeApp() {
+    if (isAppInitialized) return; // КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ: Предотвращаем повторный запуск
+    isAppInitialized = true;
+
     tg.ready();
     WalletManager.init();
     SwapManager.init();
@@ -93,7 +102,7 @@ function showTab(tabName) {
     const nftSheet = document.getElementById('nft-sheet');
     if (tabName === 'nft') {
         nftSheet.classList.add('visible');
-        document.getElementById('page-main').style.display = 'block';
+        document.getElementById('page-main').style.display = 'block'; 
     } else {
         nftSheet.classList.remove('visible');
         const pageToShow = document.getElementById(`page-${tabName}`);
@@ -107,7 +116,7 @@ function showTab(tabName) {
     const navItems = document.querySelectorAll('.nav-item');
     navItems.forEach(item => {
         item.classList.remove('active');
-        if (item.getAttribute('onclick').includes(`'${tabName}'`)) {
+        if(item.getAttribute('onclick').includes(`showTab('${tabName}')`)) {
             item.classList.add('active');
         }
     });
@@ -165,5 +174,4 @@ function createParticle(x, y, text) {
     document.head.appendChild(style);
 })();
 
-// --- ГЛАВНАЯ ТОЧКА ВХОДА --- 
 window.addEventListener('load', handleSplashScreen);

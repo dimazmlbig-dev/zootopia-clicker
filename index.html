@@ -27,97 +27,24 @@
 
         <div class="content-wrapper">
 
-            <div id="page-main" class="page-content">
-                <section class="balance-section">
-                    <h1 id="balance">0</h1>
-                    <div class="zoo-status">
-                        <img src="assets/coin-logo.png" class="main-coin-icon" alt="ZOO coin">
-                        <span id="zoo-balance">0.0000 $ZOO</span>
-                    </div>
-                </section>
-                <main class="game-area">
-                    <div class="character-card" id="tap-zone">
-                        <img src="assets/main-dog.png" class="dog-base" id="dog-img" alt="Main Character">
-                    </div>
-                </main>
-                <div class="energy-footer">
-                    <div class="energy-info"><span>⚡ <span id="current-energy">1000</span>/1000</span></div>
-                    <div class="progress-container"><div class="progress-fill" id="energy-bar"></div></div>
-                </div>
-            </div>
-
-            <div id="page-mine" class="page-content" style="display: none;">
-                 <div class="mine-container">
-                    <div class="mine-header"><h2><i class="fas fa-pickaxe"></i> Костяная шахта</h2><p>Шахта пассивно добывает кости, пока вы отдыхаете.</p></div>
-                    <div class="mine-stats-card">
-                        <div><span>Уровень</span><strong id="mining-level">1</strong></div>
-                        <div><span>В час</span><strong id="mining-rate">10</strong></div>
-                    </div>
-                    <div class="mine-storage-card">
-                        <h3>Хранилище</h3>
-                        <div class="progress-container"><div class="progress-fill" id="mining-storage-fill"></div></div>
-                        <span id="mining-storage-value">0 / 100</span>
-                        <button class="btn-main" onclick="MiningManager.collect()">Собрать</button>
-                    </div>
-                    <div class="mine-upgrade-card">
-                        <h3>Улучшение</h3>
-                        <p>Стоимость: <strong id="upgrade-cost">500</strong> костей</p>
-                        <button id="btn-upgrade-mine" class="btn-secondary" onclick="MiningManager.upgrade()">Улучшить</button>
-                    </div>
-                </div>
-            </div>
-            
-            <div id="page-swap" class="page-content" style="display: none;">
-                <div class="swap-container">
-                    <div class="swap-header"><h2><i class="fas fa-exchange-alt"></i> Обменник</h2><p>Конвертируйте ваши кости в токены $ZOO.</p></div>
-                    <div class="swap-card">
-                        <div class="swap-field"><label>Отдаете</label><input type="number" id="swap-input" placeholder="0"><span><i class="fas fa-bone"></i> КОСТИ</span></div>
-                        <div class="user-balance">Ваш баланс: <span id="swap-user-bones">0</span></div>
-                    </div>
-                    <div class="swap-rate">Курс: 1000 <i class="fas fa-bone"></i> = 1 $ZOO</div>
-                    <div class="swap-card">
-                        <div class="swap-field"><label>Получаете</label><div id="swap-output" class="swap-output-value">0.00</div><span>$ZOO</span></div>
-                    </div>
-                    <button id="btn-perform-swap" class="btn-main">Обменять</button>
-                </div>
-            </div>
-
-            <div id="page-tasks" class="page-content" style="display: none;">
-                <div class="tasks-container"><div class="tasks-header"><h2><i class="fas fa-tasks"></i> Задания</h2><p>Выполняйте задания и получайте ценные награды.</p></div><div id="tasks-list" class="tasks-list-container"></div></div>
-            </div>
-            
-            <div id="page-about" class="page-content" style="display: none;">
-                <div class="about-container">
-                    <div class="about-card">
-                        <h3>Зоотопия: Где каждый клик превращается в заботу 🐾❤️</h3>
-                        <p>Друзья, наша «Добрая такса» вырастает! Мы хотим, чтобы вы знали: «Зоотопия» — это не просто игра, где можно заработать ZOO-коины. Это экосистема с душой и миссией.</p>
-                        <p>Скоро наша такса научится новым трюкам: она сможет заводить друзей, строить дом и даже спасать реальных животных!</p>
-                        <p><strong>Наша главная цель:</strong> создать увлекательную игру, где ваш игровой прогресс напрямую помогает миру.</p>
-                    </div>
-                    <div class="about-card">
-                        <h3>Ключевая миссия — Благотворительность (ZOO-Care)</h3>
-                        <p>Мы верим, что игровая экономика должна приносить реальную пользу. Часть от внутриигровых покупок будет направляться в фонды помощи бездомным животным.</p>
-                    </div>
-                </div>
-            </div>
+            <div id="page-main" class="page-content">...</div>
+            <div id="page-mine" class="page-content" style="display: none;">...</div>
+            <div id="page-swap" class="page-content" style="display: none;">...</div>
+            <div id="page-tasks" class="page-content" style="display: none;">...</div>
+            <div id="page-about" class="page-content" style="display: none;">...</div>
+            <!-- Wallet page content will be handled by the library -->
 
         </div>
 
         <nav class="bottom-nav">
             <button class="nav-item active" onclick="showTab('main')"><i class="fas fa-paw"></i><span>Игра</span></button>
-            <button class="nav-item" onclick="showTab('mine')"><i class="fas fa-pickaxe"></i><span>Майнинг</span></button>
+            <button class="nav-item" onclick="showTab('nft')"><i class="fas fa-star"></i><span>NFT</span></button>
             <button class="nav-item" onclick="showTab('swap')"><i class="fas fa-exchange-alt"></i><span>Обмен</span></button>
             <button class="nav-item" onclick="showTab('tasks')"><i class="fas fa-tasks"></i><span>Задания</span></button>
-            <button class="nav-item" onclick="showTab('about')"><i class="fas fa-info-circle"></i><span>О нас</span></button>
+            <button class="nav-item" onclick="WalletManager.tonConnectUI.openModal()"><i class="fas fa-wallet"></i><span>Wallet</span></button>
         </nav>
 
-        <div id="nft-sheet" class="bottom-sheet">
-            <div class="sheet-handle"></div>
-            <div class="sheet-content">
-                <h2>Коллекция NFT</h2>
-                <div class="nft-grid" id="inventory-grid"></div>
-            </div>
-        </div>
+        <div id="nft-sheet" class="bottom-sheet">...</div>
 
     </div>
 

@@ -4,28 +4,26 @@ const WalletManager = {
     tonConnectUI: null,
 
     init: function() {
-        // 1. Инициализация коннектора с манифестом
+        // КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ: Убираем buttonRootId, чтобы библиотека НЕ создавала свою кнопку.
+        // Мы будем использовать свою, кастомную кнопку для вызова модального окна.
         this.tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-            manifestUrl: 'https://dimazmlbig-dev.github.io/zootopia-clicker/tonconnect-manifest.json',
-            buttonRootId: 'ton-connect-btn' // ID элемента, куда будет встроена кнопка
+            manifestUrl: 'https://dimazmlbig-dev.github.io/zootopia-clicker/tonconnect-manifest.json'
         });
 
-        // 2. Подписка на изменение статуса кошелька
         this.tonConnectUI.onStatusChange(wallet => {
             if (wallet) {
+                // Можно будет добавить логику для отображения адреса кошелька
                 console.log("Кошелек подключен:", wallet.account.address);
-                // Здесь можно будет обновлять UI, показывая адрес кошелька
             } else {
                 console.log("Кошелек отключен.");
             }
         });
     },
 
-    // Функция для получения адреса (если понадобится в других модулях)
-    getConnectedAddress: function() {
-        if (this.tonConnectUI && this.tonConnectUI.wallet) {
-            return this.tonConnectUI.wallet.account.address;
+    // Публичный метод для вызова модального окна из любой нашей кнопки
+    openModal: function() {
+        if (this.tonConnectUI) {
+            this.tonConnectUI.openModal();
         }
-        return null;
     }
 };

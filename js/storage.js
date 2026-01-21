@@ -1,135 +1,151 @@
-// ===== State adapter over StorageManager =====
-const State = (() => {
-  let _state = null;
-
-  function get() {
-    if (!_state) _state = StorageManager.loadState();
-    return _state;
-  }
-
-  function set(next) {
-    _state = next;
-    return _state;
-  }
-
-  function save() {
-    if (!_state) _state = StorageManager.loadState();
-    StorageManager.saveState(_state);
-  }
-
-  function reset() {
-    StorageManager.reset();
-    _state = StorageManager.loadState();
-  }
-
-  return { get, set, save, reset };
-})();
-
-window.State = State;
-
-// ===== Telegram Wrapper (safe) =====
+// js/storage.js
 const tg = window.Telegram?.WebApp || null;
 
-function initTelegram() {
-  if (!tg) {
-    console.log("Открыто вне Telegram");
-    return;
-  }
+const StorageManager = {
+  STORAGE_KEY: "zoo_clicker_state",
+  VERSION: 1,
 
-  tg.ready();
-  tg.expand?.();
-  tg.disableVerticalSwipes?.();
+  defaultState() {
+    return {
+      version: this.VERSION,
+      bones: 0,
+      zoo: 0,
+      energy: 1000,
+      maxEnergy: 1000,
+      mining: {
+        level: 1,
+        stored: 0,
+        lastCollect: Date.now(),
+      },
+      tasks: {},
+      referrals: 0,
+      refCode: null,
+    };
+  },
 
-  const user = tg.initDataUnsafe?.user;
-  if (user) {
-    const nameEl = document.getElementById("user-name");
-    if (nameEl) nameEl.innerText = user.first_name || "Игрок";
+  // Проверяем доступность CloudStorage
+  isCloudAvailable() {
+    return !!(tg && tg.CloudStorage && typeof tg.CloudStorage.getItem === "function");
+  },
 
-    // refCode по user.id (если нет)
-    const s = State.get();
-    if (!s.refCode && user.id) {
-      s.refCode = String(user.id);
-      State.set(s);
-      State.save();
-    }
-  }
-}
-
-// Splash → игра
-function showGame() {
-  const splash = document.getElementById("splash-screen");
-  const main = document.getElementById("main-content");
-
-  if (splash) splash.style.display = "none";
-  if (main) main.classList.remove("hidden");
-}
-
-// События UI
-function bindUI() {
-  document.getElementById("tap-zone")?.addEventListener("click", () => {
-    Clicker.tap();
-  });
-
-  document.getElementById("share-ref-btn")?.addEventListener("click", () => {
-    ReferralManager.shareReferral();
-  });
-
-  document.getElementById("collect-btn")?.addEventListener("click", () => {
-    Mining.collect();
-  });
-
-  // Tabs (под твою разметку active + hidden)
-  document.querySelectorAll(".tab").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const tabName = btn.dataset.tab;
-
-      document.querySelectorAll(".tab").forEach((b) => b.classList.remove("active"));
-      btn.classList.add("active");
-
-      document.querySelectorAll(".tab-content").forEach((c) => {
-        c.classList.remove("active");
-        c.classList.add("hidden");
+  // Promise-обёртки над CloudStorage callbacks
+  cloudGet(key) {
+    return new Promise((resolve) => {
+      tg.CloudStorage.getItem(key, (err, value) => {
+        if (err) {
+          console.warn("CloudStorage.getItem error:", err);
+          resolve(null);
+          return;
+        }
+        resolve(value ?? null);
       });
-
-      const target = document.getElementById(`tab-${tabName}`);
-      if (target) {
-        target.classList.add("active");
-        target.classList.remove("hidden");
-      }
     });
-  });
-}
+  },
 
-// Автосейв
-function startAutosave() {
-  setInterval(() => {
+  cloudSet(key, value) {
+    return new Promise((resolve) => {
+      tg.CloudStorage.setItem(key, value, (err, ok) => {
+        if (err) {
+          console.warn("CloudStorage.setItem error:", err);
+          resolve(false);
+          return;
+        }
+        resolve(!!ok);
+      });
+    });
+  },
+
+  cloudRemove(key) {
+    return new Promise((resolve) => {
+      tg.CloudStorage.removeItem(key, (err, ok) => {
+        if (err) {
+          console.warn("CloudStorage.removeItem error:", err);
+          resolve(false);
+          return;
+        }
+        resolve(!!ok);
+      });
+    });
+  },
+
+  // Миграция: если раньше был localStorage-сейв — закинем в CloudStorage 1 раз
+  async migrateLocalToCloudIfNeeded() {
+    if (!this.isCloudAvailable()) return;
+
     try {
-      State.save();
+      const legacy = localStorage.getItem(this.STORAGE_KEY);
+      if (!legacy) return;
+
+      const ok = await this.cloudSet(this.STORAGE_KEY, legacy);
+      if (ok) {
+        localStorage.removeItem(this.STORAGE_KEY);
+        console.log("Миграция localStorage → CloudStorage выполнена");
+      }
     } catch (e) {
-      console.warn("Autosave error:", e);
+      console.warn("migrateLocalToCloudIfNeeded error:", e);
     }
-  }, 3000);
-}
+  },
 
-// Запуск игры
-function startGame() {
-  // прогреваем state один раз
-  State.get();
+  // Асинхронная загрузка
+  async loadStateAsync() {
+    const def = this.defaultState();
 
-  initTelegram();
-  bindUI();
+    // если в Telegram — используем CloudStorage
+    if (this.isCloudAvailable()) {
+      await this.migrateLocalToCloudIfNeeded();
 
-  ReferralManager.claimReferralBonus?.();
+      const raw = await this.cloudGet(this.STORAGE_KEY);
+      if (!raw) return def;
 
-  Energy.start?.();
-  startAutosave();
+      try {
+        const parsed = JSON.parse(raw);
 
-  UI.updateBalance?.();
-  UI.updateEnergy?.();
-  UI.updateReferral?.();
+        if (parsed.version !== this.VERSION) return def;
+        return { ...def, ...parsed };
+      } catch (e) {
+        console.warn("Cloud save повреждён, сброс", e);
+        return def;
+      }
+    }
 
-  showGame();
-}
+    // fallback вне Telegram (или если CloudStorage недоступен) — localStorage
+    try {
+      const data = localStorage.getItem(this.STORAGE_KEY);
+      if (!data) return def;
 
-// ENTRY POINT
-window.addEventListener("load", startGame);
+      const parsed = JSON.parse(data);
+      if (parsed.version !== this.VERSION) return def;
+
+      return { ...def, ...parsed };
+    } catch (e) {
+      console.warn("Local save повреждён, сброс", e);
+      return def;
+    }
+  },
+
+  // Асинхронное сохранение
+  async saveStateAsync(state) {
+    const payload = JSON.stringify(state);
+
+    if (this.isCloudAvailable()) {
+      await this.cloudSet(this.STORAGE_KEY, payload);
+      return;
+    }
+
+    try {
+      localStorage.setItem(this.STORAGE_KEY, payload);
+    } catch (e) {
+      console.error("Ошибка сохранения:", e);
+    }
+  },
+
+  async resetAsync() {
+    if (this.isCloudAvailable()) {
+      await this.cloudRemove(this.STORAGE_KEY);
+      return;
+    }
+    localStorage.removeItem(this.STORAGE_KEY);
+  },
+};
+
+window.StorageManager = StorageManager;

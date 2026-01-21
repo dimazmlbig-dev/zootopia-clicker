@@ -1,50 +1,50 @@
-// --- Конфигурация заданий ---
 const TASKS_CONFIG = {
-    // ID_задания: { ...параметры }
-    'daily_taps': { 
-        title: 'Ежедневные тапы', 
-        description: 'Сделать 500 тапов', 
-        goal: 500, 
-        reward: 1000, 
-        type: 'taps' 
+    'daily_taps': {
+        id: 'daily_taps',
+        title: 'Ежедневные тапы',
+        goal: 500,
+        reward: 1000,
+        type: 'taps'
     },
-    'reach_balance': { 
-        title: 'Накопитель', 
-        description: 'Накопить 10 000 костей', 
-        goal: 10000, 
-        reward: 5000, 
-        type: 'balance' 
+    'reach_balance': {
+        id: 'reach_balance',
+        title: 'Достичь баланса',
+        goal: 10000,
+        reward: 5000,
+        type: 'balance'
     },
-    'upgrade_mine': { 
-        title: 'Шахтер-профи', 
-        description: 'Улучшить шахту до 3-го уровня', 
-        goal: 3, 
-        reward: 3000, 
-        type: 'mine_level' 
+    'upgrade_mine': {
+        id: 'upgrade_mine',
+        title: 'Улучшить шахту',
+        goal: 3,
+        reward: 3000,
+        type: 'mine_level'
     },
-    'social_telegram': { 
-        title: 'Наш канал', 
-        description: 'Подписаться на Telegram-канал', 
-        reward: 2500, 
+    'social_telegram': {
+        id: 'social_telegram',
+        title: 'Подписаться на канал',
+        reward: 2500,
         type: 'social',
-        url: 'https://t.me/zootopiaclik' // Обновлено
+        url: 'https://t.me/zootopiaclik'
+    },
+    'referrals': {
+        id: 'referrals',
+        title: 'Пригласи 5 друзей',
+        goal: 5,
+        reward: 25000,
+        type: 'referrals'
     }
 };
 
-// --- Логика заданий ---
 const TaskManager = {
-
-    // Проверяет прогресс по всем заданиям
-    checkProgress: function() {
-        for (const id in TASKS_CONFIG) {
-            if (state.tasks[id] && state.tasks[id].completed) continue; // Уже выполнено и награда получена
-
+    checkProgress() {
+        for (let id in TASKS_CONFIG) {
             const task = TASKS_CONFIG[id];
             let progress = 0;
 
-            switch(task.type) {
+            switch (task.type) {
                 case 'taps':
-                    progress = state.tasks.totalTaps / task.goal;
+                    progress = (state.totalTaps || 0) / task.goal;
                     break;
                 case 'balance':
                     progress = state.bones / task.goal;
@@ -52,81 +52,66 @@ const TaskManager = {
                 case 'mine_level':
                     progress = state.mining.level / task.goal;
                     break;
+                case 'referrals':
+                    progress = (state.referredCount || 0) / task.goal;
+                    break;
+                case 'social':
+                    // Обычно 0 или 1 (выполнено/не выполнено)
+                    progress = state.tasks[id]?.completed ? 1 : 0;
+                    break;
             }
-            
-            if (!state.tasks[id]) state.tasks[id] = { progress: 0, completed: false };
-            state.tasks[id].progress = Math.min(progress, 1.0);
+
+            // Обновляем прогресс в UI (реализуй updateTasksUI по-своему)
+            // например: document.getElementById(`progress-${id}`).style.width = `${progress * 100}%`
         }
     },
 
-    // Получить награду
-    claimReward: function(id) {
-        if (!state.tasks[id] || state.tasks[id].completed) return;
-        
+    claimReward(id) {
         const task = TASKS_CONFIG[id];
-        const progress = state.tasks[id].progress;
+        if (!task || state.tasks[id]?.completed) return;
 
-        if (progress >= 1) {
+        let canClaim = false;
+
+        switch (task.type) {
+            case 'taps':
+            case 'balance':
+            case 'mine_level':
+            case 'referrals':
+                const progress = this.getProgress(task);
+                if (progress >= 1) canClaim = true;
+                break;
+            case 'social':
+                canClaim = true; // предполагаем honor system
+                break;
+        }
+
+        if (canClaim) {
             state.bones += task.reward;
+            state.tasks[id] = state.tasks[id] || {};
             state.tasks[id].completed = true;
-            
+            tg?.HapticFeedback?.notificationOccurred('success');
             updateUI();
-            this.updateTasksUI();
-            alert(`Награда ${task.reward} костей получена!`);
-        } else {
-            alert("Задание еще не выполнено!");
         }
     },
-    
-    // Открыть социальную ссылку
-    doSocialTask: function(id) {
-        const task = TASKS_CONFIG[id];
-        if (!task || task.type !== 'social' || (state.tasks[id] && state.tasks[id].completed)) return;
-        
-        // Открываем ссылку и сразу считаем задание выполненным (упрощенная модель)
-        window.open(task.url, '_blank');
-        state.bones += task.reward;
-        state.tasks[id] = { progress: 1, completed: true };
 
-        this.updateTasksUI();
-        updateUI();
-        alert(`Спасибо за подписку! Награда ${task.reward} костей получена.`);
+    getProgress(task) {
+        switch (task.type) {
+            case 'taps':      return (state.totalTaps || 0) / task.goal;
+            case 'balance':   return state.bones / task.goal;
+            case 'mine_level': return state.mining.level / task.goal;
+            case 'referrals': return (state.referredCount || 0) / task.goal;
+            case 'social':    return state.tasks[task.id]?.completed ? 1 : 0;
+            default: return 0;
+        }
     },
 
-    // Обновление UI заданий
-    updateTasksUI: function() {
-        this.checkProgress(); // Пересчитываем прогресс перед отрисовкой
-        const container = document.getElementById('tasks-list');
-        container.innerHTML = '';
-
-        for (const id in TASKS_CONFIG) {
-            const task = TASKS_CONFIG[id];
-            const taskState = state.tasks[id] || { progress: 0, completed: false };
-
-            const isCompleted = taskState.completed;
-            const canClaim = taskState.progress >= 1 && !isCompleted;
-
-            const taskEl = document.createElement('div');
-            taskEl.className = `task-card ${isCompleted ? 'completed' : ''}`;
-            
-            let buttonHtml = '';
-            if (task.type === 'social' && !isCompleted) {
-                buttonHtml = `<button class="btn-secondary" onclick="TaskManager.doSocialTask('${id}')">Перейти</button>`;
-            } else {
-                buttonHtml = `<button class="btn-secondary" onclick="TaskManager.claimReward('${id}')" ${!canClaim ? 'disabled' : ''}>Забрать</button>`;
-            }
-
-            taskEl.innerHTML = `
-                <div class="task-info">
-                    <h4>${task.title}</h4>
-                    <p>${task.description}</p>
-                    <div class="task-reward">+${task.reward} <i class="fas fa-bone"></i></div>
-                </div>
-                <div class="task-action">
-                    ${isCompleted ? '<i class="fas fa-check-circle"></i>' : buttonHtml}
-                </div>
-            `;
-            container.appendChild(taskEl);
-        }
+    updateTasksUI() {
+        // Здесь реализуй отрисовку карточек заданий
+        // это зависит от твоей верстки в index.html
+        // пример:
+        // for (let id in TASKS_CONFIG) { ... create card ... }
     }
 };
+
+// Инициализация (если нужно)
+window.TaskManager = TaskManager;

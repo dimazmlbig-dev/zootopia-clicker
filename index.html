@@ -4,14 +4,19 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
   <title>Zootopia Clicker</title>
-  
+
+  <!-- Telegram Mini Apps -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+  <!-- TON Connect UI (CDN, vanilla) -->
+  <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
 <body>
 
-  <!-- Splash screen (если видео не грузится — просто текст) -->
+  <!-- Splash screen -->
   <div id="splash-screen" class="splash">
     <div class="splash-content">
       <h1>Zootopia Clicker</h1>
@@ -26,10 +31,16 @@
         <img src="assets/default-avatar.png" class="avatar" alt="Avatar">
         <span id="user-name">Игрок</span>
       </div>
+
       <div class="balance">
         <span id="bones-count">0</span> <i class="fas fa-bone"></i><br>
         <span id="zoo-count">0</span> $ZOO
       </div>
+
+      <!-- TON Connect button root -->
+      <div id="ton-connect" style="margin-top:8px;"></div>
+      <!-- Wallet label -->
+      <div id="wallet-address" style="font-size:12px; opacity:.85; margin-top:6px;"></div>
     </header>
 
     <div class="energy-container">
@@ -65,12 +76,17 @@
       <h2>Майнинг</h2>
       <div id="mining-info">Уровень: 1 | Доступно: 0</div>
       <button id="collect-btn">Собрать</button>
+
+      <!-- Пример платежной кнопки -->
+      <button id="pay-01-ton-btn" style="margin-top:10px;">Отправить 0.1 TON</button>
     </div>
   </div>
 
   <!-- Скрипты -->
   <script src="js/storage.js"></script>
   <script src="js/tasks.js"></script>
+  <script src="js/tonconnect.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
+

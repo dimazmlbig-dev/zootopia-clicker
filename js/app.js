@@ -1,4 +1,4 @@
-// Безопасный Telegram wrapper
+// ===== Telegram Wrapper (safe) =====
 const tg = window.Telegram?.WebApp || null;
 
 function initTelegram() {
@@ -10,10 +10,8 @@ function initTelegram() {
   tg.ready();
   tg.expand?.();
 
-  // (по желанию) цвета и поведение WebApp
+  // по желанию
   tg.disableVerticalSwipes?.();
-  tg.setHeaderColor?.("bg_color");
-  tg.setBackgroundColor?.("#0f0f12");
 
   const user = tg.initDataUnsafe?.user;
   if (user) {
@@ -24,7 +22,7 @@ function initTelegram() {
     const s = State.get();
     if (!s.refCode && user.id) {
       s.refCode = String(user.id);
-      State.set?.(s); // если у тебя есть set; если нет — просто State.save() позже
+      State.save(); // сразу сохраним
     }
   }
 }
@@ -52,7 +50,7 @@ function bindUI() {
     Mining.collect();
   });
 
-  // Табы (если надо)
+  // Tabs (если используешь active+hidden)
   document.querySelectorAll(".tab").forEach((btn) => {
     btn.addEventListener("click", () => {
       const tabName = btn.dataset.tab;
@@ -62,7 +60,7 @@ function bindUI() {
 
       document.querySelectorAll(".tab-content").forEach((c) => {
         c.classList.remove("active");
-        c.classList.add("hidden"); // если ты используешь hidden
+        c.classList.add("hidden");
       });
 
       const target = document.getElementById(`tab-${tabName}`);

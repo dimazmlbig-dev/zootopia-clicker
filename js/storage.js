@@ -1,39 +1,53 @@
-// --- Модуль сохранения и загрузки прогресса ---
-
 const StorageManager = {
-    
-    STORAGE_KEY: 'zootopia_game_state',
+    STORAGE_KEY: 'zootopia_clicker_state_v1',
 
-    // Сохраняет текущее состояние игры в localStorage
-    saveState: function(stateToSave) {
+    saveState(stateToSave) {
         try {
-            const jsonState = JSON.stringify(stateToSave);
-            localStorage.setItem(this.STORAGE_KEY, jsonState);
-            // console.log("Игра сохранена!");
+            let sum = 0;
+            for (let key in stateToSave) {
+                if (typeof stateToSave[key] === 'number') {
+                    sum += stateToSave[key];
+                }
+            }
+            const stateWithCheck = { ...stateToSave, _checksum: sum };
+
+            localStorage.setItem(this.STORAGE_KEY, JSON.stringify(stateWithCheck));
         } catch (e) {
-            console.error("Ошибка при сохранении игры:", e);
+            console.error('Ошибка сохранения состояния', e);
         }
     },
 
-    // Загружает состояние игры из localStorage
-    loadState: function() {
+    loadState() {
         try {
-            const jsonState = localStorage.getItem(this.STORAGE_KEY);
-            if (jsonState) {
-                // console.log("Прогресс загружен!");
-                return JSON.parse(jsonState);
+            const json = localStorage.getItem(this.STORAGE_KEY);
+            if (!json) return null;
+
+            const saved = JSON.parse(json);
+
+            let sum = 0;
+            for (let key in saved) {
+                if (key !== '_checksum' && typeof saved[key] === 'number') {
+                    sum += saved[key];
+                }
             }
-            return null; // Если сохранений нет
+
+            if (saved._checksum !== sum) {
+                console.warn('Обнаружено изменение данных! Сброс прогресса.');
+                this.resetState();
+                return null;
+            }
+
+            delete saved._checksum;
+            return saved;
         } catch (e) {
-            console.error("Ошибка при загрузке сохранения:", e);
+            console.error('Ошибка загрузки состояния', e);
             return null;
         }
     },
-    
-    // Сброс прогресса (для отладки)
-    resetState: function() {
+
+    resetState() {
         localStorage.removeItem(this.STORAGE_KEY);
-        console.log("Прогресс сброшен!");
-        window.location.reload(); // Перезагружаем страницу, чтобы начать с нуля
     }
 };
+
+window.StorageManager = StorageManager;

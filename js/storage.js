@@ -1,4 +1,3 @@
-// js/storage.js
 const tg = window.Telegram?.WebApp || null;
 
 const StorageManager = {
@@ -24,11 +23,7 @@ const StorageManager = {
   },
 
   isCloudAvailable() {
-    return !!(
-      tg &&
-      tg.CloudStorage &&
-      typeof tg.CloudStorage.getItem === "function"
-    );
+    return !!(tg && tg.CloudStorage && typeof tg.CloudStorage.getItem === "function");
   },
 
   cloudGet(key) {

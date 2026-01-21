@@ -1,11 +1,18 @@
 /*************************************************
- * STATE (adapter over StorageManager)
+ * STATE (async, CloudStorage-ready)
  *************************************************/
 const State = (() => {
   let _state = null;
 
+  async function init() {
+    if (_state) return _state;
+    _state = await StorageManager.loadStateAsync();
+    return _state;
+  }
+
   function get() {
-    if (!_state) _state = StorageManager.loadState();
+    if (!_state)
+      throw new Error("State not initialized. Call await State.init()");
     return _state;
   }
 
@@ -14,18 +21,18 @@ const State = (() => {
     return _state;
   }
 
-  function save() {
-    if (!_state) _state = StorageManager.loadState();
-    StorageManager.saveState(_state);
+  async function save() {
+    if (!_state) return;
+    await StorageManager.saveStateAsync(_state);
   }
 
-  return { get, set, save };
+  return { init, get, set, save };
 })();
 
 window.State = State;
 
 /*************************************************
- * TELEGRAM WRAPPER (safe)
+ * TELEGRAM WRAPPER
  *************************************************/
 const tg = window.Telegram?.WebApp || null;
 
@@ -82,7 +89,8 @@ const UI = {
     if (codeEl && s.refCode) codeEl.innerText = s.refCode;
 
     const btn = document.getElementById("share-ref-btn");
-    if (btn) btn.innerText = `Поделиться (${s.referrals || 0}/5)`;
+    if (btn)
+      btn.innerText = `Поделиться (${s.referrals || 0}/5)`;
   },
 };
 
@@ -98,7 +106,10 @@ const Energy = {
     setInterval(() => {
       const s = State.get();
       if (s.energy < s.maxEnergy) {
-        s.energy = Math.min(s.maxEnergy, s.energy + this.regenPerSec);
+        s.energy = Math.min(
+          s.maxEnergy,
+          s.energy + this.regenPerSec
+        );
         State.save();
         UI.updateEnergy();
       }
@@ -145,7 +156,7 @@ window.Clicker = Clicker;
  *************************************************/
 const Mining = {
   ratePerSec(level) {
-    return level; // можно усложнить
+    return level;
   },
 
   collect() {
@@ -154,7 +165,6 @@ const Mining = {
     const delta = Math.floor(
       (now - s.mining.lastCollect) / 1000
     );
-
     if (delta <= 0) return;
 
     const earned =
@@ -182,8 +192,9 @@ const ReferralManager = {
 
     if (tg?.openTelegramLink) {
       const url =
-        `https://t.me/share/url?url=${encodeURIComponent(link)}` +
-        `&text=${encodeURIComponent(
+        `https://t.me/share/url?url=${encodeURIComponent(
+          link
+        )}&text=${encodeURIComponent(
           "Залетай в Zootopia Clicker 🐶"
         )}`;
       tg.openTelegramLink(url);
@@ -194,8 +205,7 @@ const ReferralManager = {
   },
 
   claimReferralBonus() {
-    // Заглушка под backend
-    // Здесь будет обработка start=ref_*
+    // backend later
   },
 };
 
@@ -253,11 +263,9 @@ function bindUI() {
  *************************************************/
 function startAutosave() {
   setInterval(() => {
-    try {
-      State.save();
-    } catch (e) {
-      console.warn("Autosave error", e);
-    }
+    State.save().catch((e) =>
+      console.warn("Autosave error:", e)
+    );
   }, 3000);
 }
 
@@ -272,8 +280,8 @@ function showGame() {
     .classList.remove("hidden");
 }
 
-function startGame() {
-  State.get();
+async function startGame() {
+  await State.init();
 
   initTelegram();
   bindUI();
@@ -289,4 +297,8 @@ function startGame() {
   showGame();
 }
 
-window.addEventListener("load", startGame);
+window.addEventListener("load", () => {
+  startGame().catch((e) =>
+    console.error("startGame error:", e)
+  );
+});

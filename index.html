@@ -8,16 +8,12 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <link rel="manifest" href="tonconnect-manifest.json">
 </head>
 <body>
 
-  <!-- Splash screen -->
-  <div id="splash-screen" class="splash active">
-    <video autoplay muted playsinline id="splash-video">
-      <source src="assets/splash_video.mp4" type="video/mp4">
-    </video>
-    <div class="splash-overlay">
+  <!-- Splash screen (если видео не грузится — просто текст) -->
+  <div id="splash-screen" class="splash">
+    <div class="splash-content">
       <h1>Zootopia Clicker</h1>
       <p>Загрузка...</p>
     </div>
@@ -25,61 +21,39 @@
 
   <!-- Основной контент -->
   <div id="main-content" class="hidden">
-    <header class="header">
+    <header>
       <div class="user-info">
-        <img src="assets/default-avatar.png" alt="Avatar" class="avatar">
+        <img src="assets/default-avatar.png" class="avatar" alt="Avatar">
         <span id="user-name">Игрок</span>
       </div>
       <div class="balance">
-        <span id="bones-count">0</span> <i class="fas fa-bone"></i>
-        <span id="zoo-count">0</span> <small>$ZOO</small>
+        <span id="bones-count">0</span> <i class="fas fa-bone"></i><br>
+        <span id="zoo-count">0</span> $ZOO
       </div>
     </header>
 
-    <div class="energy-bar-container">
+    <div class="energy-container">
       <div class="energy-bar" id="energy-bar"></div>
-      <span id="current-energy">1000/1000</span>
-      <i class="fas fa-bolt energy-icon"></i>
+      <span id="current-energy">1000 / 1000</span>
     </div>
 
-    <nav class="bottom-nav">
-      <button class="tab-btn active" data-tab="main"><i class="fas fa-paw"></i> Главная</button>
-      <button class="tab-btn" data-tab="mining"><i class="fas fa-pickaxe"></i> Майнинг</button>
-      <button class="tab-btn" data-tab="tasks"><i class="fas fa-tasks"></i> Задания</button>
-      <button class="tab-btn" data-tab="swap"><i class="fas fa-exchange-alt"></i> Своп</button>
-      <button class="tab-btn" data-tab="wallet"><i class="fas fa-wallet"></i> Кошелёк</button>
+    <nav class="tabs">
+      <button class="tab active" data-tab="main">Главная</button>
+      <button class="tab" data-tab="tasks">Задания</button>
+      <button class="tab" data-tab="mining">Майнинг</button>
     </nav>
 
     <div id="tab-main" class="tab-content active">
-      <div id="tap-zone" class="tap-zone">
-        <img id="dog-img" src="assets/dog_idle.png" alt="Tap Dog">
+      <div id="tap-zone">
+        <img id="dog-img" src="assets/dog_idle.png" alt="Tap">
       </div>
 
-      <!-- Реферальная секция -->
-      <div class="referral-section" style="margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 12px; text-align: center;">
-        <h3>Приглашай друзей!</h3>
-        <button id="share-ref-btn" class="btn-primary" style="padding: 12px 24px; font-size: 16px; margin: 10px 0;">
-          Поделиться рефералкой (0/5)
-        </button>
-        <div style="margin-top: 10px; font-size: 14px; color: #666;">
-          Твоя ссылка: t.me/zooclikbot?start=ref_<span id="ref-code-display">---</span>
-        </div>
+      <!-- Рефералка -->
+      <div class="referral-box">
+        <h3>Приглашай друзей</h3>
+        <button id="share-ref-btn">Поделиться (0/5)</button>
+        <div>t.me/zooclikbot?start=ref_<span id="ref-code-display">---</span></div>
       </div>
-
-      <div class="level-info">
-        <span id="level-text">Уровень 1</span>
-        <div class="xp-bar">
-          <div id="xp-progress" style="width: 0%"></div>
-        </div>
-      </div>
-    </div>
-
-    <div id="tab-mining" class="tab-content hidden">
-      <h2>Шахта</h2>
-      <div id="mining-level">Уровень: 1</div>
-      <div id="mining-storage">Доступно: 0</div>
-      <button id="collect-mining">Собрать</button>
-      <button id="upgrade-mining">Улучшить</button>
     </div>
 
     <div id="tab-tasks" class="tab-content hidden">
@@ -87,30 +61,16 @@
       <div id="tasks-list"></div>
     </div>
 
-    <div id="tab-swap" class="tab-content hidden">
-      <h2>Своп</h2>
-      <input type="number" id="swap-input" placeholder="Bones">
-      <div id="swap-output">→ 0 $ZOO</div>
-      <button id="perform-swap">Обменять</button>
-    </div>
-
-    <div id="tab-wallet" class="tab-content hidden">
-      <h2>Кошелёк</h2>
-      <button id="connect-wallet">Подключить TON</button>
-      <div id="wallet-status">Не подключён</div>
+    <div id="tab-mining" class="tab-content hidden">
+      <h2>Майнинг</h2>
+      <div id="mining-info">Уровень: 1 | Доступно: 0</div>
+      <button id="collect-btn">Собрать</button>
     </div>
   </div>
 
-  <!-- Scripts -->
+  <!-- Скрипты -->
   <script src="js/storage.js"></script>
-  <script src="js/nft_manager.js"></script>
-  <script src="js/mining.js"></script>
   <script src="js/tasks.js"></script>
-  <script src="js/wallet.js"></script>
-  <script src="js/swap.js"></script>
-  <script src="js/admin.js"></script> <!-- если файла нет — удали эту строку -->
   <script src="js/app.js"></script>
-
-  <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
 </body>
 </html>

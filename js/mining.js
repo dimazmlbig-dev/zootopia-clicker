@@ -1,86 +1,93 @@
-// --- Конфигурация майнинга ---
-const MINING_LEVELS = [
-    { level: 1, cost: 500, rate: 10, storage: 100 },
-    { level: 2, cost: 1500, rate: 25, storage: 250 },
-    { level: 3, cost: 5000, rate: 70, storage: 800 },
-    { level: 4, cost: 12000, rate: 150, storage: 2000 },
-];
+// js/mining.js
 
-// --- Логика майнинга ---
-const MiningManager = {
-    
-    // Рассчитывает, сколько накопилось за время отсутствия
-    calculateOfflineProduction: function() {
-        const now = new Date().getTime();
-        const elapsedSeconds = (now - state.mining.lastUpdate) / 1000;
-        
-        const currentLevelData = MINING_LEVELS[state.mining.level - 1];
-        const ratePerSecond = currentLevelData.rate / 3600;
-        const produced = elapsedSeconds * ratePerSecond;
-        
-        state.mining.availableToCollect = Math.min(
-            state.mining.availableToCollect + produced,
-            currentLevelData.storage
-        );
-        
-        state.mining.lastUpdate = now;
-    },
+// Элементы UI
+const miningInfo = document.getElementById('mining-info');
+const collectBtn = document.getElementById('collect-btn');
 
-    // Собрать накопленное
-    collect: function() {
-        const collectedAmount = Math.floor(state.mining.availableToCollect);
-        if (collectedAmount <= 0) return;
-
-        state.bones += collectedAmount;
-        state.mining.availableToCollect -= collectedAmount;
-
-        updateUI();
-        this.updateMiningUI();
-        
-        if (window.Telegram.WebApp.HapticFeedback) {
-            window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-        }
-    },
-
-    // Улучшить шахту
-    upgrade: function() {
-        const nextLevel = state.mining.level + 1;
-        if (nextLevel > MINING_LEVELS.length) {
-            alert("Максимальный уровень!");
-            return;
-        }
-
-        const upgradeData = MINING_LEVELS[nextLevel - 1];
-        if (state.bones >= upgradeData.cost) {
-            state.bones -= upgradeData.cost;
-            state.mining.level = nextLevel;
-            
-            this.updateMiningUI();
-            updateUI();
-            alert("Шахта улучшена!");
-        } else {
-            alert("Недостаточно костей для улучшения!");
-        }
-    },
-    
-    // Обновление UI майнинга
-    updateMiningUI: function() {
-        this.calculateOfflineProduction();
-
-        const levelData = MINING_LEVELS[state.mining.level - 1];
-        const nextLevelData = MINING_LEVELS[state.mining.level] || null;
-
-        document.getElementById('mining-level').innerText = levelData.level;
-        document.getElementById('mining-rate').innerText = levelData.rate;
-        document.getElementById('mining-storage-fill').style.width = `${(state.mining.availableToCollect / levelData.storage) * 100}%`;
-        document.getElementById('mining-storage-value').innerText = `${Math.floor(state.mining.availableToCollect)} / ${levelData.storage}`;
-
-        if (nextLevelData) {
-            document.getElementById('upgrade-cost').innerText = nextLevelData.cost;
-            document.getElementById('btn-upgrade-mine').disabled = false;
-        } else {
-            document.getElementById('upgrade-cost').innerText = 'МАКС';
-            document.getElementById('btn-upgrade-mine').disabled = true;
-        }
-    }
+// Загружаем данные майнинга из локального хранилища
+let miningData = JSON.parse(localStorage.getItem('miningData')) || {
+    level: 1,
+    lastCollected: Date.now(),
+    available: 0,
+    upgradeCost: 100
 };
+
+// Настройки
+const BASE_RATE = 5; // базовая добыча за секунду
+const MAX_OFFLINE_HOURS = 24;
+const LEVEL_MULTIPLIER = 1.5; // рост добычи с уровнем
+
+// Расчёт дохода оффлайн
+function calculateOfflineMining() {
+    const now = Date.now();
+    let deltaTime = (now - miningData.lastCollected) / 1000; // в секундах
+
+    // Ограничиваем максимум оффлайн времени
+    const maxTime = MAX_OFFLINE_HOURS * 60 * 60;
+    if (deltaTime > maxTime) deltaTime = maxTime;
+
+    let income = deltaTime * BASE_RATE * Math.pow(LEVEL_MULTIPLIER, miningData.level - 1);
+
+    // Анти-NaN защита
+    if (!isFinite(income) || isNaN(income)) income = 0;
+
+    miningData.available += income;
+    miningData.lastCollected = now;
+
+    updateUI();
+}
+
+// Обновление интерфейса
+function updateUI() {
+    miningInfo.textContent = `Уровень: ${miningData.level} | Доступно: ${Math.floor(miningData.available)} | Стоимость улучшения: ${Math.floor(miningData.upgradeCost)}`;
+}
+
+// Сбор ресурсов кнопкой
+collectBtn.addEventListener('click', () => {
+    const bonesCountEl = document.getElementById('bones-count');
+    let bones = parseFloat(bonesCountEl.textContent) || 0;
+
+    if (!isFinite(miningData.available) || isNaN(miningData.available)) miningData.available = 0;
+
+    bones += miningData.available;
+    miningData.available = 0;
+
+    bonesCountEl.textContent = Math.floor(bones);
+    updateUI();
+    saveData();
+});
+
+// Функция улучшения уровня майнинга
+function upgradeMining() {
+    const bonesCountEl = document.getElementById('bones-count');
+    let bones = parseFloat(bonesCountEl.textContent) || 0;
+
+    if (bones >= miningData.upgradeCost) {
+        bones -= miningData.upgradeCost;
+        miningData.level += 1;
+        miningData.upgradeCost *= 2; // стоимость удваивается каждый уровень
+        bonesCountEl.textContent = Math.floor(bones);
+        updateUI();
+        saveData();
+    } else {
+        alert("Недостаточно костей для улучшения!");
+    }
+}
+
+// Добавим кнопку для апгрейда
+const upgradeBtn = document.createElement('button');
+upgradeBtn.textContent = "Улучшить майнинг";
+upgradeBtn.addEventListener('click', upgradeMining);
+collectBtn.parentNode.insertBefore(upgradeBtn, collectBtn.nextSibling);
+
+// Сохраняем данные
+function saveData() {
+    localStorage.setItem('miningData', JSON.stringify(miningData));
+}
+
+// Инициализация
+calculateOfflineMining();
+setInterval(() => {
+    calculateOfflineMining();
+    saveData();
+}, 5000); // обновление каждые 5 секунд

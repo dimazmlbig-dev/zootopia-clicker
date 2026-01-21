@@ -23,12 +23,14 @@ const StorageManager = {
     };
   },
 
-  // Проверяем доступность CloudStorage
   isCloudAvailable() {
-    return !!(tg && tg.CloudStorage && typeof tg.CloudStorage.getItem === "function");
+    return !!(
+      tg &&
+      tg.CloudStorage &&
+      typeof tg.CloudStorage.getItem === "function"
+    );
   },
 
-  // Promise-обёртки над CloudStorage callbacks
   cloudGet(key) {
     return new Promise((resolve) => {
       tg.CloudStorage.getItem(key, (err, value) => {
@@ -68,7 +70,6 @@ const StorageManager = {
     });
   },
 
-  // Миграция: если раньше был localStorage-сейв — закинем в CloudStorage 1 раз
   async migrateLocalToCloudIfNeeded() {
     if (!this.isCloudAvailable()) return;
 
@@ -79,18 +80,16 @@ const StorageManager = {
       const ok = await this.cloudSet(this.STORAGE_KEY, legacy);
       if (ok) {
         localStorage.removeItem(this.STORAGE_KEY);
-        console.log("Миграция localStorage → CloudStorage выполнена");
+        console.log("localStorage → CloudStorage миграция выполнена");
       }
     } catch (e) {
-      console.warn("migrateLocalToCloudIfNeeded error:", e);
+      console.warn("Migration error:", e);
     }
   },
 
-  // Асинхронная загрузка
   async loadStateAsync() {
     const def = this.defaultState();
 
-    // если в Telegram — используем CloudStorage
     if (this.isCloudAvailable()) {
       await this.migrateLocalToCloudIfNeeded();
 
@@ -99,7 +98,6 @@ const StorageManager = {
 
       try {
         const parsed = JSON.parse(raw);
-
         if (parsed.version !== this.VERSION) return def;
         return { ...def, ...parsed };
       } catch (e) {
@@ -108,7 +106,7 @@ const StorageManager = {
       }
     }
 
-    // fallback вне Telegram (или если CloudStorage недоступен) — localStorage
+    // fallback вне Telegram
     try {
       const data = localStorage.getItem(this.STORAGE_KEY);
       if (!data) return def;
@@ -123,7 +121,6 @@ const StorageManager = {
     }
   },
 
-  // Асинхронное сохранение
   async saveStateAsync(state) {
     const payload = JSON.stringify(state);
 

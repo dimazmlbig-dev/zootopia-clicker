@@ -1,25 +1,50 @@
+// js/app.js (ПОЛНОСТЬЮ)
+// Fix: no more "stuck on loading" — timeout + error fallback + skip always opens game
+
+/*************************************************
+ * Helpers
+ *************************************************/
+function wait(ms) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+async function withTimeout(promise, ms, onTimeout) {
+  let t;
+  const timeout = new Promise((resolve) => {
+    t = setTimeout(() => resolve(onTimeout?.()), ms);
+  });
+  const result = await Promise.race([promise, timeout]);
+  clearTimeout(t);
+  return result;
+}
+
 /*************************************************
  * SPLASH VIDEO CONTROLLER
  *************************************************/
 const Splash = (() => {
-  const MIN_SHOW_MS = 1200;     // минимум показываем сплэш, даже если всё мгновенно
-  const MAX_WAIT_MS = 12000;    // максимум ждём видео/инициализацию
+  const MIN_SHOW_MS = 800;
+  const MAX_WAIT_MS = 12000;
+
   let startedAt = 0;
+  let finished = false;
+  let finishCb = null;
 
-  function el(id) { return document.getElementById(id); }
+  function el(id) {
+    return document.getElementById(id);
+  }
 
-  function hideSplash() {
-    const splash = el("splash-screen");
-    if (splash) splash.style.display = "none";
+  function setStatus(text) {
+    const s = el("splash-status");
+    if (s) s.innerText = text || "";
   }
 
   function showTapToStart() {
     el("splash-tap")?.classList.remove("hidden");
   }
 
-  function setStatus(text) {
-    const s = el("splash-status");
-    if (s) s.innerText = text;
+  function hideSplash() {
+    const splash = el("splash-screen");
+    if (splash) splash.style.display = "none";
   }
 
   async function tryPlayVideo(video) {
@@ -34,35 +59,41 @@ const Splash = (() => {
     }
   }
 
-  function wait(ms) {
-    return new Promise((r) => setTimeout(r, ms));
+  async function finish() {
+    if (finished) return;
+    finished = true;
+
+    const video = el("splash-video");
+
+    const elapsed = Date.now() - startedAt;
+    if (elapsed < MIN_SHOW_MS) await wait(MIN_SHOW_MS - elapsed);
+
+    try { video?.pause?.(); } catch (_) {}
+
+    hideSplash();
+    finishCb?.();
+  }
+
+  // Позволяет кнопке "Пропустить" не просто закрыть сплэш, а реально открыть игру
+  function onFinish(cb) {
+    finishCb = cb;
   }
 
   async function start() {
     startedAt = Date.now();
+    finished = false;
 
     const video = el("splash-video");
     const skipBtn = el("splash-skip");
     const tapBtn = el("splash-tap");
 
-    let finished = false;
+    // skip всегда доступен
+    if (skipBtn) {
+      skipBtn.onclick = () => finish();
+    }
 
-    const finish = async () => {
-      if (finished) return;
-      finished = true;
+    setStatus("Загрузка...");
 
-      const elapsed = Date.now() - startedAt;
-      if (elapsed < MIN_SHOW_MS) await wait(MIN_SHOW_MS - elapsed);
-
-      // остановить видео
-      try { video?.pause?.(); } catch (_) {}
-      hideSplash();
-    };
-
-    // кнопка "Пропустить"
-    if (skipBtn) skipBtn.onclick = () => finish();
-
-    // если автовоспроизведение запрещено — покажем "Нажми, чтобы начать"
     const played = await tryPlayVideo(video);
     if (!played) {
       showTapToStart();
@@ -77,16 +108,15 @@ const Splash = (() => {
       }
     }
 
-    // завершение по окончанию видео
     if (video) {
       video.onended = () => finish();
       video.onerror = () => finish();
     }
 
-    // safety timeout
+    // safety timeout — если вообще что-то пошло не так
     setTimeout(() => finish(), MAX_WAIT_MS);
 
-    return { finish, setStatus };
+    return { finish, setStatus, onFinish };
   }
 
   return { start };
@@ -100,7 +130,22 @@ const State = (() => {
 
   async function init() {
     if (_state) return _state;
-    _state = await StorageManager.loadStateAsync();
+
+    // Таймаут на Storage (если CloudStorage не отвечает в Telegram Web)
+    const loaded = await withTimeout(
+      StorageManager.loadStateAsync(),
+      5000,
+      () => null
+    );
+
+    if (loaded) {
+      _state = loaded;
+      return _state;
+    }
+
+    // fallback: дефолтный сейв, чтобы не висеть
+    console.warn("State.init timeout → fallback defaultState()");
+    _state = StorageManager.defaultState();
     return _state;
   }
 
@@ -343,11 +388,11 @@ function bindUI() {
   document.getElementById("share-ref-btn")?.addEventListener("click", () => ReferralManager.shareReferral());
   document.getElementById("collect-btn")?.addEventListener("click", () => Mining.collect());
 
+  // OPTIONAL: pay button (если есть)
   document.getElementById("pay-01-ton-btn")?.addEventListener("click", async () => {
     try {
-      // ⚠️ заменён на твой адрес
       const TO_ADDRESS = "UQCJRRRYnrs_qsA2AgIE71dPsHf_-AKaZV9UMeT4vBbh6Yes";
-      const AMOUNT_NANO = "100000000"; // 0.1 TON
+      const AMOUNT_NANO = "100000000";
 
       if (!window.TonConnectManager) {
         alert("TonConnectManager не найден");
@@ -388,37 +433,68 @@ function showGame() {
 }
 
 /*************************************************
+ * Global error → show on splash (so you see why it stuck)
+ *************************************************/
+function attachGlobalErrorToSplash(setStatus) {
+  window.addEventListener("error", (e) => {
+    console.error("Global error:", e?.error || e?.message || e);
+    setStatus?.("Ошибка: " + (e?.message || "см. консоль"));
+  });
+  window.addEventListener("unhandledrejection", (e) => {
+    console.error("Unhandled promise:", e?.reason || e);
+    setStatus?.("Ошибка: " + (e?.reason?.message || e?.reason || "promise"));
+  });
+}
+
+/*************************************************
  * START GAME (video + init in parallel)
  *************************************************/
 async function startGame() {
   const splash = await Splash.start();
+  attachGlobalErrorToSplash(splash.setStatus);
 
-  // грузим всё, пока идёт видео
+  // ВАЖНО: если человек нажал "Пропустить", мы обязаны показать игру
+  splash.onFinish(() => {
+    showGame();
+  });
+
   splash.setStatus("Загрузка...");
 
-  const initPromise = (async () => {
-    await State.init();
-    initTelegram();
-    TonConnectManager?.init?.();
+  // Инициализацию тоже защищаем таймаутом
+  await withTimeout(
+    (async () => {
+      await State.init(); // уже с таймаутом и fallback
+      initTelegram();
 
-    bindUI();
+      // TON Connect — не блокируем запуск (если сломался, игра всё равно должна открыться)
+      try {
+        TonConnectManager?.init?.();
+      } catch (e) {
+        console.warn("TonConnect init error:", e);
+      }
 
-    ReferralManager.claimReferralBonus();
-    Energy.start();
-    startAutosave();
+      bindUI();
 
-    UI.updateBalance();
-    UI.updateEnergy();
-    UI.updateReferral();
-    UI.updateMiningInfo();
+      ReferralManager.claimReferralBonus();
+      Energy.start();
+      startAutosave();
 
-    setInterval(() => UI.updateMiningInfo(), 1000);
-  })();
+      UI.updateBalance();
+      UI.updateEnergy();
+      UI.updateReferral();
+      UI.updateMiningInfo();
 
-  // ждём инициализацию (видео может продолжать играть)
-  await initPromise;
+      setInterval(() => UI.updateMiningInfo(), 1000);
+    })(),
+    7000,
+    async () => {
+      console.warn("Init timeout → opening game anyway");
+      splash.setStatus("Запуск без облака...");
+      showGame();
+      return null;
+    }
+  );
 
-  // показать игру и закрыть сплэш (если видео ещё играет — всё равно закрываем)
   showGame();
   await splash.finish();
 }

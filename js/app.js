@@ -3,69 +3,104 @@ const tg = window.Telegram?.WebApp || null;
 
 function initTelegram() {
   if (!tg) {
-    console.log('Открыто вне Telegram');
+    console.log("Открыто вне Telegram");
     return;
   }
 
   tg.ready();
-  tg.expand();
+  tg.expand?.();
+
+  // (по желанию) цвета и поведение WebApp
+  tg.disableVerticalSwipes?.();
+  tg.setHeaderColor?.("bg_color");
+  tg.setBackgroundColor?.("#0f0f12");
 
   const user = tg.initDataUnsafe?.user;
   if (user) {
-    document.getElementById('user-name').innerText =
-      user.first_name || 'Игрок';
+    const nameEl = document.getElementById("user-name");
+    if (nameEl) nameEl.innerText = user.first_name || "Игрок";
 
     // refCode по user.id (если нет)
     const s = State.get();
     if (!s.refCode && user.id) {
-      s.refCode = user.id.toString();
+      s.refCode = String(user.id);
+      State.set?.(s); // если у тебя есть set; если нет — просто State.save() позже
     }
   }
 }
 
 // Splash → игра
 function showGame() {
-  document.getElementById('splash-screen').style.display = 'none';
-  document.getElementById('main-content').classList.remove('hidden');
+  const splash = document.getElementById("splash-screen");
+  const main = document.getElementById("main-content");
+
+  if (splash) splash.style.display = "none";
+  if (main) main.classList.remove("hidden");
 }
 
 // События UI
 function bindUI() {
-  document
-    .getElementById('tap-zone')
-    ?.addEventListener('click', () => Clicker.tap());
+  document.getElementById("tap-zone")?.addEventListener("click", () => {
+    Clicker.tap();
+  });
 
-  document
-    .getElementById('share-ref-btn')
-    ?.addEventListener('click', () => ReferralManager.shareReferral());
+  document.getElementById("share-ref-btn")?.addEventListener("click", () => {
+    ReferralManager.shareReferral();
+  });
 
-  document
-    .getElementById('collect-btn')
-    ?.addEventListener('click', () => Mining.collect());
+  document.getElementById("collect-btn")?.addEventListener("click", () => {
+    Mining.collect();
+  });
+
+  // Табы (если надо)
+  document.querySelectorAll(".tab").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const tabName = btn.dataset.tab;
+
+      document.querySelectorAll(".tab").forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+
+      document.querySelectorAll(".tab-content").forEach((c) => {
+        c.classList.remove("active");
+        c.classList.add("hidden"); // если ты используешь hidden
+      });
+
+      const target = document.getElementById(`tab-${tabName}`);
+      if (target) {
+        target.classList.add("active");
+        target.classList.remove("hidden");
+      }
+    });
+  });
 }
 
 // Автосейв
 function startAutosave() {
   setInterval(() => {
-    State.save();
+    try {
+      State.save();
+    } catch (e) {
+      console.warn("Autosave error:", e);
+    }
   }, 3000);
 }
 
 // Запуск игры
 function startGame() {
   initTelegram();
+  bindUI();
 
-  ReferralManager.claimReferralBonus();
+  ReferralManager.claimReferralBonus?.();
 
-  Energy.start();
+  Energy.start?.();
   startAutosave();
 
-  UI.updateBalance();
-  UI.updateEnergy();
+  UI.updateBalance?.();
+  UI.updateEnergy?.();
   UI.updateReferral?.();
 
   showGame();
 }
 
 // ENTRY POINT
-window.addEventListener('load', startGame);
+window.addEventListener("load", startGame);

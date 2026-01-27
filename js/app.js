@@ -1,254 +1,530 @@
+// js/app.js — исправлено: "Пропустить" всегда открывает игру, нет зависаний.
+// + модалка Wallet + TON balance через твой Worker.
+
+function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function withTimeout(promise, ms, onTimeout) {
+  let t;
+  const timeout = new Promise((resolve) => {
+    t = setTimeout(() => resolve(onTimeout?.()), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(t));
+}
+
 const tg = window.Telegram?.WebApp || null;
 
-function $(id){ return document.getElementById(id); }
+/** === CONFIG === **/
+const WORKER_BASE = "https://zootopia-backend.dimazmlbig.workers.dev";
 
-/* ================= SPLASH ================= */
-function initSplash(){
-  const video = $("splash-video");
-  const skip = $("splash-skip");
-  const tap  = $("splash-tap");
-  const status = $("splash-status");
+/** === SAVE STATUS UI === **/
+function setSaveStatus(text, cls) {
+  const dot = document.getElementById("save-dot");
+  const t = document.getElementById("save-text");
+  if (!dot || !t) return;
+  dot.classList.remove("ok", "bad", "work");
+  if (cls) dot.classList.add(cls);
+  t.innerText = text || "Сохранение: —";
+}
 
-  let done = false;
+/** === SPLASH === **/
+const Splash = (() => {
+  const MIN_SHOW_MS = 500;
+  const MAX_WAIT_MS = 9000;
 
-  const finish = () => {
-    if (done) return;
-    done = true;
-    $("splash-screen")?.classList.add("hidden");
-    $("app")?.classList.remove("hidden");
-    tg?.expand?.();
+  let startedAt = 0;
+  let finished = false;
+  let finishCb = null;
+
+  const el = (id) => document.getElementById(id);
+
+  function setStatus(text) {
+    const s = el("splash-status");
+    if (s) s.innerText = text || "";
+  }
+
+  function showTapToStart() { el("splash-tap")?.classList.remove("hidden"); }
+
+  function hideSplash() {
+    const splash = el("splash-screen");
+    if (splash) splash.classList.add("hidden");
+  }
+
+  async function tryPlayVideo(video) {
+    if (!video) return false;
+    try {
+      video.muted = true;
+      video.playsInline = true;
+      await video.play();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  async function finish() {
+    if (finished) return;
+    finished = true;
+
+    const elapsed = Date.now() - startedAt;
+    if (elapsed < MIN_SHOW_MS) await wait(MIN_SHOW_MS - elapsed);
+
+    try { el("splash-video")?.pause?.(); } catch {}
+    hideSplash();
+    finishCb?.();
+  }
+
+  function onFinish(cb) { finishCb = cb; }
+
+  async function start() {
+    startedAt = Date.now();
+    finished = false;
+
+    const video = el("splash-video");
+    const skipBtn = el("splash-skip");
+    const tapBtn = el("splash-tap");
+
+    // Важно: на мобиле лучше слушать и click и touchstart
+    const bindForceFinish = (node) => {
+      if (!node) return;
+      const handler = (e) => { e.preventDefault(); e.stopPropagation(); finish(); };
+      node.addEventListener("click", handler, { passive: false });
+      node.addEventListener("touchstart", handler, { passive: false });
+    };
+
+    bindForceFinish(skipBtn);
+
+    setStatus("Загрузка...");
+
+    const played = await tryPlayVideo(video);
+    if (!played) {
+      showTapToStart();
+      setStatus("Нажми, чтобы начать");
+      bindForceFinish(tapBtn);
+    }
+
+    if (video) {
+      video.onended = () => finish();
+      video.onerror = () => finish();
+    }
+
+    setTimeout(() => finish(), MAX_WAIT_MS);
+
+    return { finish, setStatus, onFinish };
+  }
+
+  return { start };
+})();
+
+/** === STATE (local safe) === **/
+const State = (() => {
+  let _state = null;
+
+  async function init() {
+    if (_state) return _state;
+
+    const loaded = await withTimeout(StorageManager.loadStateAsync(), 2000, () => null);
+    _state = loaded || StorageManager.defaultState();
+    return _state;
+  }
+
+  function get() {
+    if (!_state) throw new Error("State not initialized");
+    return _state;
+  }
+
+  function set(next) { _state = next; return _state; }
+
+  async function save() {
+    if (!_state) return;
+    await StorageManager.saveStateAsync(_state);
+  }
+
+  return { init, get, set, save };
+})();
+window.State = State;
+
+/** === UI === **/
+const UI = {
+  updateBalance() {
+    const s = State.get();
+    document.getElementById("bones-count").innerText = s.bones | 0;
+    document.getElementById("zoo-count").innerText = s.zoo | 0;
+  },
+
+  updateEnergy() {
+    const s = State.get();
+    const percent = Math.max(0, Math.min(100, (s.energy / s.maxEnergy) * 100));
+    const bar = document.getElementById("energy-bar");
+    if (bar) bar.style.width = percent + "%";
+    const label = document.getElementById("current-energy");
+    if (label) label.innerText = `${Math.floor(s.energy)} / ${s.maxEnergy}`;
+  },
+
+  updateReferral() {
+    const s = State.get();
+    const codeEl = document.getElementById("ref-code-display");
+    if (codeEl) codeEl.innerText = s.refCode ? String(s.refCode) : "---";
+    const btn = document.getElementById("share-ref-btn");
+    if (btn) btn.innerText = `Поделиться (${s.referrals || 0}/5)`;
+  },
+
+  updateMiningInfo() {
+    const s = State.get();
+    const el = document.getElementById("mining-info");
+    if (!el) return;
+    const now = Date.now();
+    const delta = Math.floor((now - s.mining.lastCollect) / 1000);
+    const available = Math.max(0, delta * Mining.ratePerSec(s.mining.level));
+    el.innerText = `Уровень: ${s.mining.level} | Доступно: ${available}`;
+  },
+
+  updateWalletPill(address) {
+    const el = document.getElementById("wallet-address");
+    if (!el) return;
+    el.innerText = address ? TonConnectManager.shorten(address) : "Кошелёк";
+  },
+
+  updateWalletModal() {
+    const s = State.get();
+    const addr = s.walletAddress || "—";
+    document.getElementById("wallet-full-address").innerText = addr;
+    document.getElementById("receive-addr").innerText = addr;
+
+    document.getElementById("zoo-balance").innerText = String(s.zoo | 0);
+    document.getElementById("ton-balance").innerText = Number(s.tonBalance || 0).toFixed(2);
+
+    // цены — пока заглушки
+    const zooUsd = (s.zoo || 0) * 0.0001;
+    const tonUsd = (s.tonBalance || 0) * 3.0;
+    document.getElementById("zoo-usd").innerText = `≈ $${zooUsd.toFixed(2)}`;
+    document.getElementById("ton-usd").innerText = `≈ $${tonUsd.toFixed(2)}`;
+  }
+};
+window.UI = UI;
+
+/** === ENERGY === **/
+const Energy = {
+  regenPerSec: 1,
+  start() {
+    setInterval(() => {
+      const s = State.get();
+      if (s.energy < s.maxEnergy) {
+        s.energy = Math.min(s.maxEnergy, s.energy + this.regenPerSec);
+        State.save();
+        UI.updateEnergy();
+      }
+    }, 1000);
+  }
+};
+window.Energy = Energy;
+
+/** === CLICKER === **/
+const Clicker = {
+  tapCost: 1,
+  reward: 1,
+  tap() {
+    const s = State.get();
+    if (s.energy < this.tapCost) return;
+
+    s.energy -= this.tapCost;
+    s.bones += this.reward;
+
+    State.save();
+    UI.updateBalance();
+    UI.updateEnergy();
+    this.animate();
+  },
+  animate() {
+    const img = document.getElementById("dog-img");
+    if (!img) return;
+    img.classList.add("tap");
+    setTimeout(() => img.classList.remove("tap"), 150);
+  }
+};
+window.Clicker = Clicker;
+
+/** === MINING === **/
+const Mining = {
+  ratePerSec(level) { return level; },
+  collect() {
+    const s = State.get();
+    const now = Date.now();
+    const delta = Math.floor((now - s.mining.lastCollect) / 1000);
+    if (delta <= 0) return;
+
+    const earned = delta * this.ratePerSec(s.mining.level);
+    s.zoo += earned;
+    s.mining.lastCollect = now;
+
+    State.save();
+    UI.updateBalance();
+    UI.updateMiningInfo();
+    UI.updateWalletModal();
+  }
+};
+window.Mining = Mining;
+
+/** === REFERRALS === **/
+const ReferralManager = {
+  shareReferral() {
+    const s = State.get();
+    if (!s.refCode) return;
+
+    const link = `https://t.me/zooclikbot?start=ref_${s.refCode}`;
+    if (tg?.openTelegramLink) {
+      const url = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent("Залетай в Zootopia Clicker 🐶")}`;
+      tg.openTelegramLink(url);
+    } else {
+      navigator.clipboard?.writeText(link);
+      alert("Ссылка скопирована:\n" + link);
+    }
+  },
+  claimReferralBonus() {
+    // backend later
+  }
+};
+window.ReferralManager = ReferralManager;
+
+/** === TABS === **/
+function bindBottomNav() {
+  const buttons = document.querySelectorAll(".nav-btn");
+  const pages = {
+    main: document.getElementById("tab-main"),
+    tasks: document.getElementById("tab-tasks"),
+    mining: document.getElementById("tab-mining"),
   };
 
-  skip?.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); finish(); });
-  tap?.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); finish(); });
-
-  if (video){
-    video.onended = finish;
-    video.onerror = finish;
-    video.play().catch(() => {
-      tap?.classList.remove("hidden");
-      if (status) status.innerText = "Нажми, чтобы начать";
+  function openTab(name) {
+    buttons.forEach((b) => b.classList.toggle("active", b.dataset.tab === name));
+    Object.values(pages).forEach((p) => {
+      if (!p) return;
+      p.classList.add("hidden");
+      p.classList.remove("active");
     });
+    const target = pages[name];
+    if (target) {
+      target.classList.remove("hidden");
+      target.classList.add("active");
+    }
   }
 
-  setTimeout(finish, 9000);
+  buttons.forEach((btn) => btn.addEventListener("click", () => openTab(btn.dataset.tab)));
+  openTab("main");
 }
 
-/* ================= STATE ================= */
-const State = {
-  bones: 0,
-  zoo: 0,
-  energy: 1000,
-  maxEnergy: 1000,
-  level: 1,
-
-  tonBalance: 4.25,
-  zooPriceUsd: 0.0001,  // заглушка
-  tonPriceUsd: 2.97,    // заглушка
-
-  walletShort: "UQCJ…6Yes",
-  walletFull: "UQCJ...6Yes", // заглушка
-};
-
-function fmt(n){
-  const x = Number(n);
-  if (Number.isNaN(x)) return "0";
-  if (Math.abs(x) >= 1_000_000) return (x/1_000_000).toFixed(2) + "M";
-  if (Math.abs(x) >= 1_000) return (x/1_000).toFixed(2) + "K";
-  return String(x);
+/** === WALLET MODAL === **/
+function openWallet() {
+  document.getElementById("wallet-modal")?.classList.remove("hidden");
+  document.getElementById("wallet-modal")?.setAttribute("aria-hidden", "false");
+  document.getElementById("send-panel")?.classList.add("hidden");
+  document.getElementById("receive-panel")?.classList.add("hidden");
+  UI.updateWalletModal();
 }
-
-function usd(n){ return "≈ $" + Number(n).toFixed(2); }
-
-/* ================= UI ================= */
-function updateTop(){
-  $("bones-count").innerText = fmt(State.bones);
-  $("zoo-count").innerText = fmt(State.zoo);
-  $("wallet-addr").innerText = State.walletShort;
+function closeWallet() {
+  document.getElementById("wallet-modal")?.classList.add("hidden");
+  document.getElementById("wallet-modal")?.setAttribute("aria-hidden", "true");
 }
+function initWalletModal() {
+  document.getElementById("open-wallet")?.addEventListener("click", openWallet);
+  document.getElementById("wallet-close")?.addEventListener("click", closeWallet);
+  document.getElementById("wallet-backdrop")?.addEventListener("click", closeWallet);
 
-function updateEnergy(){
-  $("energy-text").innerText = `${Math.floor(State.energy)} / ${State.maxEnergy}`;
-  $("energy-fill").style.width = (State.energy / State.maxEnergy * 100) + "%";
-  $("lvl").innerText = String(State.level);
-}
-
-function updateWallet(){
-  $("wallet-addr-full").innerText = State.walletFull;
-  $("receive-addr").innerText = State.walletFull;
-
-  $("zoo-balance").innerText = fmt(State.zoo);
-  $("ton-balance").innerText = Number(State.tonBalance).toFixed(2);
-
-  const zooUsd = State.zoo * State.zooPriceUsd;
-  const tonUsd = State.tonBalance * State.tonPriceUsd;
-
-  $("zoo-usd").innerText = usd(zooUsd);
-  $("ton-usd").innerText = usd(tonUsd);
-}
-
-function renderTx(){
-  const list = $("tx-list");
-  if (!list) return;
-
-  // заглушки активности
-  const txs = [
-    { title: "Receive ZOO", sub: "From TG user", amt: "+0.025 ZOO" },
-    { title: "Send TON", sub: "To UQ…aVFr", amt: "-2.10 TON" },
-    { title: "Receive TON", sub: "From UQ…z9Q", amt: "+2.50 TON" },
-  ];
-
-  list.innerHTML = txs.map(t => `
-    <div class="tx-row">
-      <div class="tx-left">
-        <div class="tx-title">${t.title}</div>
-        <div class="tx-sub">${t.sub}</div>
-      </div>
-      <div class="tx-amt">${t.amt}</div>
-    </div>
-  `).join("");
-}
-
-/* ================= CLICKER ================= */
-function initClicker(){
-  $("tap-zone")?.addEventListener("click", () => {
-    if (State.energy <= 0) return;
-
-    State.energy -= 1;
-    State.bones += 1;
-
-    // если хочешь: часть в ZOO за тап
-    // State.zoo += 0.01;
-
-    updateTop();
-    updateEnergy();
-
-    const img = $("dog-img");
-    img?.classList.add("tap");
-    setTimeout(() => img?.classList.remove("tap"), 120);
-  });
-}
-
-/* ================= ENERGY REGEN ================= */
-let regenStarted = false;
-function startRegen(){
-  if (regenStarted) return;
-  regenStarted = true;
-
-  setInterval(() => {
-    if (State.energy < State.maxEnergy) {
-      State.energy = Math.min(State.maxEnergy, State.energy + 1);
-      updateEnergy();
-    }
-  }, 1000);
-}
-
-/* ================= WALLET MODAL ================= */
-function openWallet(){
-  const modal = $("wallet-modal");
-  const recv = $("receive-panel");
-  const send = $("send-panel");
-
-  recv?.classList.add("hidden");
-  send?.classList.add("hidden");
-
-  modal?.classList.remove("hidden");
-  modal?.setAttribute("aria-hidden", "false");
-
-  updateWallet();
-  renderTx();
-
-  tg?.HapticFeedback?.impactOccurred?.("light");
-}
-
-function closeWallet(){
-  const modal = $("wallet-modal");
-  modal?.classList.add("hidden");
-  modal?.setAttribute("aria-hidden", "true");
-}
-
-function initWalletModal(){
-  const open1 = $("open-wallet");
-  const open2 = $("open-wallet-2");
-
-  open1?.addEventListener("click", openWallet);
-  open2?.addEventListener("click", openWallet);
-
-  open1?.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" || e.key === " ") openWallet();
+  document.getElementById("btn-receive")?.addEventListener("click", () => {
+    document.getElementById("send-panel")?.classList.add("hidden");
+    document.getElementById("receive-panel")?.classList.remove("hidden");
   });
 
-  $("wallet-close")?.addEventListener("click", closeWallet);
-  $("wallet-backdrop")?.addEventListener("click", closeWallet);
-
-  // ESC close (на десктопе)
-  window.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") closeWallet();
+  document.getElementById("btn-send")?.addEventListener("click", () => {
+    document.getElementById("receive-panel")?.classList.add("hidden");
+    document.getElementById("send-panel")?.classList.remove("hidden");
   });
 
-  // send/receive panels
-  $("btn-receive")?.addEventListener("click", () => {
-    $("send-panel")?.classList.add("hidden");
-    $("receive-panel")?.classList.remove("hidden");
-    tg?.HapticFeedback?.impactOccurred?.("light");
+  document.getElementById("copy-addr")?.addEventListener("click", async () => {
+    const s = State.get();
+    if (!s.walletAddress) return;
+    try { await navigator.clipboard.writeText(s.walletAddress); } catch {}
   });
 
-  $("btn-send")?.addEventListener("click", () => {
-    $("receive-panel")?.classList.add("hidden");
-    $("send-panel")?.classList.remove("hidden");
-    tg?.HapticFeedback?.impactOccurred?.("light");
+  document.getElementById("disconnect-btn")?.addEventListener("click", async () => {
+    await TonConnectManager.disconnect();
   });
 
-  $("copy-addr")?.addEventListener("click", async () => {
-    const text = State.walletFull;
+  document.getElementById("send-confirm")?.addEventListener("click", async () => {
+    const to = document.getElementById("send-to").value.trim();
+    const amt = document.getElementById("send-amt").value.trim();
+    if (!to) return alert("Введи адрес");
+    if (!amt) return alert("Введи сумму TON");
+
+    // amount TON -> nano (простая конверсия)
+    const nano = String(Math.floor(Number(amt) * 1e9));
+    if (!/^\d+$/.test(nano)) return alert("Неверная сумма");
+
     try {
-      await navigator.clipboard.writeText(text);
-      tg?.HapticFeedback?.notificationOccurred?.("success");
-    } catch {
-      // fallback
-      const ta = document.createElement("textarea");
-      ta.value = text;
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand("copy");
-      ta.remove();
+      await TonConnectManager.sendTon(to, nano, "Zootopia Clicker");
+      alert("Транзакция отправлена (подтверди в кошельке)");
+    } catch (e) {
+      alert("Ошибка: " + (e?.message || e));
+    }
+  });
+}
+
+/** === TELEGRAM INIT === **/
+function initTelegram() {
+  if (!tg) return;
+  tg.ready();
+  tg.expand?.();
+  tg.disableVerticalSwipes?.();
+
+  const user = tg.initDataUnsafe?.user;
+  if (user) {
+    const nameEl = document.getElementById("user-name");
+    if (nameEl) nameEl.innerText = user.first_name || "Игрок";
+
+    const s = State.get();
+    if (!s.refCode && user.id) {
+      s.refCode = String(user.id);
+      State.set(s);
+      State.save();
+    }
+  }
+}
+
+/** === TON BALANCE via Worker === **/
+async function fetchTonBalance(address) {
+  if (!address) return 0;
+  try {
+    const r = await withTimeout(
+      fetch(`${WORKER_BASE}/ton/balance?address=${encodeURIComponent(address)}`),
+      4000,
+      () => null
+    );
+    if (!r || !r.ok) return 0;
+    const j = await r.json();
+    const nano = Number(j?.balance || 0); // tonapi returns nano in "balance"
+    const ton = nano / 1e9;
+    return Number.isFinite(ton) ? ton : 0;
+  } catch {
+    return 0;
+  }
+}
+
+/** === UI bind === **/
+function bindUI() {
+  document.getElementById("tap-zone")?.addEventListener("click", () => Clicker.tap());
+  document.getElementById("share-ref-btn")?.addEventListener("click", () => ReferralManager.shareReferral());
+  document.getElementById("collect-btn")?.addEventListener("click", () => Mining.collect());
+
+  document.getElementById("pay-01-ton-btn")?.addEventListener("click", async () => {
+    try {
+      const TO_ADDRESS = "UQCJRRRYnrs_qsA2AgIE71dPsHf_-AKaZV9UMeT4vBbh6Yes";
+      const AMOUNT_NANO = "100000000"; // 0.1 TON
+
+      if (!TonConnectManager.isConnected()) {
+        alert("Сначала подключи кошелек (Connect Wallet)");
+        return;
+      }
+
+      await TonConnectManager.sendTon(TO_ADDRESS, AMOUNT_NANO, "Zootopia Clicker payment");
+      alert("Транзакция отправлена (подтверди в кошельке)");
+    } catch (e) {
+      console.warn(e);
+      alert("Ошибка транзакции: " + (e?.message || e));
     }
   });
 
-  $("send-confirm")?.addEventListener("click", () => {
-    tg?.HapticFeedback?.notificationOccurred?.("warning");
-    alert("Отправка пока заглушка. В шаге 3 подключим TonConnect и реальные транзакции.");
+  bindBottomNav();
+  initWalletModal();
+
+  // tasks render
+  window.Tasks?.render?.("tasks-list");
+}
+
+/** === Autosave === **/
+function startAutosave() {
+  setInterval(async () => {
+    setSaveStatus("Сохранение: Local…", "work");
+    await State.save();
+    setSaveStatus("Сохранение: Local OK", "ok");
+  }, 2500);
+}
+
+/** === show game === **/
+function showGame() {
+  const main = document.getElementById("main-content");
+  main?.classList.remove("hidden");
+}
+
+/** === errors to splash === **/
+function attachGlobalErrorToSplash(setStatus) {
+  window.addEventListener("error", (e) => {
+    console.error("Global error:", e?.error || e?.message || e);
+    setStatus?.("Ошибка: " + (e?.message || "см. консоль"));
+  });
+  window.addEventListener("unhandledrejection", (e) => {
+    console.error("Unhandled promise:", e?.reason || e);
+    setStatus?.("Ошибка: " + (e?.reason?.message || e?.reason || "promise"));
   });
 }
 
-/* ================= BOTTOM NAV (simple) ================= */
-function initNav(){
-  const btns = document.querySelectorAll(".bottom-pill .nav-btn");
-  btns.forEach(b => b.addEventListener("click", () => {
-    btns.forEach(x => x.classList.remove("active"));
-    b.classList.add("active");
-    tg?.HapticFeedback?.impactOccurred?.("soft");
-  }));
+/** === START === **/
+async function startGame() {
+  const splash = await Splash.start();
+  attachGlobalErrorToSplash(splash.setStatus);
+
+  splash.onFinish(() => {
+    showGame();
+  });
+
+  splash.setStatus("Загрузка...");
+
+  await withTimeout((async () => {
+    await State.init();
+    initTelegram();
+
+    // TonConnect: init + sync address
+    TonConnectManager.onChange(async (addr) => {
+      const s = State.get();
+      s.walletAddress = addr || "";
+      UI.updateWalletPill(addr || "");
+      await State.save();
+
+      if (addr) {
+        setSaveStatus("Сохранение: TON balance…", "work");
+        const ton = await fetchTonBalance(addr);
+        s.tonBalance = ton;
+        State.set(s);
+        await State.save();
+        UI.updateWalletModal();
+        setSaveStatus("Сохранение: OK", "ok");
+      } else {
+        UI.updateWalletModal();
+      }
+    });
+
+    await TonConnectManager.init();
+
+    bindUI();
+    ReferralManager.claimReferralBonus();
+    Energy.start();
+    startAutosave();
+
+    UI.updateBalance();
+    UI.updateEnergy();
+    UI.updateReferral();
+    UI.updateMiningInfo();
+    UI.updateWalletPill(State.get().walletAddress);
+
+    setInterval(() => UI.updateMiningInfo(), 1000);
+  })(), 6000, async () => {
+    console.warn("Init timeout → opening game anyway");
+    splash.setStatus("Запуск...");
+    showGame();
+  });
+
+  showGame();
+  await splash.finish();
 }
 
-/* ================= START ================= */
 window.addEventListener("load", () => {
-  tg?.ready?.();
-  tg?.expand?.();
-
-  // Заглушка адреса из Telegram user id (чтобы у разных юзеров было разное)
-  const u = tg?.initDataUnsafe?.user;
-  if (u?.id) {
-    State.walletFull = `TG:${u.id} (stub)`;
-    State.walletShort = `TG:${String(u.id).slice(0,4)}…`;
-  }
-
-  initSplash();
-  initClicker();
-  initWalletModal();
-  initNav();
-
-  startRegen();
-  updateTop();
-  updateEnergy();
+  startGame().catch((e) => console.error("startGame error:", e));
 });

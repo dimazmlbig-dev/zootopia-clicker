@@ -25,7 +25,7 @@
   </video>
 
   <div class="splash-overlay">
-    <div class="splash-card">
+    <div class="splash-brand">
       <div class="splash-logo">Z</div>
       <div class="splash-title">Zootopia Clicker</div>
       <div class="splash-sub" id="splash-status">Загрузка...</div>
@@ -41,17 +41,55 @@
   </div>
 </div>
 
-<!-- GAME -->
+<!-- APP -->
 <div id="main-content" class="app hidden">
+  <div class="bg-clouds"></div>
+
   <header class="hud">
-    <div id="bones-count">0</div>
+    <div class="hud-left">
+      <div class="score" id="bones-count">0</div>
+      <div class="subscore">
+        <span class="subscore-label">$ZOO:</span>
+        <span id="zoo-count">0</span>
+      </div>
+    </div>
   </header>
 
+  <div class="nickname-pill">
+    <span id="user-name">Игрок</span>
+    <span class="paw">🐾</span>
+  </div>
+
   <main class="stage">
-    <button id="tap-zone" type="button">
-      <img id="dog-img" src="assets/dog_idle.png">
+    <button id="tap-zone" class="tap-zone" type="button">
+      <img id="dog-img" src="assets/dog_idle.png" alt="Dog">
     </button>
   </main>
+
+  <section class="energy-card">
+    <div class="energy-head">
+      <div class="energy-title">⚡ ЭНЕРГИЯ</div>
+      <div class="energy-value" id="energy-text">100 / 100</div>
+    </div>
+    <div class="energy-track">
+      <div class="energy-fill" id="energy-fill"></div>
+    </div>
+  </section>
+
+  <nav class="bottom-nav">
+    <button class="nav-btn active" data-tab="main" type="button">
+      <div class="nav-ico">🦴</div>
+      <div class="nav-txt">Главная</div>
+    </button>
+    <button class="nav-btn" data-tab="tasks" type="button">
+      <div class="nav-ico">📋</div>
+      <div class="nav-txt">Задания</div>
+    </button>
+    <button class="nav-btn" data-tab="mining" type="button">
+      <div class="nav-ico">🚀</div>
+      <div class="nav-txt">Майнинг</div>
+    </button>
+  </nav>
 </div>
 
 <script src="js/app.js"></script>

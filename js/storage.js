@@ -1,4 +1,4 @@
-// js/storage.js — стабильное хранение (LocalStorage), без зависаний CloudStorage
+// js/storage.js - стабильное хранение (LocalStorage), без зависаний.
 
 window.StorageManager = (() => {
   const KEY = "zootopia_state_v1";
@@ -25,38 +25,41 @@ window.StorageManager = (() => {
     const d = defaultState();
     if (!s || typeof s !== "object") return d;
 
-    return {
-      v: 1,
-      bones: Number.isFinite(s.bones) ? s.bones : d.bones,
-      zoo: Number.isFinite(s.zoo) ? s.zoo : d.zoo,
-      energy: Number.isFinite(s.energy) ? s.energy : d.energy,
-      maxEnergy: Number.isFinite(s.maxEnergy) ? s.maxEnergy : d.maxEnergy,
-      referrals: Number.isFinite(s.referrals) ? s.referrals : d.referrals,
-      refCode: typeof s.refCode === "string" ? s.refCode : d.refCode,
-      mining: {
-        level: Number.isFinite(s?.mining?.level) ? s.mining.level : d.mining.level,
-        lastCollect: Number.isFinite(s?.mining?.lastCollect) ? s.mining.lastCollect : d.mining.lastCollect
-      },
-      walletAddress: typeof s.walletAddress === "string" ? s.walletAddress : d.walletAddress,
-      tonBalance: Number.isFinite(s.tonBalance) ? s.tonBalance : d.tonBalance
-    };
+    const out = { ...d, ...s };
+    out.mining = { ...d.mining, ...(s.mining || {}) };
+
+    // numbers
+    out.bones = Number(out.bones) || 0;
+    out.zoo = Number(out.zoo) || 0;
+    out.energy = Number(out.energy) || d.energy;
+    out.maxEnergy = Number(out.maxEnergy) || d.maxEnergy;
+    out.referrals = Number(out.referrals) || 0;
+    out.mining.level = Number(out.mining.level) || 1;
+    out.mining.lastCollect = Number(out.mining.lastCollect) || Date.now();
+
+    // strings
+    out.refCode = (out.refCode ?? "") + "";
+    out.walletAddress = (out.walletAddress ?? "") + "";
+
+    return out;
   }
 
   async function loadStateAsync() {
     try {
       const raw = localStorage.getItem(KEY);
-      if (!raw) return defaultState();
+      if (!raw) return null;
       const parsed = JSON.parse(raw);
       return sanitize(parsed);
     } catch (e) {
       console.warn("loadStateAsync error:", e);
-      return defaultState();
+      return null;
     }
   }
 
   async function saveStateAsync(state) {
     try {
-      localStorage.setItem(KEY, JSON.stringify(sanitize(state)));
+      const safe = sanitize(state);
+      localStorage.setItem(KEY, JSON.stringify(safe));
       return true;
     } catch (e) {
       console.warn("saveStateAsync error:", e);

@@ -341,3 +341,19 @@ body{
 .nav-txt{ font-size:11px; font-weight:900; letter-spacing:.2px; }
 
 .tasks-list{ display:flex; flex-direction:column; gap:10px; }
+
+/* === FIX TELEGRAM SPLASH === */
+.splash-video{
+  pointer-events: none;
+}
+
+.splash-overlay,
+.splash-skip,
+.splash-tap{
+  pointer-events: auto;
+}
+
+/* safety */
+#main-content{
+  display:block;
+}

@@ -12,127 +12,48 @@
 </head>
 <body>
 
-  <!-- Splash VIDEO -->
-  <div id="splash-screen" class="splash">
-    <video
-      id="splash-video"
-      class="splash-video"
-      playsinline
-      muted
-      preload="auto"
-      poster="assets/splash-poster.jpg"
-    >
-      <source src="assets/splash.mp4" type="video/mp4" />
-    </video>
+<!-- SPLASH -->
+<div id="splash-screen" class="splash">
+  <video
+    id="splash-video"
+    class="splash-video"
+    muted
+    playsinline
+    preload="auto"
+  >
+    <source src="assets/splash.mp4" type="video/mp4"/>
+  </video>
 
-    <div class="splash-overlay">
-      <div class="splash-brand">
-        <div class="splash-logo">Z</div>
-        <div class="splash-title">Zootopia Clicker</div>
-        <div class="splash-sub" id="splash-status">Загрузка...</div>
-      </div>
-
-      <button id="splash-skip" class="splash-skip" type="button">Пропустить</button>
-
-      <button id="splash-tap" class="splash-tap hidden" type="button">
-        Нажми, чтобы начать
-      </button>
-    </div>
-  </div>
-
-  <!-- App -->
-  <div id="main-content" class="app hidden">
-    <div class="bg-clouds"></div>
-
-    <header class="hud">
-      <div class="hud-left">
-        <div class="score" id="bones-count">0</div>
-        <div class="subscore">
-          <span class="subscore-label">$ZOO:</span>
-          <span id="zoo-count">0</span>
-        </div>
-      </div>
-
-      <div class="hud-right">
-        <div class="wallet-pill">
-          <div id="wallet-address" class="wallet-text">Кошелёк</div>
-          <div id="ton-connect" class="ton-btn-root"></div>
-        </div>
-      </div>
-    </header>
-
-    <div class="nickname-pill">
-      <span id="user-name">Игрок</span>
-      <span class="paw">🐾</span>
+  <div class="splash-overlay">
+    <div class="splash-card">
+      <div class="splash-logo">Z</div>
+      <div class="splash-title">Zootopia Clicker</div>
+      <div class="splash-sub" id="splash-status">Загрузка...</div>
     </div>
 
-    <main class="stage">
-      <button id="tap-zone" class="tap-zone" type="button" aria-label="Tap">
-        <img id="dog-img" src="assets/dog_idle.png" alt="Tap character">
-      </button>
-    </main>
+    <button id="splash-skip" class="splash-skip" type="button">
+      Пропустить
+    </button>
 
-    <section class="energy-card">
-      <div class="energy-head">
-        <div class="energy-title">⚡ ЭНЕРГИЯ</div>
-        <div class="energy-value"><span id="current-energy">1000 / 1000</span></div>
-      </div>
-      <div class="energy-track">
-        <div class="energy-fill" id="energy-bar"></div>
-      </div>
-    </section>
-
-    <section class="pages">
-      <div id="tab-main" class="page active">
-        <div class="panel">
-          <div class="panel-title">Приглашай друзей</div>
-          <button id="share-ref-btn" class="primary-btn" type="button">Поделиться (0/5)</button>
-          <div class="ref-link">
-            t.me/zooclikbot?start=ref_<span id="ref-code-display">---</span>
-          </div>
-        </div>
-      </div>
-
-      <div id="tab-tasks" class="page hidden">
-        <div class="panel">
-          <div class="panel-title">Задания</div>
-          <div id="tasks-list" class="tasks-list"></div>
-        </div>
-      </div>
-
-      <div id="tab-mining" class="page hidden">
-        <div class="panel">
-          <div class="panel-title">Майнинг</div>
-          <div id="mining-info" class="muted">Уровень: 1 | Доступно: 0</div>
-          <button id="collect-btn" class="secondary-btn" type="button">Собрать</button>
-
-          <div class="hr"></div>
-
-          <button id="pay-01-ton-btn" class="primary-btn" type="button">Отправить 0.1 TON</button>
-        </div>
-      </div>
-    </section>
-
-    <nav class="bottom-nav">
-      <button class="nav-btn active" data-tab="main" type="button">
-        <div class="nav-ico">🦴</div>
-        <div class="nav-txt">Главная</div>
-      </button>
-      <button class="nav-btn" data-tab="tasks" type="button">
-        <div class="nav-ico">📋</div>
-        <div class="nav-txt">Задания</div>
-      </button>
-      <button class="nav-btn" data-tab="mining" type="button">
-        <div class="nav-ico">🚀</div>
-        <div class="nav-txt">Прокачка</div>
-      </button>
-    </nav>
+    <button id="splash-tap" class="splash-tap hidden" type="button">
+      Нажми, чтобы начать
+    </button>
   </div>
+</div>
 
-  <!-- Scripts -->
-  <script src="js/storage.js"></script>
-  <script src="js/tasks.js"></script>
-  <script src="js/tonconnect.js"></script>
-  <script src="js/app.js"></script>
+<!-- GAME -->
+<div id="main-content" class="app hidden">
+  <header class="hud">
+    <div id="bones-count">0</div>
+  </header>
+
+  <main class="stage">
+    <button id="tap-zone" type="button">
+      <img id="dog-img" src="assets/dog_idle.png">
+    </button>
+  </main>
+</div>
+
+<script src="js/app.js"></script>
 </body>
 </html>

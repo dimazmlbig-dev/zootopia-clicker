@@ -47,24 +47,17 @@
     <header class="hud">
       <div class="hud-left">
         <div class="score" id="bones-count">0</div>
-
         <div class="subscore">
           <span class="subscore-label">$ZOO:</span>
           <span id="zoo-count">0</span>
         </div>
-
-        <!-- Save status -->
-        <div class="save-pill" id="save-pill">
-          <span class="save-dot" id="save-dot"></span>
-          <span class="save-text" id="save-text">Сохранение: —</span>
-        </div>
       </div>
 
       <div class="hud-right">
-        <button id="open-wallet" class="wallet-pill" type="button">
-          <div class="wallet-text" id="wallet-address">Кошелёк</div>
+        <div class="wallet-pill">
+          <div id="wallet-address" class="wallet-text">Кошелёк</div>
           <div id="ton-connect" class="ton-btn-root"></div>
-        </button>
+        </div>
       </div>
     </header>
 
@@ -74,9 +67,10 @@
     </div>
 
     <main class="stage">
-      <button id="tap-zone" class="tap-zone" type="button" aria-label="Tap">
-        <img id="dog-img" src="assets/dog_idle.png" alt="Tap character">
-      </button>
+      <!-- ВАЖНО: div вместо button -->
+      <div id="tap-zone" class="tap-zone" role="button" aria-label="Tap">
+        <img id="dog-img" src="assets/dog_idle.png" alt="Tap character" draggable="false">
+      </div>
     </main>
 
     <section class="energy-card">
@@ -134,75 +128,6 @@
         <div class="nav-txt">Прокачка</div>
       </button>
     </nav>
-  </div>
-
-  <!-- Wallet Modal -->
-  <div id="wallet-modal" class="modal hidden" aria-hidden="true">
-    <div id="wallet-backdrop" class="modal-backdrop"></div>
-
-    <div class="modal-sheet">
-      <div class="modal-head">
-        <div class="modal-title">Wallet</div>
-        <button id="wallet-close" class="modal-x" type="button">✕</button>
-      </div>
-
-      <div class="modal-addr" id="wallet-full-address">—</div>
-
-      <div class="wallet-cards">
-        <div class="asset-row">
-          <div class="asset-left">
-            <div class="asset-ico zoo-ico">🪙</div>
-            <div>
-              <div class="asset-name">$ZOO</div>
-              <div class="asset-usd" id="zoo-usd">≈ $0.00</div>
-            </div>
-          </div>
-          <div class="asset-right">
-            <div class="asset-amt" id="zoo-balance">0</div>
-          </div>
-        </div>
-
-        <div class="asset-row">
-          <div class="asset-left">
-            <div class="asset-ico ton-ico">◈</div>
-            <div>
-              <div class="asset-name">TON</div>
-              <div class="asset-usd" id="ton-usd">≈ $0.00</div>
-            </div>
-          </div>
-          <div class="asset-right">
-            <div class="asset-amt" id="ton-balance">0.00</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="modal-actions">
-        <button id="btn-send" class="pill-btn" type="button">Send</button>
-        <button id="btn-receive" class="pill-btn" type="button">Receive</button>
-        <button id="disconnect-btn" class="pill-btn ghost" type="button">Disconnect</button>
-      </div>
-
-      <!-- Receive -->
-      <div id="receive-panel" class="mini-panel hidden">
-        <div class="mini-title">Receive</div>
-        <div class="mini-row">
-          <div class="mini-addr" id="receive-addr">—</div>
-          <button id="copy-addr" class="mini-btn" type="button">Copy</button>
-        </div>
-      </div>
-
-      <!-- Send -->
-      <div id="send-panel" class="mini-panel hidden">
-        <div class="mini-title">Send TON</div>
-        <input id="send-to" class="mini-input" placeholder="Address" />
-        <input id="send-amt" class="mini-input" placeholder="Amount (TON)" />
-        <button id="send-confirm" class="mini-btn primary" type="button">Confirm</button>
-      </div>
-
-      <div class="mini-foot muted">
-        Баланс TON берём с твоего Worker (без ключей во фронте).
-      </div>
-    </div>
   </div>
 
   <!-- Scripts -->

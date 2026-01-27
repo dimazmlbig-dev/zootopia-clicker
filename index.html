@@ -1,95 +1,77 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <title>Zootopia Clicker</title>
 
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
-
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
 <!-- SPLASH -->
 <div id="splash-screen" class="splash">
-  <video
-    id="splash-video"
-    class="splash-video"
-    muted
-    playsinline
-    preload="auto"
-  >
-    <source src="assets/splash.mp4" type="video/mp4"/>
+  <video id="splash-video" class="splash-video" muted playsinline preload="auto">
+    <source src="assets/splash.mp4" type="video/mp4">
   </video>
 
   <div class="splash-overlay">
     <div class="splash-brand">
       <div class="splash-logo">Z</div>
       <div class="splash-title">Zootopia Clicker</div>
-      <div class="splash-sub" id="splash-status">Загрузка...</div>
+      <div class="splash-sub">Загрузка…</div>
     </div>
 
-    <button id="splash-skip" class="splash-skip" type="button">
-      Пропустить
-    </button>
-
-    <button id="splash-tap" class="splash-tap hidden" type="button">
-      Нажми, чтобы начать
-    </button>
+    <button id="splash-skip" class="splash-skip">Пропустить</button>
   </div>
 </div>
 
 <!-- APP -->
-<div id="main-content" class="app hidden">
-  <div class="bg-clouds"></div>
+<div id="app" class="app hidden">
 
-  <header class="hud">
-    <div class="hud-left">
-      <div class="score" id="bones-count">0</div>
-      <div class="subscore">
-        <span class="subscore-label">$ZOO:</span>
-        <span id="zoo-count">0</span>
-      </div>
-    </div>
-  </header>
-
-  <div class="nickname-pill">
-    <span id="user-name">Игрок</span>
-    <span class="paw">🐾</span>
+  <!-- TOP PILL -->
+  <div class="top-pill">
+    <div class="pill-left">🐶 357</div>
+    <div class="pill-right">UQCJ…6Yes</div>
   </div>
 
-  <main class="stage">
-    <button id="tap-zone" class="tap-zone" type="button">
-      <img id="dog-img" src="assets/dog_idle.png" alt="Dog">
-    </button>
-  </main>
+  <!-- CHARACTER -->
+  <div class="character">
+    <img id="dog-img" src="assets/dog_idle.png">
+  </div>
 
-  <section class="energy-card">
-    <div class="energy-head">
-      <div class="energy-title">⚡ ЭНЕРГИЯ</div>
-      <div class="energy-value" id="energy-text">100 / 100</div>
+  <!-- STATS -->
+  <div class="stats-card">
+    <div class="stat">
+      <span>⚡ Энергия</span>
+      <strong id="energy-text">999 / 1000</strong>
     </div>
-    <div class="energy-track">
-      <div class="energy-fill" id="energy-fill"></div>
+    <div class="progress">
+      <div id="energy-fill"></div>
     </div>
-  </section>
 
-  <nav class="bottom-nav">
-    <button class="nav-btn active" data-tab="main" type="button">
-      <div class="nav-ico">🦴</div>
-      <div class="nav-txt">Главная</div>
-    </button>
-    <button class="nav-btn" data-tab="tasks" type="button">
-      <div class="nav-ico">📋</div>
-      <div class="nav-txt">Задания</div>
-    </button>
-    <button class="nav-btn" data-tab="mining" type="button">
-      <div class="nav-ico">🚀</div>
-      <div class="nav-txt">Майнинг</div>
-    </button>
-  </nav>
+    <div class="stat">
+      <span>📈 Уровень</span>
+      <strong>8 / 10</strong>
+    </div>
+  </div>
+
+  <!-- NFT GRID -->
+  <div class="nft-grid">
+    <div class="nft-card">NFT</div>
+    <div class="nft-card">NFT</div>
+    <div class="nft-card">NFT</div>
+    <div class="nft-card">NFT</div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <div class="bottom-pill">
+    <button class="nav-btn active">🏠</button>
+    <button class="nav-btn">💎</button>
+    <button class="nav-btn">👛</button>
+  </div>
+
 </div>
 
 <script src="js/app.js"></script>

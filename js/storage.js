@@ -1,5 +1,4 @@
-// js/storage.js — стабильное хранение (LocalStorage), без зависаний.
-// Backend-state подключим позже отдельным шагом.
+// js/storage.js — стабильное хранение (LocalStorage), без зависаний CloudStorage
 
 window.StorageManager = (() => {
   const KEY = "zootopia_state_v1";
@@ -26,32 +25,32 @@ window.StorageManager = (() => {
     const d = defaultState();
     if (!s || typeof s !== "object") return d;
 
-    d.bones = Math.max(0, Math.floor(Number(s.bones) || 0));
-    d.zoo = Math.max(0, Math.floor(Number(s.zoo) || 0));
-    d.maxEnergy = Math.max(1, Math.floor(Number(s.maxEnergy) || 1000));
-    d.energy = Math.max(0, Math.min(d.maxEnergy, Math.floor(Number(s.energy) || d.maxEnergy)));
-
-    d.referrals = Math.max(0, Math.floor(Number(s.referrals) || 0));
-    d.refCode = typeof s.refCode === "string" ? s.refCode : "";
-
-    const ml = s.mining || {};
-    d.mining.level = Math.max(1, Math.floor(Number(ml.level) || 1));
-    d.mining.lastCollect = Math.max(0, Number(ml.lastCollect) || Date.now());
-
-    d.walletAddress = typeof s.walletAddress === "string" ? s.walletAddress : "";
-    d.tonBalance = Number(s.tonBalance) || 0;
-
-    return d;
+    return {
+      v: 1,
+      bones: Number.isFinite(s.bones) ? s.bones : d.bones,
+      zoo: Number.isFinite(s.zoo) ? s.zoo : d.zoo,
+      energy: Number.isFinite(s.energy) ? s.energy : d.energy,
+      maxEnergy: Number.isFinite(s.maxEnergy) ? s.maxEnergy : d.maxEnergy,
+      referrals: Number.isFinite(s.referrals) ? s.referrals : d.referrals,
+      refCode: typeof s.refCode === "string" ? s.refCode : d.refCode,
+      mining: {
+        level: Number.isFinite(s?.mining?.level) ? s.mining.level : d.mining.level,
+        lastCollect: Number.isFinite(s?.mining?.lastCollect) ? s.mining.lastCollect : d.mining.lastCollect
+      },
+      walletAddress: typeof s.walletAddress === "string" ? s.walletAddress : d.walletAddress,
+      tonBalance: Number.isFinite(s.tonBalance) ? s.tonBalance : d.tonBalance
+    };
   }
 
   async function loadStateAsync() {
     try {
       const raw = localStorage.getItem(KEY);
-      if (!raw) return null;
-      return sanitize(JSON.parse(raw));
+      if (!raw) return defaultState();
+      const parsed = JSON.parse(raw);
+      return sanitize(parsed);
     } catch (e) {
-      console.warn("Storage load error:", e);
-      return null;
+      console.warn("loadStateAsync error:", e);
+      return defaultState();
     }
   }
 
@@ -60,10 +59,14 @@ window.StorageManager = (() => {
       localStorage.setItem(KEY, JSON.stringify(sanitize(state)));
       return true;
     } catch (e) {
-      console.warn("Storage save error:", e);
+      console.warn("saveStateAsync error:", e);
       return false;
     }
   }
 
-  return { defaultState, loadStateAsync, saveStateAsync };
+  return {
+    defaultState,
+    loadStateAsync,
+    saveStateAsync
+  };
 })();

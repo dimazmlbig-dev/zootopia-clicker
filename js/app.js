@@ -1,8 +1,5 @@
-// js/app.js (ПОЛНОСТЬЮ)
-// Fix: no more "stuck on loading" — timeout + error fallback + skip always opens game
-
 /*************************************************
- * Helpers
+ * HELPERS
  *************************************************/
 function wait(ms) {
   return new Promise((r) => setTimeout(r, ms));
@@ -19,7 +16,7 @@ async function withTimeout(promise, ms, onTimeout) {
 }
 
 /*************************************************
- * SPLASH VIDEO CONTROLLER
+ * SPLASH
  *************************************************/
 const Splash = (() => {
   const MIN_SHOW_MS = 800;
@@ -28,6 +25,7 @@ const Splash = (() => {
   let startedAt = 0;
   let finished = false;
   let finishCb = null;
+  let finishPromise = null;
 
   function el(id) {
     return document.getElementById(id);
@@ -38,43 +36,46 @@ const Splash = (() => {
     if (s) s.innerText = text || "";
   }
 
-  function showTapToStart() {
+  function showTap() {
     el("splash-tap")?.classList.remove("hidden");
   }
 
-  function hideSplash() {
+  function hide() {
     const splash = el("splash-screen");
     if (splash) splash.style.display = "none";
   }
 
-  async function tryPlayVideo(video) {
+  async function tryPlay(video) {
     if (!video) return false;
     try {
       video.muted = true;
       video.playsInline = true;
       await video.play();
       return true;
-    } catch (_) {
+    } catch {
       return false;
     }
   }
 
-  async function finish() {
-    if (finished) return;
-    finished = true;
+  function finish() {
+    if (finishPromise) return finishPromise;
 
-    const video = el("splash-video");
+    finishPromise = (async () => {
+      if (finished) return;
+      finished = true;
 
-    const elapsed = Date.now() - startedAt;
-    if (elapsed < MIN_SHOW_MS) await wait(MIN_SHOW_MS - elapsed);
+      const video = el("splash-video");
+      const elapsed = Date.now() - startedAt;
+      if (elapsed < MIN_SHOW_MS) await wait(MIN_SHOW_MS - elapsed);
 
-    try { video?.pause?.(); } catch (_) {}
+      try { video?.pause?.(); } catch {}
+      hide();
+      finishCb?.();
+    })();
 
-    hideSplash();
-    finishCb?.();
+    return finishPromise;
   }
 
-  // Позволяет кнопке "Пропустить" не просто закрыть сплэш, а реально открыть игру
   function onFinish(cb) {
     finishCb = cb;
   }
@@ -82,39 +83,29 @@ const Splash = (() => {
   async function start() {
     startedAt = Date.now();
     finished = false;
+    finishPromise = null;
 
     const video = el("splash-video");
-    const skipBtn = el("splash-skip");
-    const tapBtn = el("splash-tap");
+    const skip = el("splash-skip");
+    const tap = el("splash-tap");
 
-    // skip всегда доступен
-    if (skipBtn) {
-      skipBtn.onclick = () => finish();
-    }
+    skip && (skip.onclick = finish);
+    tap && (tap.onclick = finish);
 
     setStatus("Загрузка...");
 
-    const played = await tryPlayVideo(video);
+    const played = await tryPlay(video);
     if (!played) {
-      showTapToStart();
+      showTap();
       setStatus("Нажми, чтобы начать");
-
-      if (tapBtn) {
-        tapBtn.onclick = async () => {
-          tapBtn.classList.add("hidden");
-          setStatus("Загрузка...");
-          await tryPlayVideo(video);
-        };
-      }
     }
 
     if (video) {
-      video.onended = () => finish();
-      video.onerror = () => finish();
+      video.onended = finish;
+      video.onerror = finish;
     }
 
-    // safety timeout — если вообще что-то пошло не так
-    setTimeout(() => finish(), MAX_WAIT_MS);
+    setTimeout(finish, MAX_WAIT_MS);
 
     return { finish, setStatus, onFinish };
   }
@@ -123,7 +114,7 @@ const Splash = (() => {
 })();
 
 /*************************************************
- * STATE (async, CloudStorage-ready)
+ * STATE
  *************************************************/
 const State = (() => {
   let _state = null;
@@ -131,46 +122,32 @@ const State = (() => {
   async function init() {
     if (_state) return _state;
 
-    // Таймаут на Storage (если CloudStorage не отвечает в Telegram Web)
     const loaded = await withTimeout(
       StorageManager.loadStateAsync(),
       5000,
       () => null
     );
 
-    if (loaded) {
-      _state = loaded;
-      return _state;
-    }
-
-    // fallback: дефолтный сейв, чтобы не висеть
-    console.warn("State.init timeout → fallback defaultState()");
-    _state = StorageManager.defaultState();
+    _state = loaded || StorageManager.defaultState();
     return _state;
   }
 
   function get() {
-    if (!_state) throw new Error("State not initialized. Call await State.init()");
+    if (!_state) throw new Error("State not initialized");
     return _state;
   }
 
-  function set(next) {
-    _state = next;
-    return _state;
+  function save() {
+    if (_state) return StorageManager.saveStateAsync(_state);
   }
 
-  async function save() {
-    if (!_state) return;
-    await StorageManager.saveStateAsync(_state);
-  }
-
-  return { init, get, set, save };
+  return { init, get, save };
 })();
 
 window.State = State;
 
 /*************************************************
- * TELEGRAM WRAPPER
+ * TELEGRAM
  *************************************************/
 const tg = window.Telegram?.WebApp || null;
 
@@ -181,17 +158,24 @@ function initTelegram() {
   tg.expand?.();
   tg.disableVerticalSwipes?.();
 
+  let s;
+  try { s = State.get(); } catch { return; }
+
   const user = tg.initDataUnsafe?.user;
   if (user) {
-    const nameEl = document.getElementById("user-name");
-    if (nameEl) nameEl.innerText = user.first_name || "Игрок";
+    document.getElementById("user-name").innerText =
+      user.first_name || "Игрок";
 
-    const s = State.get();
     if (!s.refCode && user.id) {
       s.refCode = String(user.id);
-      State.set(s);
       State.save();
     }
+  }
+
+  const startParam = tg.initDataUnsafe?.start_param;
+  if (startParam?.startsWith("ref_")) {
+    s.referredBy = startParam.replace("ref_", "");
+    State.save();
   }
 }
 
@@ -199,45 +183,43 @@ function initTelegram() {
  * UI
  *************************************************/
 const UI = {
-  updateBalance() {
-    const s = State.get();
-    const bonesEl = document.getElementById("bones-count");
-    const zooEl = document.getElementById("zoo-count");
-    if (bonesEl) bonesEl.innerText = s.bones | 0;
-    if (zooEl) zooEl.innerText = s.zoo | 0;
+  updateAll() {
+    this.balance();
+    this.energy();
+    this.referral();
+    this.mining();
   },
 
-  updateEnergy() {
+  balance() {
     const s = State.get();
-    const percent = Math.max(0, Math.min(100, (s.energy / s.maxEnergy) * 100));
-
-    const bar = document.getElementById("energy-bar");
-    if (bar) bar.style.width = percent + "%";
-
-    const label = document.getElementById("current-energy");
-    if (label) label.innerText = `${Math.floor(s.energy)} / ${s.maxEnergy}`;
+    document.getElementById("bones-count").innerText = s.bones | 0;
+    document.getElementById("zoo-count").innerText = s.zoo | 0;
   },
 
-  updateReferral() {
+  energy() {
     const s = State.get();
-    const codeEl = document.getElementById("ref-code-display");
-    if (codeEl) codeEl.innerText = s.refCode ? String(s.refCode) : "---";
-
-    const btn = document.getElementById("share-ref-btn");
-    if (btn) btn.innerText = `Поделиться (${s.referrals || 0}/5)`;
+    const percent = Math.min(100, (s.energy / s.maxEnergy) * 100);
+    document.getElementById("energy-bar").style.width = percent + "%";
+    document.getElementById("current-energy").innerText =
+      `${Math.floor(s.energy)} / ${s.maxEnergy}`;
   },
 
-  updateMiningInfo() {
+  referral() {
     const s = State.get();
-    const el = document.getElementById("mining-info");
-    if (!el) return;
+    document.getElementById("ref-code-display").innerText =
+      s.refCode || "---";
+    document.getElementById("share-ref-btn").innerText =
+      `Поделиться (${s.referrals || 0}/5)`;
+  },
 
+  mining() {
+    const s = State.get();
     const now = Date.now();
     const delta = Math.floor((now - s.mining.lastCollect) / 1000);
-    const available = Math.max(0, delta * Mining.ratePerSec(s.mining.level));
-
-    el.innerText = `Уровень: ${s.mining.level} | Доступно: ${available}`;
-  }
+    const available = Math.max(0, delta * s.mining.level);
+    document.getElementById("mining-info").innerText =
+      `Уровень: ${s.mining.level} | Доступно: ${available}`;
+  },
 };
 
 window.UI = UI;
@@ -247,20 +229,22 @@ window.UI = UI;
  *************************************************/
 const Energy = {
   regenPerSec: 1,
+  started: false,
 
   start() {
+    if (this.started) return;
+    this.started = true;
+
     setInterval(() => {
       const s = State.get();
       if (s.energy < s.maxEnergy) {
         s.energy = Math.min(s.maxEnergy, s.energy + this.regenPerSec);
         State.save();
-        UI.updateEnergy();
+        UI.energy();
       }
     }, 1000);
   },
 };
-
-window.Energy = Energy;
 
 /*************************************************
  * CLICKER
@@ -277,228 +261,105 @@ const Clicker = {
     s.bones += this.reward;
 
     State.save();
-    UI.updateBalance();
-    UI.updateEnergy();
+    UI.balance();
+    UI.energy();
 
-    this.animate();
-  },
-
-  animate() {
     const img = document.getElementById("dog-img");
-    if (!img) return;
-
-    img.classList.add("tap");
-    setTimeout(() => img.classList.remove("tap"), 150);
+    img?.classList.add("tap");
+    setTimeout(() => img?.classList.remove("tap"), 150);
   },
 };
-
-window.Clicker = Clicker;
 
 /*************************************************
  * MINING
  *************************************************/
 const Mining = {
-  ratePerSec(level) {
-    return level;
-  },
-
   collect() {
     const s = State.get();
     const now = Date.now();
     const delta = Math.floor((now - s.mining.lastCollect) / 1000);
     if (delta <= 0) return;
 
-    const earned = delta * this.ratePerSec(s.mining.level);
-
-    s.zoo += earned;
+    s.zoo += delta * s.mining.level;
     s.mining.lastCollect = now;
 
     State.save();
-    UI.updateBalance();
-    UI.updateMiningInfo();
-  }
-};
-
-window.Mining = Mining;
-
-/*************************************************
- * REFERRALS
- *************************************************/
-const ReferralManager = {
-  shareReferral() {
-    const s = State.get();
-    if (!s.refCode) return;
-
-    const link = `https://t.me/zooclikbot?start=ref_${s.refCode}`;
-
-    if (tg?.openTelegramLink) {
-      const url =
-        `https://t.me/share/url?url=${encodeURIComponent(link)}` +
-        `&text=${encodeURIComponent("Залетай в Zootopia Clicker 🐶")}`;
-      tg.openTelegramLink(url);
-    } else {
-      navigator.clipboard?.writeText(link);
-      alert("Ссылка скопирована:\n" + link);
-    }
-  },
-
-  claimReferralBonus() {
-    // backend later
+    UI.balance();
+    UI.mining();
   },
 };
 
-window.ReferralManager = ReferralManager;
-
 /*************************************************
- * NAV / TABS
+ * NAV
  *************************************************/
-function bindBottomNav() {
+function bindNav() {
   const buttons = document.querySelectorAll(".nav-btn");
   const pages = {
-    main: document.getElementById("tab-main"),
-    tasks: document.getElementById("tab-tasks"),
-    mining: document.getElementById("tab-mining"),
+    main: tab("main"),
+    tasks: tab("tasks"),
+    mining: tab("mining"),
   };
 
-  function openTab(name) {
-    buttons.forEach((b) => b.classList.toggle("active", b.dataset.tab === name));
-
-    Object.values(pages).forEach((p) => {
-      if (!p) return;
-      p.classList.add("hidden");
-      p.classList.remove("active");
-    });
-
-    const target = pages[name];
-    if (target) {
-      target.classList.remove("hidden");
-      target.classList.add("active");
-    }
+  function tab(name) {
+    return document.getElementById(`tab-${name}`);
   }
 
-  buttons.forEach((btn) => btn.addEventListener("click", () => openTab(btn.dataset.tab)));
-  openTab("main");
+  function open(name) {
+    buttons.forEach((b) =>
+      b.classList.toggle("active", b.dataset.tab === name)
+    );
+
+    Object.values(pages).forEach((p) => p.classList.add("hidden"));
+    pages[name]?.classList.remove("hidden");
+  }
+
+  buttons.forEach((b) =>
+    b.addEventListener("click", () => open(b.dataset.tab))
+  );
+
+  open("main");
 }
 
 /*************************************************
- * UI BINDINGS
+ * BIND UI
  *************************************************/
 function bindUI() {
-  document.getElementById("tap-zone")?.addEventListener("click", () => Clicker.tap());
-  document.getElementById("share-ref-btn")?.addEventListener("click", () => ReferralManager.shareReferral());
-  document.getElementById("collect-btn")?.addEventListener("click", () => Mining.collect());
+  document.getElementById("tap-zone").onclick = () => Clicker.tap();
+  document.getElementById("share-ref-btn").onclick = () =>
+    ReferralManager.shareReferral();
+  document.getElementById("collect-btn").onclick = () =>
+    Mining.collect();
 
-  // OPTIONAL: pay button (если есть)
-  document.getElementById("pay-01-ton-btn")?.addEventListener("click", async () => {
-    try {
-      const TO_ADDRESS = "UQCJRRRYnrs_qsA2AgIE71dPsHf_-AKaZV9UMeT4vBbh6Yes";
-      const AMOUNT_NANO = "100000000";
-
-      if (!window.TonConnectManager) {
-        alert("TonConnectManager не найден");
-        return;
-      }
-
-      if (!TonConnectManager.isConnected()) {
-        alert("Сначала подключи кошелек (Connect Wallet)");
-        return;
-      }
-
-      await TonConnectManager.sendTon(TO_ADDRESS, AMOUNT_NANO, "Zootopia Clicker payment");
-      alert("Транзакция отправлена (подтверди в кошельке)");
-    } catch (e) {
-      console.warn(e);
-      alert("Ошибка транзакции: " + (e?.message || e));
-    }
-  });
-
-  bindBottomNav();
+  bindNav();
 }
 
 /*************************************************
- * AUTOSAVE
- *************************************************/
-function startAutosave() {
-  setInterval(() => {
-    State.save().catch((e) => console.warn("Autosave error:", e));
-  }, 3000);
-}
-
-/*************************************************
- * SHOW GAME
- *************************************************/
-function showGame() {
-  const main = document.getElementById("main-content");
-  if (main) main.classList.remove("hidden");
-}
-
-/*************************************************
- * Global error → show on splash (so you see why it stuck)
- *************************************************/
-function attachGlobalErrorToSplash(setStatus) {
-  window.addEventListener("error", (e) => {
-    console.error("Global error:", e?.error || e?.message || e);
-    setStatus?.("Ошибка: " + (e?.message || "см. консоль"));
-  });
-  window.addEventListener("unhandledrejection", (e) => {
-    console.error("Unhandled promise:", e?.reason || e);
-    setStatus?.("Ошибка: " + (e?.reason?.message || e?.reason || "promise"));
-  });
-}
-
-/*************************************************
- * START GAME (video + init in parallel)
+ * START GAME
  *************************************************/
 async function startGame() {
   const splash = await Splash.start();
-  attachGlobalErrorToSplash(splash.setStatus);
 
-  // ВАЖНО: если человек нажал "Пропустить", мы обязаны показать игру
   splash.onFinish(() => {
-    showGame();
+    document.getElementById("main-content").classList.remove("hidden");
   });
 
-  splash.setStatus("Загрузка...");
-
-  // Инициализацию тоже защищаем таймаутом
   await withTimeout(
     (async () => {
-      await State.init(); // уже с таймаутом и fallback
+      await State.init();
       initTelegram();
-
-      // TON Connect — не блокируем запуск (если сломался, игра всё равно должна открыться)
-      try {
-        TonConnectManager?.init?.();
-      } catch (e) {
-        console.warn("TonConnect init error:", e);
-      }
+      TonConnectManager?.init?.();
 
       bindUI();
-
-      ReferralManager.claimReferralBonus();
       Energy.start();
-      startAutosave();
 
-      UI.updateBalance();
-      UI.updateEnergy();
-      UI.updateReferral();
-      UI.updateMiningInfo();
-
-      setInterval(() => UI.updateMiningInfo(), 1000);
+      UI.updateAll();
+      setInterval(() => UI.mining(), 1000);
+      setInterval(() => State.save(), 3000);
     })(),
-    7000,
-    async () => {
-      console.warn("Init timeout → opening game anyway");
-      splash.setStatus("Запуск без облака...");
-      showGame();
-      return null;
-    }
+    7000
   );
 
-  showGame();
   await splash.finish();
 }
 
-window.addEventListener("load", () => {
-  startGame().catch((e) => console.error("startGame error:", e));
-});
+window.addEventListener("load", startGame);

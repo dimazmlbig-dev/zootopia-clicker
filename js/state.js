@@ -1,18 +1,31 @@
-const State = {
-  data: StorageManager.loadState(),
+window.State = (() => {
+  let s = null;
 
-  get() {
-    return this.data;
-  },
+  function get() { return s; }
 
-  addBones(amount) {
-    if (!Number.isFinite(amount)) return;
-    this.data.bones += amount;
-  },
+  async function init() {
+    const loaded = await window.StorageManager.loadStateAsync();
+    s = loaded || window.StorageManager.defaultState();
 
-  incrementTaps() {
-    this.data.totalTaps = (this.data.totalTaps || 0) + 1;
+    // refCode (простой, чтобы всегда был)
+    if (!s.refCode) s.refCode = String(Date.now()).slice(-10);
+
+    return s;
   }
-};
 
-window.State = State;
+  function set(patch) {
+    s = { ...s, ...patch };
+    return s;
+  }
+
+  function inc(key, delta) {
+    s[key] = (s[key] || 0) + delta;
+    return s[key];
+  }
+
+  function save() {
+    return window.StorageManager.saveStateAsync(s);
+  }
+
+  return { init, get, set, inc, save };
+})();

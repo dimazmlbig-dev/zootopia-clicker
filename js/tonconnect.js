@@ -1,4 +1,4 @@
-// js/tonconnect.js - безопасная интеграция TonConnect (не блокирует игру)
+// js/tonconnect.js — безопасная инициализация TonConnectUI (не блокирует игру)
 
 window.TonConnectManager = (() => {
   let ui = null;
@@ -6,12 +6,12 @@ window.TonConnectManager = (() => {
 
   function init() {
     try {
-      if (!window.TON_CONNECT_UI) {
-        console.warn("TON_CONNECT_UI not loaded");
+      if (!window.TonConnectUI) {
+        console.warn("TonConnectUI lib not loaded");
         return;
       }
 
-      ui = new TON_CONNECT_UI.TonConnectUI({
+      ui = new window.TonConnectUI({
         manifestUrl: "https://dimazmlbig-dev.github.io/zootopia-clicker/tonconnect-manifest.json",
         buttonRootId: "ton-connect"
       });
@@ -19,30 +19,31 @@ window.TonConnectManager = (() => {
       ui.onStatusChange((wallet) => {
         connected = !!wallet;
         const addr = wallet?.account?.address || "";
-        const el = document.getElementById("wallet-address");
-        if (el) el.innerText = addr ? (addr.slice(0, 6) + "..." + addr.slice(-6)) : "Кошелёк";
+        const short = addr ? (addr.slice(0, 4) + "..." + addr.slice(-4)) : "Кошелёк";
+        document.getElementById("wallet-address")?.innerText = short;
 
-        const s = window.State?.get?.();
-        if (s) {
+        // сохраним в state
+        try {
+          const s = window.State.get();
           s.walletAddress = addr || "";
-          window.State?.set?.(s);
-          window.State?.save?.();
-        }
+          window.State.set(s);
+          window.State.save();
+        } catch (_) {}
       });
     } catch (e) {
-      console.warn("TonConnect init failed:", e);
+      console.warn("TonConnect init error:", e);
     }
   }
 
   function isConnected() {
-    return connected;
+    return !!connected;
   }
 
   async function sendTon(toAddress, amountNano, comment) {
     if (!ui) throw new Error("TonConnect not initialized");
     if (!connected) throw new Error("Wallet not connected");
 
-    const tx = {
+    return ui.sendTransaction({
       validUntil: Math.floor(Date.now() / 1000) + 300,
       messages: [
         {
@@ -51,9 +52,7 @@ window.TonConnectManager = (() => {
           payload: comment ? btoa(unescape(encodeURIComponent(comment))) : undefined
         }
       ]
-    };
-
-    return ui.sendTransaction(tx);
+    });
   }
 
   return { init, isConnected, sendTon };

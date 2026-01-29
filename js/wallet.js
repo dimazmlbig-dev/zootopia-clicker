@@ -1,59 +1,47 @@
-window.WalletPage = (() => {
-  function render() {
-    const root = document.getElementById("page-wallet");
-    if (!root) return;
+// js/wallet.js
+window.Wallet = (() => {
+  let tonConnectUI = null;
 
-    const s = window.State.get();
+  function initTonConnect() {
+    // UI container
+    const el = document.getElementById("tonConnectUi");
+    el.innerHTML = "";
 
-    root.innerHTML = `
-      <div class="card">
-        <div class="h1">Кошелёк</div>
-        <div class="muted">Подключи кошелёк через TON Connect.</div>
-        <div id="ton-connect-ui"></div>
-      </div>
+    tonConnectUI = new window.TON_CONNECT_UI.TonConnectUI({
+      manifestUrl: "./tonconnect-manifest.json",
+      buttonRootId: "tonConnectUi"
+    });
 
-      <div class="card">
-        <div class="h1">Баланс</div>
-        <div class="row">
-          <div class="muted">$ZOO</div>
-          <div style="font-weight:900" id="walletZoo">${s.zoo}</div>
-        </div>
-        <div class="row" style="margin-top:10px">
-          <div class="muted">Bones</div>
-          <div style="font-weight:900">${s.bones}</div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="h1">Тест транзакции</div>
-        <div class="muted">Нажми, чтобы отправить 0.01 TON (пример). Адрес поставь свой.</div>
-        <div class="sep"></div>
-        <input id="txTo" placeholder="TON address" style="width:100%;padding:12px;border-radius:16px;border:0;outline:none">
-        <div style="height:10px"></div>
-        <button id="txSend" class="btn btn--primary">Отправить 0.01 TON</button>
-      </div>
-    `;
-
-    // init ton connect UI
-    const ui = window.TonConnectManager.getUI() || window.TonConnectManager.init();
-    if (ui) {
-      // Mount button (UI делает сам)
-      ui.uiOptions = { language: "ru" };
-    }
-
-    root.querySelector("#txSend").addEventListener("click", async () => {
-      const to = root.querySelector("#txTo").value.trim();
-      if (!to) return alert("Вставь адрес");
-      try {
-        // 0.01 TON = 10_000_000 nano
-        await window.TonConnectManager.send(to, 10_000_000, "Zootopia test");
-        alert("Запрос отправлен в кошелёк");
-      } catch (e) {
-        console.warn(e);
-        alert("Ошибка/отмена в кошельке");
-      }
+    tonConnectUI.onStatusChange(wallet => {
+      const s = window.State.get();
+      const addr = wallet?.account?.address || "";
+      s.walletAddress = addr;
+      window.State.save();
+      window.UI.renderAll();
     });
   }
 
-  return { render };
+  async function refreshBalance() {
+    const s = window.State.get();
+    if (!s.walletAddress) {
+      alert("Сначала подключи кошелёк");
+      return;
+    }
+
+    const r = await window.Backend.getTonBalance(s.walletAddress);
+    if (!r.ok) {
+      alert("Ошибка TON API");
+      return;
+    }
+    s.tonBalanceNano = Number(r.balanceNano || 0);
+    window.State.save();
+    window.UI.renderAll();
+  }
+
+  function init() {
+    initTonConnect();
+    document.getElementById("tonRefreshBtn").addEventListener("click", refreshBalance);
+  }
+
+  return { init, refreshBalance };
 })();

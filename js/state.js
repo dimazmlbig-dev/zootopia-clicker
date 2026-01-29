@@ -1,15 +1,24 @@
 import { loadUserState, saveUserState } from "./storage.js";
 
+function defaultDog() {
+  return {
+    mood: "happy",
+    trait: "loyal",
+    trust: 50,
+    lastAiAt: 0,
+    cooldownUntil: 0,
+    effects: { tapMultiplier: 1, regenMultiplier: 1 },
+    history: []
+  };
+}
+
 export function initStateFromTelegram() {
   const tg = window.Telegram?.WebApp;
-
-  // если не внутри Telegram — делаем гостя
   const user = tg?.initDataUnsafe?.user || null;
 
   const userId = String(user?.id || "guest");
   const firstName = user?.first_name || "Игрок";
 
-  // загружаем персональный state
   const stored = loadUserState(userId);
 
   const state = stored || {
@@ -18,17 +27,29 @@ export function initStateFromTelegram() {
     zoo: 0,
     energy: 1000,
     energyMax: 1000,
-    refProgress: 0, // пока локально (позже заменим на backend)
+
+    // MVP: локальный прогресс, позже заменишь на backend
+    refProgress: 0,
     refClaimed: false,
+
+    // метрики поведения
+    tapsToday: 0,
+    tapsWindow: { t: Date.now(), n: 0 }, // для burst
+
+    // AI dog
+    dog: defaultDog(),
   };
 
-  // важно: имя всегда берём из Telegram (не из старого localStorage)
+  // имя всегда из Telegram (не залипаем “Дмитрий”)
   state.userId = userId;
   state.username = firstName;
 
-  // сразу сохраняем в персональное хранилище
-  saveUserState(userId, state);
+  // гарантируем dog
+  if (!state.dog) state.dog = defaultDog();
+  if (!state.dog.effects) state.dog.effects = { tapMultiplier: 1, regenMultiplier: 1 };
+  if (!Array.isArray(state.dog.history)) state.dog.history = [];
 
+  saveUserState(userId, state);
   return state;
 }
 

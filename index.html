@@ -3,24 +3,24 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="dark light" />
   <title>Zootopia Clicker</title>
 
-  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="./style.css" />
 
   <!-- Telegram WebApp -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-  <!-- TON Connect UI (optional, не ломает игру если не загрузится) -->
+  <!-- TON Connect UI (можно оставить; если не нужно — уберёшь и wallet-страница останется без connect) -->
   <script src="https://unpkg.com/@tonconnect/ui@latest/tonconnect-ui.min.js"></script>
 </head>
 
 <body>
-  <!-- SPLASH -->
-  <div id="splash-screen" class="splash">
-    <!-- Важно: playsinline + muted -->
-    <video id="splash-video" class="splash-video" muted playsinline preload="auto">
-      <!-- Если файла нет — это не сломает игру -->
-      <source src="assets/splash.mp4" type="video/mp4" />
+  <!-- ===== Splash ===== -->
+  <div id="splash" class="splash">
+    <video id="splash-video" class="splash-video" muted playsinline preload="auto"
+           poster="./assets/splash-poster.jpg">
+      <source src="./assets/splash.mp4" type="video/mp4" />
     </video>
 
     <button id="splash-skip" class="splash-skip" type="button">Пропустить</button>
@@ -29,103 +29,134 @@
       <div class="splash-brand">
         <div class="splash-logo">Z</div>
         <div class="splash-title">Zootopia Clicker</div>
-        <div id="splash-status" class="splash-sub">Загрузка...</div>
+        <div class="splash-sub">Загрузка...</div>
       </div>
+      <button id="splash-tap" class="splash-tap" type="button">Нажми, чтобы начать</button>
     </div>
-
-    <button id="splash-tap" class="splash-tap hidden" type="button">Нажми, чтобы начать</button>
   </div>
 
-  <!-- APP -->
-  <div id="main-content" class="app hidden">
+  <!-- ===== App ===== -->
+  <main id="app" class="app hidden">
     <div class="bg-clouds"></div>
 
-    <div class="hud">
+    <header class="hud">
       <div class="hud-left">
-        <div class="score"><span id="bones-count">0</span></div>
+        <div id="score" class="score">0</div>
         <div class="subscore">
           <span class="subscore-label">$ZOO</span>
-          <span id="zoo-count">0</span>
+          <span id="zoo-balance">0</span>
         </div>
       </div>
 
       <div class="hud-right">
         <div class="wallet-pill">
-          <div class="wallet-text" id="wallet-short">Кошелёк</div>
+          <div class="wallet-text" id="wallet-short">Кошелёк не подключён</div>
           <div id="ton-connect-ui"></div>
         </div>
       </div>
-    </div>
+    </header>
 
     <div class="nickname-pill">
       <span>🐶</span>
       <span id="user-name">Игрок</span>
     </div>
 
-    <div class="stage">
-      <!-- Важно: button + pointerdown -->
+    <!-- ===== Clicker stage ===== -->
+    <section id="stage" class="stage">
       <button id="tap-zone" class="tap-zone" type="button" aria-label="Tap">
-        <img id="dog-img" src="assets/dachshund.png" alt="Dog" draggable="false" />
+        <img id="dog-img" src="./assets/dog_idle.png" alt="Dog" draggable="false" />
       </button>
-    </div>
+    </section>
 
-    <div class="energy-card">
+    <!-- Energy -->
+    <section class="energy-card">
       <div class="energy-head">
         <div class="energy-title">ЭНЕРГИЯ</div>
-        <div class="energy-value" id="current-energy">0 / 0</div>
+        <div class="energy-value"><span id="energy-now">1000</span> / <span id="energy-max">1000</span></div>
       </div>
       <div class="energy-track">
-        <div id="energy-bar" class="energy-fill"></div>
+        <div id="energy-fill" class="energy-fill" style="width:100%"></div>
       </div>
-    </div>
+    </section>
 
-    <div class="pages">
-      <!-- MAIN -->
-      <div id="tab-main" class="page panel">
-        <div class="panel-title">Рефералка</div>
-        <div class="muted">Твой код: <b id="ref-code-display">---</b></div>
+    <!-- Pages -->
+    <section class="pages">
+
+      <!-- PAGE: Clicker -->
+      <div id="page-clicker" class="page panel">
+        <div class="panel-title">Клики</div>
+
+        <div class="muted">Майнинг</div>
         <div class="hr"></div>
-        <button id="share-ref-btn" class="primary-btn" type="button">Поделиться (0/5)</button>
-        <div class="ref-link muted" id="ref-link-preview"></div>
+
+        <div class="muted">Доступно: <b><span id="mining-available">0</span></b> $ZOO</div>
+        <button id="btn-collect" class="primary-btn" type="button">Собрать майнинг</button>
+
+        <div class="hr"></div>
+        <div class="muted">Уровень майнинга: <b><span id="mining-level">1</span></b></div>
+        <button id="btn-upgrade-mining" class="secondary-btn" type="button">Прокачать (стоимость: <span id="mining-upgrade-cost">100</span> bones)</button>
       </div>
 
-      <!-- TASKS -->
-      <div id="tab-tasks" class="page panel hidden">
+      <!-- PAGE: NFT -->
+      <div id="page-nft" class="page panel hidden">
+        <div class="panel-title">NFT</div>
+        <div class="muted">Магазин NFT за $ZOO (пока демо).</div>
+        <div class="hr"></div>
+        <div id="nft-list" class="tasks-list"></div>
+      </div>
+
+      <!-- PAGE: Tasks -->
+      <div id="page-tasks" class="page panel hidden">
         <div class="panel-title">Задания</div>
-        <div class="tasks-list" id="tasks-list"></div>
+        <div class="muted">Выполняй задания и получай бонусы.</div>
+        <div class="hr"></div>
+        <div id="tasks-list" class="tasks-list"></div>
       </div>
 
-      <!-- MINING -->
-      <div id="tab-mining" class="page panel hidden">
-        <div class="panel-title">Майнинг</div>
-        <div class="muted" id="mining-info">Уровень: 1 | Доступно: 0</div>
-        <div class="hr"></div>
-        <button id="collect-btn" class="primary-btn" type="button">Собрать</button>
-        <div class="hr"></div>
-        <button id="pay-01-ton-btn" class="secondary-btn" type="button">Отправить 0.1 TON (тест)</button>
-      </div>
-    </div>
+      <!-- PAGE: Wallet -->
+      <div id="page-wallet" class="page panel hidden">
+        <div class="panel-title">Кошелёк</div>
 
-    <div class="bottom-nav">
-      <button class="nav-btn active" data-tab="main" type="button">
+        <div class="muted">Адрес:</div>
+        <div id="wallet-address" class="ref-link">Не подключён</div>
+
+        <div class="hr"></div>
+
+        <button id="btn-send-ton" class="primary-btn" type="button">Отправить 0.1 TON (демо)</button>
+        <div class="muted" style="margin-top:10px;">
+          В демо отправка отключена, пока не укажешь получателя/логику.
+        </div>
+      </div>
+
+    </section>
+
+    <!-- Bottom nav -->
+    <nav class="bottom-nav">
+      <button class="nav-btn active" data-page="clicker" type="button">
         <div class="nav-ico">🐶</div>
-        <div class="nav-txt">Клик</div>
+        <div class="nav-txt">Клики</div>
       </button>
-      <button class="nav-btn" data-tab="tasks" type="button">
+      <button class="nav-btn" data-page="nft" type="button">
+        <div class="nav-ico">🖼️</div>
+        <div class="nav-txt">NFT</div>
+      </button>
+      <button class="nav-btn" data-page="tasks" type="button">
         <div class="nav-ico">✅</div>
         <div class="nav-txt">Задания</div>
       </button>
-      <button class="nav-btn" data-tab="mining" type="button">
-        <div class="nav-ico">⛏️</div>
-        <div class="nav-txt">Майнинг</div>
+      <button class="nav-btn" data-page="wallet" type="button">
+        <div class="nav-ico">💎</div>
+        <div class="nav-txt">Кошелёк</div>
       </button>
-    </div>
-  </div>
+    </nav>
+  </main>
 
-  <!-- scripts -->
-  <script src="js/storage.js"></script>
-  <script src="js/tasks.js"></script>
-  <script src="js/tonconnect.js"></script>
-  <script src="js/app.js"></script>
+  <!-- JS -->
+  <script src="./js/storage.js"></script>
+  <script src="./js/splash.js"></script>
+  <script src="./js/tonconnect.js"></script>
+  <script src="./js/nft.js"></script>
+  <script src="./js/tasks.js"></script>
+  <script src="./js/app.js"></script>
 </body>
 </html>

@@ -1,8 +1,9 @@
 import { persistState } from "./state.js";
 import { setText } from "./ui.js";
 
-export function initTasks(state) {
+export function initTasks(state, aiTriggers) {
   updateRefUI(state);
+  updateAiLastEvent(state);
 
   document.getElementById("shareRefBtn")?.addEventListener("click", () => {
     const tg = window.Telegram?.WebApp;
@@ -14,8 +15,6 @@ export function initTasks(state) {
     }
 
     const link = `https://t.me/ZootopAI_clicker_bot?start=ref_${uid}`;
-
-    // открываем ссылку в Telegram
     tg.openTelegramLink(link);
   });
 
@@ -37,6 +36,10 @@ export function initTasks(state) {
 
     alert("Награда получена: +5000 $ZOO");
   });
+
+  document.getElementById("aiTestBtn")?.addEventListener("click", () => {
+    aiTriggers?.forceAi?.("manual");
+  });
 }
 
 export function updateRefUI(state) {
@@ -47,4 +50,9 @@ export function updateRefUI(state) {
     claimBtn.disabled = state.refClaimed || state.refProgress < 5;
     claimBtn.textContent = state.refClaimed ? "Награда получена" : "Забрать награду";
   }
+}
+
+export function updateAiLastEvent(state) {
+  const last = state.dog?.history?.[0];
+  setText("aiLastEvent", `Последнее: ${last?.event || "—"}`);
 }

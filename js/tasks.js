@@ -1,44 +1,50 @@
-// js/tasks.js
-window.Tasks = (() => {
-  function render() {
-    const root = document.getElementById("tasksList");
-    const s = window.State.get();
-    root.innerHTML = "";
+import { persistState } from "./state.js";
+import { setText } from "./ui.js";
 
-    // 1 task example: 100 taps
-    const done = s.tasks.taps >= 100;
-    const claimed = s.tasks.taskTap100Claimed;
+export function initTasks(state) {
+  updateRefUI(state);
 
-    const card = document.createElement("div");
-    card.className = "task-card";
-    card.innerHTML = `
-      <div class="task-row">
-        <div>
-          <div><b>Сделай 100 тапов</b></div>
-          <div style="opacity:.85">Прогресс: ${Math.min(100, s.tasks.taps)}/100</div>
-        </div>
-        <button class="btn" ${(!done || claimed) ? "disabled" : ""}>
-          ${claimed ? "Получено" : (done ? "Забрать" : "…")}
-        </button>
-      </div>
-    `;
+  document.getElementById("shareRefBtn")?.addEventListener("click", () => {
+    const tg = window.Telegram?.WebApp;
+    const uid = tg?.initDataUnsafe?.user?.id;
 
-    const btn = card.querySelector("button");
-    btn.addEventListener("click", () => {
-      if (!done || claimed) return;
-      s.tasks.taskTap100Claimed = true;
-      window.State.addZoo(800);
-      window.State.save();
-      window.UI.renderAll();
-      render();
-    });
+    if (!uid) {
+      alert("Открой бота внутри Telegram, чтобы получить ссылку.");
+      return;
+    }
 
-    root.appendChild(card);
+    const link = `https://t.me/ZootopAI_clicker_bot?start=ref_${uid}`;
+
+    // открываем ссылку в Telegram
+    tg.openTelegramLink(link);
+  });
+
+  document.getElementById("claimRefBtn")?.addEventListener("click", () => {
+    if (state.refClaimed) {
+      alert("Награда уже получена.");
+      return;
+    }
+    if (state.refProgress < 5) {
+      alert("Нужно 5/5 рефералов.");
+      return;
+    }
+
+    state.refClaimed = true;
+    state.zoo += 5000;
+
+    persistState(state);
+    updateRefUI(state);
+
+    alert("Награда получена: +5000 $ZOO");
+  });
+}
+
+export function updateRefUI(state) {
+  setText("refProgress", `Твой прогресс: ${state.refProgress}/5`);
+
+  const claimBtn = document.getElementById("claimRefBtn");
+  if (claimBtn) {
+    claimBtn.disabled = state.refClaimed || state.refProgress < 5;
+    claimBtn.textContent = state.refClaimed ? "Награда получена" : "Забрать награду";
   }
-
-  function init() {
-    render();
-  }
-
-  return { init, render };
-})();
+}

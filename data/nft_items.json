@@ -1,9 +1,10 @@
 [
   {
     "id": "glasses_cyber",
-    "title": "Cyber Glasses",
-    "desc": "Стиль +5. Просто украшение.",
-    "price": 1200,
-    "image": "./assets/nft/glasses_cyber.png"
+    "name": "Cyber Glasses",
+    "slot": "glasses",
+    "priceZoo": 1500,
+    "asset": "./assets/nft/glasses_cyber.png",
+    "overlay": { "x": 62, "y": 70, "w": 96, "h": 40 }
   }
 ]

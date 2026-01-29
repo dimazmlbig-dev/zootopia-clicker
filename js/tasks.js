@@ -1,10 +1,9 @@
-// js/tasks.js — минимальные задания (пока без backend)
+// js/tasks.js — простые задания (можно расширять)
 
 window.Tasks = (() => {
   const LIST = [
-    { id: "tap_50", title: "Сделай 50 тапов", reward: 50 },
-    { id: "tap_200", title: "Сделай 200 тапов", reward: 200 },
-    { id: "invite_1", title: "Пригласи 1 друга", reward: 300 }
+    { id: "tap_50", title: "Сделай 50 тапов", rewardZoo: 25, needTaps: 50 },
+    { id: "tap_200", title: "Сделай 200 тапов", rewardZoo: 150, needTaps: 200 },
   ];
 
   function render() {
@@ -12,49 +11,40 @@ window.Tasks = (() => {
     if (!root) return;
 
     const s = window.State?.get?.();
-    const done = (s?.tasksDone && typeof s.tasksDone === "object") ? s.tasksDone : {};
+    const taps = Number(s?.tapsTotal || 0);
 
     root.innerHTML = "";
+    for (const t of LIST) {
+      const done = (s?.tasksDone && s.tasksDone[t.id]) || false;
+      const progress = Math.min(100, Math.floor((taps / t.needTaps) * 100));
 
-    LIST.forEach((t) => {
       const card = document.createElement("div");
       card.className = "panel";
+      card.innerHTML = `
+        <div class="panel-title">${t.title}</div>
+        <div class="muted">Прогресс: ${done ? "✅ Выполнено" : `${taps}/${t.needTaps} (${progress}%)`}</div>
+        <div class="hr"></div>
+        <button class="primary-btn" ${done ? "disabled" : ""}>Забрать +${t.rewardZoo} $ZOO</button>
+      `;
 
-      const title = document.createElement("div");
-      title.className = "panel-title";
-      title.innerText = t.title;
-
-      const info = document.createElement("div");
-      info.className = "muted";
-      info.style.marginBottom = "10px";
-      info.innerText = `Награда: +${t.reward} $ZOO`;
-
-      const btn = document.createElement("button");
-      btn.className = "secondary-btn";
-      btn.type = "button";
-
-      const isDone = !!done[t.id];
-      btn.innerText = isDone ? "Выполнено" : "Забрать";
-      btn.disabled = isDone;
-
+      const btn = card.querySelector("button");
       btn.addEventListener("click", () => {
         const st = window.State.get();
-        st.tasksDone = (st.tasksDone && typeof st.tasksDone === "object") ? st.tasksDone : {};
+        st.tasksDone = st.tasksDone || {};
         if (st.tasksDone[t.id]) return;
+        if ((st.tapsTotal || 0) < t.needTaps) return;
 
         st.tasksDone[t.id] = true;
-        st.zoo = (st.zoo | 0) + t.reward;
+        st.zoo += t.rewardZoo;
         window.State.set(st);
         window.State.save();
-        window.UI?.updateBalance?.();
+
+        window.UI.updateBalance();
         render();
       });
 
-      card.appendChild(title);
-      card.appendChild(info);
-      card.appendChild(btn);
       root.appendChild(card);
-    });
+    }
   }
 
   return { render };

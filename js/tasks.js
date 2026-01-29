@@ -1,47 +1,62 @@
-// js/tasks.js — простые задания (можно расширять)
+// js/tasks.js — задания на тапы с наградами
 
 window.Tasks = (() => {
-  const LIST = [
-    { id: "tap_50", title: "Сделай 50 тапов", rewardZoo: 25, needTaps: 50 },
-    { id: "tap_200", title: "Сделай 200 тапов", rewardZoo: 150, needTaps: 200 },
+  const TASKS = [
+    { id: "tap_50", title: "Сделай 50 тапов", goal: 50, reward: { zoo: 5 } },
+    { id: "tap_200", title: "Сделай 200 тапов", goal: 200, reward: { zoo: 25 } },
+    { id: "tap_500", title: "Сделай 500 тапов", goal: 500, reward: { zoo: 80 } }
   ];
 
-  function render() {
+  function render({ state, setState, updateUI }) {
     const root = document.getElementById("tasks-list");
     if (!root) return;
 
-    const s = window.State?.get?.();
-    const taps = Number(s?.tapsTotal || 0);
-
     root.innerHTML = "";
-    for (const t of LIST) {
-      const done = (s?.tasksDone && s.tasksDone[t.id]) || false;
-      const progress = Math.min(100, Math.floor((taps / t.needTaps) * 100));
+
+    for (const t of TASKS) {
+      const done = state.tasks.tapCount >= t.goal;
+      const claimed = !!state.tasks.claimed[t.id];
 
       const card = document.createElement("div");
       card.className = "panel";
-      card.innerHTML = `
-        <div class="panel-title">${t.title}</div>
-        <div class="muted">Прогресс: ${done ? "✅ Выполнено" : `${taps}/${t.needTaps} (${progress}%)`}</div>
-        <div class="hr"></div>
-        <button class="primary-btn" ${done ? "disabled" : ""}>Забрать +${t.rewardZoo} $ZOO</button>
-      `;
+      card.style.background = "rgba(16, 18, 32, .22)";
 
-      const btn = card.querySelector("button");
+      const title = document.createElement("div");
+      title.className = "panel-title";
+      title.textContent = t.title;
+
+      const progress = document.createElement("div");
+      progress.className = "muted";
+      progress.textContent = `Прогресс: ${Math.min(state.tasks.tapCount, t.goal)} / ${t.goal}`;
+
+      const reward = document.createElement("div");
+      reward.className = "muted";
+      reward.style.marginTop = "6px";
+      reward.textContent = `Награда: ${t.reward.zoo} $ZOO`;
+
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = (done && !claimed) ? "primary-btn" : "secondary-btn";
+      btn.textContent = claimed ? "Получено ✅" : (done ? "Получить" : "Не выполнено");
+      btn.disabled = claimed || !done;
+
       btn.addEventListener("click", () => {
-        const st = window.State.get();
-        st.tasksDone = st.tasksDone || {};
-        if (st.tasksDone[t.id]) return;
-        if ((st.tapsTotal || 0) < t.needTaps) return;
+        if (!done || claimed) return;
 
-        st.tasksDone[t.id] = true;
-        st.zoo += t.rewardZoo;
-        window.State.set(st);
-        window.State.save();
+        const next = structuredClone ? structuredClone(state) : JSON.parse(JSON.stringify(state));
+        next.zoo += t.reward.zoo;
+        next.tasks.claimed[t.id] = true;
 
-        window.UI.updateBalance();
-        render();
+        setState(next);
+        updateUI();
+        render({ state: next, setState, updateUI });
       });
+
+      card.appendChild(title);
+      card.appendChild(progress);
+      card.appendChild(reward);
+      card.appendChild(document.createElement("div")).className = "hr";
+      card.appendChild(btn);
 
       root.appendChild(card);
     }

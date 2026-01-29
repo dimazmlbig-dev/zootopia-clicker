@@ -1,208 +1,202 @@
-/* ===== Base / Telegram Android tap fixes ===== */
-* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-html, body { height: 100%; }
-body {
-  margin: 0;
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-  color: #fff;
-  background: radial-gradient(1200px 800px at 20% 10%, #7e6dff 0%, #5d4df3 35%, #5a3ddc 70%, #4b2fc6 100%);
-  user-select: none;
-  -webkit-user-select: none;
-  touch-action: manipulation;
-  overflow-x: hidden;
+:root{
+  --bg1:#6c62ff;
+  --bg2:#a76bff;
+  --card:rgba(255,255,255,.14);
+  --card2:rgba(255,255,255,.10);
+  --text:#fff;
+  --muted:rgba(255,255,255,.75);
+  --stroke:rgba(255,255,255,.18);
 }
 
-.hidden { display: none !important; }
-
-.btn {
-  border: 0;
-  padding: 12px 16px;
-  border-radius: 16px;
-  font-weight: 800;
-  cursor: pointer;
+*{ box-sizing:border-box; }
+html,body{ height:100%; }
+body{
+  margin:0;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+  color:var(--text);
+  background: linear-gradient(180deg,var(--bg1),var(--bg2));
+  user-select:none;
+  -webkit-user-select:none;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
 }
-.btn--primary { background: rgba(255,255,255,.22); color: #fff; }
-.btn--ghost { background: rgba(0,0,0,.18); color: rgba(255,255,255,.9); }
+
+.hidden{ display:none !important; }
+
+.btn{
+  border:0;
+  padding:12px 14px;
+  border-radius:14px;
+  background: rgba(255,255,255,.22);
+  color:#fff;
+  font-weight:700;
+}
+.btn.secondary{ background: rgba(0,0,0,.18); }
+.btn.w100{ width:100%; }
 
 .pill{
-  border: 0;
-  padding: 10px 14px;
-  border-radius: 999px;
-  background: rgba(0,0,0,.18);
-  color: #fff;
-  font-weight: 800;
-}
-
-/* ===== Splash ===== */
-.splash{
-  position: fixed;
-  inset: 0;
-  z-index: 2000;
-  display: flex;
-  flex-direction: column;
-}
-.splash__video{
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  filter: saturate(1.05) contrast(1.05);
-}
-.splash::after{
-  content:"";
-  position:absolute;
-  inset:0;
-  background: linear-gradient(180deg, rgba(0,0,0,.28) 0%, rgba(0,0,0,.35) 60%, rgba(0,0,0,.55) 100%);
-}
-.splash__top, .splash__bottom{
-  position: relative;
-  z-index: 1;
-  display:flex;
-  align-items:center;
-  justify-content: space-between;
-  padding: 14px 14px;
-}
-.splash__brand{ font-weight: 900; letter-spacing: .4px; font-size: 18px; }
-.splash__bottom{
-  margin-top: auto;
-  flex-direction: column;
-  gap: 10px;
-}
-.splash__hint{ opacity: .9; font-weight: 700; }
-
-/* ===== App layout ===== */
-.app{
-  min-height: 100%;
-  padding-bottom: 86px; /* space for bottom nav */
+  border:0;
+  padding:10px 14px;
+  border-radius:999px;
+  background: rgba(0,0,0,.20);
+  color:#fff;
+  font-weight:800;
 }
 
 .topbar{
-  position: sticky;
-  top: 0;
-  z-index: 1000;
-  padding: 12px 12px;
   display:flex;
+  justify-content:space-between;
   align-items:center;
-  justify-content: space-between;
-  backdrop-filter: blur(12px);
-  background: rgba(0,0,0,.15);
-  border-bottom: 1px solid rgba(255,255,255,.08);
+  padding:14px 14px 8px;
 }
-.topbar__left{
+.score{ font-size:44px; font-weight:900; line-height:1; }
+.subscore{ font-size:16px; opacity:.9; margin-top:4px; }
+
+.pages{
+  padding: 10px 14px 86px;
+}
+.page{ display:none; }
+.page.active{ display:block; }
+
+.h2{ margin:8px 0 12px; }
+
+.player-pill{
+  width:max-content;
+  margin: 6px auto 10px;
+  padding: 10px 16px;
+  border-radius:999px;
+  background: rgba(255,255,255,.16);
+  border:1px solid var(--stroke);
+  font-weight:800;
+}
+
+.dog-area{ text-align:center; margin-top:10px; }
+.dog-wrap{
+  position:relative;
+  width: 220px;
+  height: 220px;
+  margin: 0 auto;
+}
+.dog-img{
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  pointer-events:none; /* клики ловим на wrapper */
+}
+.dog-overlay{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+}
+.overlay-item{
+  position:absolute;
+  image-rendering:auto;
+  pointer-events:none;
+}
+.dog-hint{ margin-top:10px; opacity:.85; }
+
+.energy-card,.ref-card,.card{
+  background: var(--card);
+  border:1px solid var(--stroke);
+  border-radius:18px;
+  padding:14px;
+  margin-top:14px;
+  backdrop-filter: blur(8px);
+}
+.energy-head{
   display:flex;
+  justify-content:space-between;
+  opacity:.95;
+  font-weight:800;
+}
+.energy-bar{
+  height:16px;
+  border-radius:999px;
+  background: rgba(0,0,0,.18);
+  overflow:hidden;
+  margin-top:10px;
+}
+.energy-fill{
+  height:100%;
+  width:100%;
+  border-radius:999px;
+  background: linear-gradient(90deg,#ffd15a,#ff7a45);
+}
+
+.ref-title{ font-weight:900; font-size:18px; }
+.ref-line{ margin:10px 0; opacity:.92; }
+.ref-link{ margin-top:10px; font-size:12px; opacity:.85; word-break:break-all; }
+
+.grid{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
   gap: 12px;
 }
-.stat{
-  padding: 10px 12px;
-  border-radius: 18px;
-  background: rgba(0,0,0,.18);
-  min-width: 86px;
+.nft-card{
+  background: var(--card2);
+  border:1px solid var(--stroke);
+  border-radius:16px;
+  padding:12px;
 }
-.stat__value{ font-size: 18px; font-weight: 900; line-height: 1; }
-.stat__label{ font-size: 12px; opacity: .85; margin-top: 6px; }
+.nft-card img{ width:100%; height:120px; object-fit:contain; }
+.nft-title{ font-weight:900; margin-top:8px; }
+.nft-meta{ opacity:.85; font-size:13px; margin:6px 0; }
 
-.page{
-  padding: 14px 12px 0 12px;
+.list{ display:flex; flex-direction:column; gap:10px; }
+.task-card{
+  background: var(--card2);
+  border:1px solid var(--stroke);
+  border-radius:16px;
+  padding:12px;
 }
-.card{
-  background: rgba(0,0,0,.18);
-  border: 1px solid rgba(255,255,255,.08);
-  border-radius: 22px;
-  padding: 14px;
-  box-shadow: 0 10px 30px rgba(0,0,0,.12);
-}
-.card + .card{ margin-top: 12px; }
-
-.h1{ font-size: 18px; font-weight: 900; margin: 0 0 10px 0; }
-.muted{ opacity: .88; }
-.row{ display:flex; gap: 10px; align-items:center; justify-content: space-between; }
-.sep{ height: 1px; background: rgba(255,255,255,.08); margin: 10px 0; }
-
-.progress{
-  width: 100%;
-  height: 14px;
-  border-radius: 999px;
-  background: rgba(255,255,255,.14);
-  overflow: hidden;
-}
-.progress > div{
-  height: 100%;
-  border-radius: 999px;
-  background: linear-gradient(90deg, rgba(255,200,90,.95), rgba(255,120,90,.95));
-  width: 0%;
-}
-
-/* ===== Clicker ===== */
-.tap-area{
-  margin-top: 10px;
+.task-row{
   display:flex;
-  flex-direction: column;
+  justify-content:space-between;
   align-items:center;
-  gap: 10px;
+  gap:10px;
 }
-#tapZone{
-  width: min(300px, 80vw);
-  height: min(300px, 80vw);
-  border-radius: 28px;
-  background: rgba(0,0,0,.18);
-  border: 1px solid rgba(255,255,255,.10);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  overflow: hidden;
-  touch-action: manipulation;
-}
-#tapZone img{
-  width: 70%;
-  height: auto;
-  pointer-events: none; /* важно: тапы ловит контейнер */
-  filter: drop-shadow(0 10px 24px rgba(0,0,0,.25));
-}
-.tap-fx{
-  position:absolute;
-  width: 14px;
-  height: 14px;
-  border-radius: 999px;
-  background: rgba(255,255,255,.9);
-  transform: translate(-50%, -50%);
-  animation: pop .45s ease-out forwards;
-}
-@keyframes pop{
-  0%{ opacity: .9; transform: translate(-50%,-50%) scale(1); }
-  100%{ opacity: 0; transform: translate(-50%,-50%) scale(2.4); }
-}
+.mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
 
-/* ===== Bottom nav ===== */
 .bottom-nav{
-  position: fixed;
-  left: 10px;
-  right: 10px;
-  bottom: 10px;
-  z-index: 1500;
+  position:fixed;
+  left:0; right:0; bottom:0;
+  padding:10px 10px calc(10px + env(safe-area-inset-bottom));
   display:flex;
-  gap: 10px;
-  padding: 10px;
-  border-radius: 22px;
-  background: rgba(0,0,0,.22);
-  border: 1px solid rgba(255,255,255,.08);
-  backdrop-filter: blur(12px);
+  gap:10px;
+  background: rgba(0,0,0,.18);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(255,255,255,.12);
 }
 .nav-btn{
-  flex: 1;
-  border: 0;
-  padding: 12px 10px;
-  border-radius: 18px;
-  background: rgba(255,255,255,.10);
-  color: rgba(255,255,255,.92);
-  font-weight: 800;
+  flex:1;
+  border:0;
+  padding:12px 10px;
+  border-radius:16px;
+  background: rgba(255,255,255,.14);
+  color:#fff;
+  font-weight:900;
 }
 .nav-btn.active{
-  background: rgba(255,255,255,.22);
-  color: #fff;
+  background: rgba(255,255,255,.26);
 }
 
-/* TON Connect container in wallet */
-#ton-connect-ui{
-  margin-top: 8px;
+/* Splash */
+.splash{
+  position:fixed;
+  inset:0;
+  background:#000;
+}
+.splash__video{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+.splash__overlay{
+  position:absolute;
+  inset:auto 0 0 0;
+  padding:14px;
+  display:flex;
+  justify-content:flex-end;
 }

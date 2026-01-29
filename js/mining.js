@@ -1,93 +1,45 @@
-// js/mining.js
+window.Mining = (() => {
+  function ratePerSec(level) {
+    // 1 уровень = 1 $ZOO/сек, далее линейно
+    return Math.max(1, level | 0);
+  }
 
-// Элементы UI
-const miningInfo = document.getElementById('mining-info');
-const collectBtn = document.getElementById('collect-btn');
-
-// Загружаем данные майнинга из локального хранилища
-let miningData = JSON.parse(localStorage.getItem('miningData')) || {
-    level: 1,
-    lastCollected: Date.now(),
-    available: 0,
-    upgradeCost: 100
-};
-
-// Настройки
-const BASE_RATE = 5; // базовая добыча за секунду
-const MAX_OFFLINE_HOURS = 24;
-const LEVEL_MULTIPLIER = 1.5; // рост добычи с уровнем
-
-// Расчёт дохода оффлайн
-function calculateOfflineMining() {
+  function available() {
+    const s = window.State.get();
     const now = Date.now();
-    let deltaTime = (now - miningData.lastCollected) / 1000; // в секундах
+    const dtSec = Math.max(0, Math.floor((now - s.mining.lastCollect) / 1000));
+    return dtSec * ratePerSec(s.mining.level);
+  }
 
-    // Ограничиваем максимум оффлайн времени
-    const maxTime = MAX_OFFLINE_HOURS * 60 * 60;
-    if (deltaTime > maxTime) deltaTime = maxTime;
+  function collect() {
+    const s = window.State.get();
+    const gain = available();
+    if (gain <= 0) return 0;
 
-    let income = deltaTime * BASE_RATE * Math.pow(LEVEL_MULTIPLIER, miningData.level - 1);
+    s.zoo += gain;
+    s.mining.lastCollect = Date.now();
+    window.UI.renderTop();
+    window.UI.renderClicker();
+    window.UI.renderWallet();
+    window.State.save();
+    return gain;
+  }
 
-    // Анти-NaN защита
-    if (!isFinite(income) || isNaN(income)) income = 0;
+  function upgradeCost(level) {
+    return 500 * (level + 1);
+  }
 
-    miningData.available += income;
-    miningData.lastCollected = now;
+  function upgrade() {
+    const s = window.State.get();
+    const cost = upgradeCost(s.mining.level);
+    if (s.zoo < cost) return false;
+    s.zoo -= cost;
+    s.mining.level += 1;
+    window.UI.renderTop();
+    window.UI.renderClicker();
+    window.State.save();
+    return true;
+  }
 
-    updateUI();
-}
-
-// Обновление интерфейса
-function updateUI() {
-    miningInfo.textContent = `Уровень: ${miningData.level} | Доступно: ${Math.floor(miningData.available)} | Стоимость улучшения: ${Math.floor(miningData.upgradeCost)}`;
-}
-
-// Сбор ресурсов кнопкой
-collectBtn.addEventListener('click', () => {
-    const bonesCountEl = document.getElementById('bones-count');
-    let bones = parseFloat(bonesCountEl.textContent) || 0;
-
-    if (!isFinite(miningData.available) || isNaN(miningData.available)) miningData.available = 0;
-
-    bones += miningData.available;
-    miningData.available = 0;
-
-    bonesCountEl.textContent = Math.floor(bones);
-    updateUI();
-    saveData();
-});
-
-// Функция улучшения уровня майнинга
-function upgradeMining() {
-    const bonesCountEl = document.getElementById('bones-count');
-    let bones = parseFloat(bonesCountEl.textContent) || 0;
-
-    if (bones >= miningData.upgradeCost) {
-        bones -= miningData.upgradeCost;
-        miningData.level += 1;
-        miningData.upgradeCost *= 2; // стоимость удваивается каждый уровень
-        bonesCountEl.textContent = Math.floor(bones);
-        updateUI();
-        saveData();
-    } else {
-        alert("Недостаточно костей для улучшения!");
-    }
-}
-
-// Добавим кнопку для апгрейда
-const upgradeBtn = document.createElement('button');
-upgradeBtn.textContent = "Улучшить майнинг";
-upgradeBtn.addEventListener('click', upgradeMining);
-collectBtn.parentNode.insertBefore(upgradeBtn, collectBtn.nextSibling);
-
-// Сохраняем данные
-function saveData() {
-    localStorage.setItem('miningData', JSON.stringify(miningData));
-}
-
-// Инициализация
-calculateOfflineMining();
-setInterval(() => {
-    calculateOfflineMining();
-    saveData();
-}, 5000); // обновление каждые 5 секунд
+  return { available, collect, upgrade, upgradeCost, ratePerSec };
+})();

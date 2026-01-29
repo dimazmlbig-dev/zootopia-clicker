@@ -4,32 +4,32 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>Zootopia Clicker</title>
+
   <link rel="stylesheet" href="./css/style.css" />
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
   <div class="app">
 
-    <!-- TOP -->
     <header class="topbar">
       <div class="topbar-left">
         <div class="balance-big" id="balance">0</div>
         <div class="balance-sub">$ZOO <span id="zooSub">0</span></div>
       </div>
 
-      <button class="pill-btn" id="openWalletBtn">Кошелёк</button>
+      <button class="pill-btn" id="openWalletBtn" type="button">Кошелёк</button>
     </header>
 
-    <!-- USER -->
     <section class="userline">
-      <div class="user-pill" id="userPill">
+      <div class="user-pill">
         <span class="avatar">🐶</span>
         <span class="user-name" id="username">Игрок</span>
       </div>
-      <div class="subtitle" id="subtitle">Тапай по собаке</div>
+
+      <!-- AI status line -->
+      <div class="subtitle" id="subtitle">Готов к тапам</div>
     </section>
 
-    <!-- PAGES -->
     <main class="pages">
       <!-- CLICK -->
       <section class="page active" id="page-click">
@@ -40,10 +40,18 @@
         <div class="card">
           <div class="card-row">
             <div class="label">ЭНЕРГИЯ</div>
-            <div class="value"><span id="energyNow">1000</span> / <span id="energyMax">1000</span></div>
+            <div class="value">
+              <span id="energyNow">1000</span> / <span id="energyMax">1000</span>
+            </div>
           </div>
           <div class="bar">
             <div class="bar-fill" id="energyFill"></div>
+          </div>
+
+          <div class="ai-mini">
+            <div class="ai-tag" id="dogMoodTag">🙂 happy</div>
+            <div class="ai-tag" id="dogTraitTag">🧠 loyal</div>
+            <div class="ai-tag" id="dogTrustTag">🤝 50</div>
           </div>
         </div>
       </section>
@@ -52,7 +60,7 @@
       <section class="page" id="page-nft">
         <div class="card">
           <div class="card-title">NFT-магазин</div>
-          <div class="card-text">Скоро: предметы на собаке (очки и т.д.)</div>
+          <div class="card-text">MVP: пока без “надевания”. AI уже работает.</div>
           <div class="nft-grid" id="nftGrid"></div>
         </div>
       </section>
@@ -70,8 +78,19 @@
             </div>
 
             <div class="task-right">
-              <button class="btn" id="shareRefBtn">Поделиться</button>
-              <button class="btn secondary" id="claimRefBtn">Забрать награду</button>
+              <button class="btn" id="shareRefBtn" type="button">Поделиться</button>
+              <button class="btn secondary" id="claimRefBtn" type="button">Забрать награду</button>
+            </div>
+          </div>
+
+          <div class="task" style="margin-top:12px;">
+            <div class="task-left">
+              <div class="task-title">AI-собака</div>
+              <div class="task-text">Поведение меняется от стиля игры</div>
+              <div class="task-progress" id="aiLastEvent">Последнее: —</div>
+            </div>
+            <div class="task-right">
+              <button class="btn" id="aiTestBtn" type="button">AI: событие</button>
             </div>
           </div>
 
@@ -82,13 +101,20 @@
       <section class="page" id="page-wallet">
         <div class="card">
           <div class="card-title">Кошелёк</div>
-          <div class="card-text">Подключение TON будет позже через backend.</div>
+          <div class="card-text">Баланс TON подтягивается через твой Worker.</div>
+
           <div class="wallet-box">
-            <div class="wallet-row">
+            <div class="wallet-row" style="align-items:center;">
               <div class="label">TON адрес</div>
-              <div class="value" id="tonAddress">—</div>
             </div>
-            <div class="wallet-row">
+
+            <input id="tonAddressInput" class="wallet-input" placeholder="EQ..." />
+
+            <div style="margin-top:10px;">
+              <button class="btn" id="refreshTonBtn" type="button">Обновить баланс</button>
+            </div>
+
+            <div class="wallet-row" style="margin-top:12px;">
               <div class="label">Баланс TON</div>
               <div class="value" id="tonBalance">—</div>
             </div>
@@ -97,12 +123,11 @@
       </section>
     </main>
 
-    <!-- BOTTOM NAV -->
     <nav class="bottomnav">
-      <button class="navbtn active" data-page="click">Клик</button>
-      <button class="navbtn" data-page="nft">NFT</button>
-      <button class="navbtn" data-page="tasks">Задания</button>
-      <button class="navbtn" data-page="wallet">Кошелёк</button>
+      <button class="navbtn active" data-page="click" type="button">Клик</button>
+      <button class="navbtn" data-page="nft" type="button">NFT</button>
+      <button class="navbtn" data-page="tasks" type="button">Задания</button>
+      <button class="navbtn" data-page="wallet" type="button">Кошелёк</button>
     </nav>
 
   </div>

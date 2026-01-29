@@ -1,7 +1,3 @@
-// js/app.js (FULL)
-// Fix 1: Skip works even if pressed before onFinish() is set
-// Fix 2: Dog tap reliable on Telegram Android (pointerdown/touchstart + preventDefault)
-
 /*************************************************
  * Helpers
  *************************************************/
@@ -20,7 +16,7 @@ async function withTimeout(promise, ms, onTimeout) {
 }
 
 /*************************************************
- * SPLASH VIDEO CONTROLLER (robust)
+ * SPLASH (без гонок: onFinish перед start)
  *************************************************/
 const Splash = (() => {
   const MIN_SHOW_MS = 600;
@@ -28,7 +24,7 @@ const Splash = (() => {
 
   let startedAt = 0;
   let finished = false;
-  let finishCb = null;
+  let onFinishCb = null;
 
   function el(id) {
     return document.getElementById(id);
@@ -65,7 +61,6 @@ const Splash = (() => {
     finished = true;
 
     const video = el("splash-video");
-
     const elapsed = Date.now() - startedAt;
     if (elapsed < MIN_SHOW_MS) await wait(MIN_SHOW_MS - elapsed);
 
@@ -73,29 +68,32 @@ const Splash = (() => {
 
     hideSplash();
 
-    // IMPORTANT: callback всегда должен сработать, если он уже установлен
-    try { finishCb?.(); } catch (e) { console.warn("finishCb error:", e); }
+    // КЛЮЧЕВОЕ: колбэк всегда есть (мы задаём до старта)
+    try { onFinishCb?.(); } catch (e) { console.warn("onFinishCb error:", e); }
   }
 
-  // IMPORTANT: если finish() уже случился, а cb назначили позже — вызвать сразу
-  function onFinish(cb) {
-    finishCb = cb;
-    if (finished && finishCb) {
-      try { finishCb(); } catch (e) { console.warn("finishCb late error:", e); }
-    }
-  }
-
-  async function start() {
+  async function start({ onFinish } = {}) {
     startedAt = Date.now();
     finished = false;
+    onFinishCb = typeof onFinish === "function" ? onFinish : null;
 
     const video = el("splash-video");
     const skipBtn = el("splash-skip");
     const tapBtn = el("splash-tap");
 
-    // skip всегда доступен
+    // Skip всегда доступен
     if (skipBtn) {
-      skipBtn.onclick = () => finish();
+      // pointerdown быстрее и надёжнее в Android WebView
+      skipBtn.addEventListener("pointerdown", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        finish();
+      }, { passive: false });
+      skipBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        finish();
+      });
     }
 
     setStatus("Загрузка...");
@@ -106,11 +104,13 @@ const Splash = (() => {
       setStatus("Нажми, чтобы начать");
 
       if (tapBtn) {
-        tapBtn.onclick = async () => {
+        tapBtn.addEventListener("pointerdown", async (e) => {
+          e.preventDefault();
+          e.stopPropagation();
           tapBtn.classList.add("hidden");
           setStatus("Загрузка...");
           await tryPlayVideo(video);
-        };
+        }, { passive: false });
       }
     }
 
@@ -122,7 +122,7 @@ const Splash = (() => {
     // safety timeout
     setTimeout(() => finish(), MAX_WAIT_MS);
 
-    return { finish, setStatus, onFinish };
+    return { finish, setStatus };
   }
 
   return { start };
@@ -143,13 +143,7 @@ const State = (() => {
       () => null
     );
 
-    if (loaded) {
-      _state = loaded;
-      return _state;
-    }
-
-    console.warn("State.init timeout → fallback defaultState()");
-    _state = StorageManager.defaultState();
+    _state = loaded || StorageManager.defaultState();
     return _state;
   }
 
@@ -165,7 +159,7 @@ const State = (() => {
 
   async function save() {
     if (!_state) return;
-    try { await StorageManager.saveStateAsync(_state); } catch (e) { console.warn("save error:", e); }
+    await StorageManager.saveStateAsync(_state);
   }
 
   return { init, get, set, save };
@@ -174,7 +168,7 @@ const State = (() => {
 window.State = State;
 
 /*************************************************
- * TELEGRAM WRAPPER
+ * TELEGRAM
  *************************************************/
 const tg = window.Telegram?.WebApp || null;
 
@@ -207,17 +201,15 @@ const UI = {
     const s = State.get();
     const bonesEl = document.getElementById("bones-count");
     const zooEl = document.getElementById("zoo-count");
-    if (bonesEl) bonesEl.innerText = (s.bones | 0);
-    if (zooEl) zooEl.innerText = (s.zoo | 0);
+    if (bonesEl) bonesEl.innerText = s.bones | 0;
+    if (zooEl) zooEl.innerText = s.zoo | 0;
   },
 
   updateEnergy() {
     const s = State.get();
     const percent = Math.max(0, Math.min(100, (s.energy / s.maxEnergy) * 100));
-
     const bar = document.getElementById("energy-bar");
     if (bar) bar.style.width = percent + "%";
-
     const label = document.getElementById("current-energy");
     if (label) label.innerText = `${Math.floor(s.energy)} / ${s.maxEnergy}`;
   },
@@ -226,7 +218,6 @@ const UI = {
     const s = State.get();
     const codeEl = document.getElementById("ref-code-display");
     if (codeEl) codeEl.innerText = s.refCode ? String(s.refCode) : "---";
-
     const btn = document.getElementById("share-ref-btn");
     if (btn) btn.innerText = `Поделиться (${s.referrals || 0}/5)`;
   },
@@ -239,7 +230,6 @@ const UI = {
     const now = Date.now();
     const delta = Math.floor((now - s.mining.lastCollect) / 1000);
     const available = Math.max(0, delta * Mining.ratePerSec(s.mining.level));
-
     el.innerText = `Уровень: ${s.mining.level} | Доступно: ${available}`;
   }
 };
@@ -251,7 +241,6 @@ window.UI = UI;
  *************************************************/
 const Energy = {
   regenPerSec: 1,
-
   start() {
     setInterval(() => {
       const s = State.get();
@@ -283,14 +272,12 @@ const Clicker = {
     State.save();
     UI.updateBalance();
     UI.updateEnergy();
-
     this.animate();
   },
 
   animate() {
     const img = document.getElementById("dog-img");
     if (!img) return;
-
     img.classList.add("tap");
     setTimeout(() => img.classList.remove("tap"), 120);
   },
@@ -313,7 +300,6 @@ const Mining = {
     if (delta <= 0) return;
 
     const earned = delta * this.ratePerSec(s.mining.level);
-
     s.zoo += earned;
     s.mining.lastCollect = now;
 
@@ -378,39 +364,36 @@ function bindBottomNav() {
       target.classList.remove("hidden");
       target.classList.add("active");
     }
+
+    // рендер задач по входу
+    if (name === "tasks") window.Tasks?.render?.();
   }
 
-  buttons.forEach((btn) => btn.addEventListener("click", () => openTab(btn.dataset.tab)));
+  buttons.forEach((btn) => {
+    btn.addEventListener("pointerdown", (e) => { e.preventDefault(); }, { passive: false });
+    btn.addEventListener("click", () => openTab(btn.dataset.tab));
+  });
+
   openTab("main");
 }
 
 /*************************************************
- * UI BINDINGS (tap надежно)
+ * UI BINDINGS (FIX: pointerdown/touchstart)
  *************************************************/
 function bindTapZone() {
-  const zone = document.getElementById("tap-zone");
-  if (!zone) return;
+  const tapZone = document.getElementById("tap-zone");
+  if (!tapZone) return;
 
-  // предотвращаем "залипание" и скролл/зум
-  const fireTap = (e) => {
-    try {
-      e?.preventDefault?.();
-      e?.stopPropagation?.();
-    } catch (_) {}
+  const fire = (e) => {
+    // важно: иначе Android WebView иногда “съедает” тап
+    e?.preventDefault?.();
+    e?.stopPropagation?.();
     Clicker.tap();
   };
 
-  // Pointer events (modern)
-  zone.addEventListener("pointerdown", fireTap, { passive: false });
-
-  // Fallback for some Android WebViews
-  zone.addEventListener("touchstart", fireTap, { passive: false });
-
-  // Disable context menu / long tap
-  zone.addEventListener("contextmenu", (e) => e.preventDefault());
-
-  // Also block drag
-  zone.addEventListener("dragstart", (e) => e.preventDefault());
+  tapZone.addEventListener("pointerdown", fire, { passive: false });
+  tapZone.addEventListener("touchstart", fire, { passive: false });
+  tapZone.addEventListener("click", fire);
 }
 
 function bindUI() {
@@ -428,12 +411,10 @@ function bindUI() {
         alert("TonConnectManager не найден");
         return;
       }
-
       if (!TonConnectManager.isConnected()) {
         alert("Сначала подключи кошелек (Connect Wallet)");
         return;
       }
-
       await TonConnectManager.sendTon(TO_ADDRESS, AMOUNT_NANO, "Zootopia Clicker payment");
       alert("Транзакция отправлена (подтверди в кошельке)");
     } catch (e) {
@@ -480,14 +461,13 @@ function attachGlobalErrorToSplash(setStatus) {
  * START GAME
  *************************************************/
 async function startGame() {
-  const splash = await Splash.start();
-  attachGlobalErrorToSplash(splash.setStatus);
-
-  // IMPORTANT: onFinish safe even if Skip pressed early
-  splash.onFinish(() => {
-    showGame();
+  const splash = await Splash.start({
+    onFinish: () => {
+      showGame();
+    }
   });
 
+  attachGlobalErrorToSplash(splash.setStatus);
   splash.setStatus("Загрузка...");
 
   await withTimeout(
@@ -495,7 +475,8 @@ async function startGame() {
       await State.init();
       initTelegram();
 
-      try { TonConnectManager?.init?.(); } catch (e) { console.warn("TonConnect init error:", e); }
+      // TonConnect не блокирует игру
+      try { TonConnectManager?.init?.(); } catch (e) { console.warn(e); }
 
       bindUI();
 
@@ -513,16 +494,13 @@ async function startGame() {
     7000,
     async () => {
       console.warn("Init timeout → opening game anyway");
-      splash.setStatus("Запуск без облака...");
+      splash.setStatus("Запуск...");
       showGame();
       return null;
     }
   );
 
-  // ensure game visible
-  showGame();
-
-  // hide splash
+  // Если видео не закончилось — закрываем
   await splash.finish();
 }
 

@@ -1,21 +1,33 @@
-const NFT_DATA = {
-    'glasses': { name: 'Cyber Glasses', price: 10, power: 5, image: 'assets/nft/glasses_cyber.png' },
-    'hat': { name: 'Sheriff Hat', price: 25, power: 15, image: 'assets/nft/glasses_cyber.png' } // Временно используем то же изображение
-};
+window.NftManager = (() => {
+  let items = null;
 
-const NFTManager = {
-    generateNFT: function(type) {
-        const item = NFT_DATA[type];
-        const randomId = Math.random().toString(36).substr(2, 6).toUpperCase();
-        const tokenId = `ZOO-${type.toUpperCase()}-${randomId}`;
-        
-        return {
-            id: tokenId,
-            type: type,
-            name: item.name,
-            power: item.power,
-            qr: `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${tokenId}`,
-            image: item.image
-        };
-    }
-};
+  async function load() {
+    if (items) return items;
+    const res = await fetch("./data/nft_items.json", { cache: "no-store" });
+    items = await res.json();
+    if (!Array.isArray(items)) items = [];
+    return items;
+  }
+
+  function isOwned(id) {
+    const s = window.State.get();
+    return (s.ownedNfts || []).includes(id);
+  }
+
+  function buy(id, price) {
+    const s = window.State.get();
+    if (isOwned(id)) return { ok: false, reason: "already_owned" };
+    if (s.zoo < price) return { ok: false, reason: "no_money" };
+
+    s.zoo -= price;
+    s.ownedNfts = s.ownedNfts || [];
+    s.ownedNfts.push(id);
+
+    window.UI.renderTop();
+    window.UI.renderNft();
+    window.State.save();
+    return { ok: true };
+  }
+
+  return { load, isOwned, buy };
+})();

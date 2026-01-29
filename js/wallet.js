@@ -1,47 +1,42 @@
-// js/wallet.js
-window.Wallet = (() => {
-  let tonConnectUI = null;
+import { setText } from "./ui.js";
 
-  function initTonConnect() {
-    // UI container
-    const el = document.getElementById("tonConnectUi");
-    el.innerHTML = "";
+export function initWallet(workerBaseUrl) {
+  const input = document.getElementById("tonAddressInput");
+  const btn = document.getElementById("refreshTonBtn");
 
-    tonConnectUI = new window.TON_CONNECT_UI.TonConnectUI({
-      manifestUrl: "./tonconnect-manifest.json",
-      buttonRootId: "tonConnectUi"
-    });
+  if (!input || !btn) return;
 
-    tonConnectUI.onStatusChange(wallet => {
-      const s = window.State.get();
-      const addr = wallet?.account?.address || "";
-      s.walletAddress = addr;
-      window.State.save();
-      window.UI.renderAll();
-    });
-  }
+  const saved = localStorage.getItem("ton_address");
+  if (saved) input.value = saved;
 
-  async function refreshBalance() {
-    const s = window.State.get();
-    if (!s.walletAddress) {
-      alert("Сначала подключи кошелёк");
+  btn.addEventListener("click", async () => {
+    const address = (input.value || "").trim();
+    if (!address) {
+      alert("Вставь TON адрес (обычно начинается с EQ...)");
       return;
     }
 
-    const r = await window.Backend.getTonBalance(s.walletAddress);
-    if (!r.ok) {
-      alert("Ошибка TON API");
-      return;
+    localStorage.setItem("ton_address", address);
+    setText("tonBalance", "…");
+
+    try {
+      const url = `${workerBaseUrl}/api/ton/balance?address=${encodeURIComponent(address)}`;
+      const r = await fetch(url);
+      const data = await r.json().catch(() => null);
+
+      if (!r.ok || !data?.ok) {
+        setText("tonBalance", "Ошибка");
+        console.log("TON balance error:", r.status, data);
+        alert("Не удалось получить баланс (см. console).");
+        return;
+      }
+
+      const ton = (Number(data.balanceNano || 0) / 1e9).toFixed(4);
+      setText("tonBalance", `${ton} TON`);
+    } catch (e) {
+      console.log(e);
+      setText("tonBalance", "Ошибка");
+      alert("Ошибка сети или Worker.");
     }
-    s.tonBalanceNano = Number(r.balanceNano || 0);
-    window.State.save();
-    window.UI.renderAll();
-  }
-
-  function init() {
-    initTonConnect();
-    document.getElementById("tonRefreshBtn").addEventListener("click", refreshBalance);
-  }
-
-  return { init, refreshBalance };
-})();
+  });
+}

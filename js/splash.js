@@ -1,52 +1,44 @@
-// js/splash.js — сплеш, который гарантированно завершится даже если onFinish назначили позже
-
-window.SplashController = (() => {
-  const el = {
-    root: document.getElementById("splash"),
-    video: document.getElementById("splash-video"),
-    skip: document.getElementById("splash-skip"),
-    tap: document.getElementById("splash-tap")
-  };
-
-  let finished = false;
+window.Splash = (() => {
   let finishCb = null;
-
-  function finish() {
-    if (finished) return;
-    finished = true;
-    try { el.video?.pause(); } catch {}
-    el.root?.classList.add("hidden");
-    if (typeof finishCb === "function") finishCb();
-  }
+  let finishRequested = false;
 
   function onFinish(cb) {
     finishCb = cb;
-    if (finished && typeof finishCb === "function") finishCb();
+    if (finishRequested && finishCb) finishCb();
+  }
+
+  function finish() {
+    finishRequested = true;
+    if (finishCb) finishCb();
   }
 
   function init() {
-    // кнопки
-    const onAny = (e) => { e.preventDefault(); e.stopPropagation(); finish(); };
+    const splash = document.getElementById("splash");
+    const video = document.getElementById("splashVideo");
+    const btnSkip = document.getElementById("splashSkip");
+    const btnStart = document.getElementById("splashStart");
 
-    el.skip?.addEventListener("click", onAny);
-    el.tap?.addEventListener("click", onAny);
+    const tryPlay = async () => {
+      try { await video.play(); } catch (_) {}
+    };
 
-    // если видео загрузилось — пробуем play (на мобиле может не стартануть, это нормально)
-    try {
-      if (el.video) {
-        el.video.muted = true;
-        el.video.playsInline = true;
-        el.video.loop = true;
-        const p = el.video.play();
-        if (p && typeof p.catch === "function") p.catch(() => {});
-      }
-    } catch {}
+    // если тапнули раньше — finish все равно сработает
+    const startNow = () => {
+      splash.classList.add("hidden");
+      finish();
+    };
 
-    // fallback: если юзер ничего не нажимает — автозавершим
-    setTimeout(() => finish(), 4500);
+    btnSkip.addEventListener("click", startNow);
+    btnStart.addEventListener("click", startNow);
+
+    // тап по экрану
+    splash.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      startNow();
+    }, { passive: false });
+
+    tryPlay();
   }
 
-  init();
-
-  return { onFinish, finish };
+  return { init, onFinish };
 })();

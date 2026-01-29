@@ -1,35 +1,37 @@
-const Energy = {
-  regenRate: 1,
-  regenInterval: 5000,
+window.Energy = (() => {
+  let regenTimer = null;
 
-  canSpend(amount) {
-    return State.get().energy >= amount;
-  },
+  function regenTick() {
+    const s = window.State.get();
+    if (!s) return;
 
-  spend(amount) {
-    const s = State.get();
-    if (s.energy < amount) return false;
-
-    s.energy -= amount;
-    UI.updateEnergy();
-    return true;
-  },
-
-  regen() {
-    const s = State.get();
-    if (s.energy >= s.maxEnergy) return;
-
-    s.energy = Math.min(
-      s.energy + this.regenRate,
-      s.maxEnergy
-    );
-
-    UI.updateEnergy();
-  },
-
-  start() {
-    setInterval(() => this.regen(), this.regenInterval);
+    // реген: +1 каждые 700мс = ~85/мин (можешь менять)
+    if (s.energy < s.maxEnergy) {
+      s.energy = Math.min(s.maxEnergy, s.energy + 1);
+      window.UI.renderTop();
+      window.UI.renderClicker();
+    }
   }
-};
 
-window.Energy = Energy;
+  function start() {
+    stop();
+    regenTimer = setInterval(regenTick, 700);
+  }
+
+  function stop() {
+    if (regenTimer) clearInterval(regenTimer);
+    regenTimer = null;
+  }
+
+  function canSpend(n) {
+    const s = window.State.get();
+    return s.energy >= n;
+  }
+
+  function spend(n) {
+    const s = window.State.get();
+    s.energy = Math.max(0, s.energy - n);
+  }
+
+  return { start, stop, canSpend, spend };
+})();

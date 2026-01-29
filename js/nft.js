@@ -1,83 +1,62 @@
-// js/nft.js — простая витрина NFT (пока демо-экономика)
-
 window.NFT = (() => {
-  const DEFAULT_ITEMS = [
-    { id: "nft_1", title: "Puppy Common", price: 10, img: "./assets/nft/1.png" },
-    { id: "nft_2", title: "Puppy Rare", price: 25, img: "./assets/nft/2.png" },
-    { id: "nft_3", title: "Puppy Epic", price: 60, img: "./assets/nft/3.png" }
-  ];
-
-  async function loadItems() {
-    // если у тебя есть assets/nft/nft_items.json — будет использоваться он
-    try {
-      const r = await fetch("./assets/nft/nft_items.json", { cache: "no-store" });
-      if (!r.ok) throw new Error("no nft_items.json");
-      const data = await r.json();
-      if (Array.isArray(data) && data.length) return data;
-      if (Array.isArray(data.items)) return data.items;
-    } catch {}
-    return DEFAULT_ITEMS;
-  }
-
-  function render({ state, setState, updateUI }) {
-    const root = document.getElementById("nft-list");
+  async function render() {
+    const root = document.getElementById("page-nft");
     if (!root) return;
 
-    root.innerHTML = "";
-    loadItems().then(items => {
-      for (const it of items) {
-        const owned = state.nft.owned.includes(it.id);
+    const items = await window.NftManager.load();
+    const s = window.State.get();
 
-        const card = document.createElement("div");
-        card.className = "panel";
-        card.style.background = "rgba(16, 18, 32, .22)";
+    root.innerHTML = `
+      <div class="card">
+        <div class="h1">NFT магазин</div>
+        <div class="muted">Покупай предметы за $ZOO. Купленное — остается у тебя.</div>
+      </div>
+      <div id="nftList"></div>
+      <div class="card">
+        <div class="h1">Твои NFT</div>
+        <div id="ownedList" class="muted">—</div>
+      </div>
+    `;
 
-        const title = document.createElement("div");
-        title.className = "panel-title";
-        title.textContent = it.title;
+    const list = root.querySelector("#nftList");
+    const owned = root.querySelector("#ownedList");
 
-        const img = document.createElement("img");
-        img.src = it.img || "";
-        img.alt = it.title;
-        img.style.width = "100%";
-        img.style.borderRadius = "16px";
-        img.style.border = "1px solid rgba(255,255,255,.10)";
-        img.style.marginBottom = "10px";
-        img.loading = "lazy";
-        img.onerror = () => { img.style.display = "none"; };
+    if (!items.length) {
+      list.innerHTML = `<div class="card"><div class="muted">Пока пусто. Заполни data/nft_items.json</div></div>`;
+    } else {
+      list.innerHTML = items.map(it => {
+        const owned = window.NftManager.isOwned(it.id);
+        const btn = owned ? "Куплено" : `Купить за ${it.price} $ZOO`;
+        return `
+          <div class="card">
+            <div class="row">
+              <div>
+                <div style="font-weight:900">${it.title}</div>
+                <div class="muted">${it.desc || ""}</div>
+              </div>
+              <img src="${it.image}" alt="" style="width:56px;height:56px;border-radius:16px;background:rgba(0,0,0,.15);padding:6px">
+            </div>
+            <div class="sep"></div>
+            <button class="btn ${owned ? "btn--ghost" : "btn--primary"}" data-buy="${it.id}" ${owned ? "disabled" : ""}>
+              ${btn}
+            </button>
+          </div>
+        `;
+      }).join("");
+    }
 
-        const meta = document.createElement("div");
-        meta.className = "muted";
-        meta.textContent = owned ? "Куплено ✅" : `Цена: ${it.price} $ZOO`;
+    const ownedIds = (s.ownedNfts || []);
+    if (!ownedIds.length) owned.textContent = "Пока ничего нет.";
+    else owned.textContent = ownedIds.join(", ");
 
-        const btn = document.createElement("button");
-        btn.className = owned ? "secondary-btn" : "primary-btn";
-        btn.type = "button";
-        btn.disabled = owned;
-        btn.textContent = owned ? "Уже в коллекции" : "Купить";
-
-        btn.addEventListener("click", () => {
-          if (owned) return;
-          if (state.zoo < it.price) {
-            alert("Недостаточно $ZOO");
-            return;
-          }
-          const next = structuredClone ? structuredClone(state) : JSON.parse(JSON.stringify(state));
-          next.zoo -= it.price;
-          next.nft.owned.push(it.id);
-          setState(next);
-          updateUI();
-          render({ state: next, setState, updateUI });
-        });
-
-        card.appendChild(title);
-        card.appendChild(img);
-        card.appendChild(meta);
-        card.appendChild(document.createElement("div")).className = "hr";
-        card.appendChild(btn);
-
-        root.appendChild(card);
-      }
+    root.querySelectorAll("[data-buy]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const id = btn.getAttribute("data-buy");
+        const it = items.find(x => x.id === id);
+        if (!it) return;
+        const r = window.NftManager.buy(it.id, it.price);
+        if (!r.ok && r.reason === "no_money") alert("Не хватает $ZOO");
+      });
     });
   }
 

@@ -4,28 +4,15 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Zootopia Clicker</title>
-
-  <link rel="stylesheet" href="assets/css/style.css" />
+  <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
 
-  <!-- SPLASH -->
-  <div id="splash" class="splash">
-    <img
-      class="splash__img"
-      src="assets/splash-poster.jpg"
-      alt="Loading"
-      onerror="this.onerror=null; this.src='assets/dog.png';"
-    />
-    <div class="splash__spinner"></div>
-  </div>
-
-  <!-- APP -->
-  <div id="app" class="app hidden">
-    <div id="screen" class="screen"></div>
+  <div id="app" class="app">
+    <div class="screen" id="screen"></div>
 
     <nav class="tabs">
-      <button class="tab" data-tab="click">Клик</button>
+      <button class="tab is-active" data-tab="click">Клик</button>
       <button class="tab" data-tab="tasks">Задания</button>
       <button class="tab" data-tab="nft">NFT</button>
       <button class="tab" data-tab="wallet">Кошелёк</button>
@@ -44,11 +31,11 @@
   <script src="js/energy.js"></script>
   <script src="js/clicker.js"></script>
   <script src="js/tasks.js"></script>
+  <script src="js/nft_manager.js"></script>
   <script src="js/nft.js"></script>
   <script src="js/wallet.js"></script>
-  <script src="js/tonconnect.js"></script>
 
-  <!-- BOOTSTRAP -->
+  <!-- BOOT -->
   <script src="js/app.js"></script>
 </body>
 </html>

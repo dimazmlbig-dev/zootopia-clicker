@@ -1,37 +1,24 @@
-window.Energy = (() => {
-  let regenTimer = null;
+window.App = window.App || {};
 
-  function regenTick() {
-    const s = window.State.get();
-    if (!s) return;
-
-    // реген: +1 каждые 700мс = ~85/мин (можешь менять)
-    if (s.energy < s.maxEnergy) {
-      s.energy = Math.min(s.maxEnergy, s.energy + 1);
-      window.UI.renderTop();
-      window.UI.renderClicker();
-    }
+App.energy = (() => {
+  function init() {
+    // реген энергии
+    setInterval(() => {
+      const s = App.state.get();
+      if (s.energy < s.energyMax) {
+        App.state.set({ energy: Math.min(s.energyMax, s.energy + 1) });
+      }
+    }, 250); // 4 ед/сек
   }
 
-  function start() {
-    stop();
-    regenTimer = setInterval(regenTick, 700);
+  function canTap() {
+    return App.state.get().energy > 0;
   }
 
-  function stop() {
-    if (regenTimer) clearInterval(regenTimer);
-    regenTimer = null;
+  function spend(amount) {
+    const s = App.state.get();
+    App.state.set({ energy: Math.max(0, s.energy - amount) });
   }
 
-  function canSpend(n) {
-    const s = window.State.get();
-    return s.energy >= n;
-  }
-
-  function spend(n) {
-    const s = window.State.get();
-    s.energy = Math.max(0, s.energy - n);
-  }
-
-  return { start, stop, canSpend, spend };
+  return { init, canTap, spend };
 })();

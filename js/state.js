@@ -1,31 +1,46 @@
-window.State = (() => {
-  const defaults = {
-    user: { id: "0", name: "Игрок" },
+// js/state.js
+(function () {
+  const listeners = new Set();
+
+  const data = {
+    user: { id: null, name: "Игрок" },
+    tab: "click",
+
     balance: 0,
     energy: 1000,
     energyMax: 1000,
-    taps: 0,
-    // equip toggles
-    equipped: { glasses: false, hat: false, collar: false }
+
+    mood: "happy",       // happy | tired | angry
+    multiplier: 1.0,
+
+    nftEquipped: {
+      glasses: false,
+      hat: false,
+      collar: false,
+    },
   };
 
-  let s = structuredClone(defaults);
-
-  function get(){ return s; }
-  function set(patch){
-    s = { ...s, ...patch };
-    return s;
+  function emit() {
+    listeners.forEach((fn) => {
+      try { fn(data); } catch (e) { console.error(e); }
+    });
   }
 
-  function reset(){ s = structuredClone(defaults); }
+  window.State = {
+    data,
 
-  // derived mood
-  function mood(){
-    const ratio = s.energyMax ? (s.energy / s.energyMax) : 0;
-    if (ratio > 0.6) return "happy";
-    if (ratio > 0.25) return "tired";
-    return "angry";
-  }
+    on(fn) { listeners.add(fn); return () => listeners.delete(fn); },
 
-  return { get, set, reset, mood };
+    set(patch) {
+      Object.assign(data, patch);
+      emit();
+    },
+
+    update(fn) {
+      fn(data);
+      emit();
+    },
+
+    emit,
+  };
 })();

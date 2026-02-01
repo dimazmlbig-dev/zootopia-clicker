@@ -1,22 +1,18 @@
-window.App = window.App || {};
-
-App.wallet = (() => {
-  function init() {}
-
-  function render(root) {
-    const s = App.state.get();
-    root.innerHTML = `
-      <h3>Кошелёк</h3>
-      <div>Статус: <b>${s.wallet.connected ? 'подключен' : 'не подключен'}</b></div>
-      <button id="connectBtn" style="margin-top:10px; padding:10px 14px; border-radius:14px;">
-        Подключить (позже через TonConnect)
-      </button>
-    `;
-
-    root.querySelector('#connectBtn').addEventListener('click', () => {
-      alert('TonConnect подключим следующим шагом');
-    });
-  }
-
-  return { init, render };
+(function(){
+  window.WalletScreen = {
+    html(){
+      const g = window.STATE.game;
+      return `
+        <div class="centerScreen">
+          <div class="card">
+            <div style="font-weight:900;font-size:18px;margin-bottom:10px;color:rgba(255,255,255,.92)">Кошелёк</div>
+            <div style="color:rgba(255,255,255,.75);line-height:1.45">
+              Баланс в игре: <b style="color:rgba(255,255,255,.92)">${g.balance} $ZOO</b><br><br>
+              Дальше подключим TonConnect и показ TON Balance через Worker.
+            </div>
+          </div>
+        </div>
+      `;
+    }
+  };
 })();

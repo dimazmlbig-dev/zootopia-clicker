@@ -1,204 +1,175 @@
-// --- Telegram init ---
-const tg = window.Telegram?.WebApp;
-if (tg) {
-  tg.ready();
-  tg.expand();
-  // По желанию: tg.disableVerticalSwipes();
+const tg = window.Telegram?.WebApp || null;
+
+function getTelegramUser() {
+  const u = tg?.initDataUnsafe?.user;
+  if (u?.id) return u;
+  return null;
 }
 
-// --- State ---
-const state = {
-  userId: null,
-  userName: "Пользователь",
-  taps: 0,
-  zoo: 911,
-  energy: 712,
-  energyMax: 1000,
-  mood: "happy",
-  trait: "loyal",
-  trust: 50,
-};
+// уникальный userId: Telegram user.id, иначе fallback
+function getUserId() {
+  const u = getTelegramUser();
+  if (u?.id) return String(u.id);
 
-// --- DOM ---
-const dogEl = document.getElementById("dog");
-const userNameEl = document.getElementById("userName");
-const userIconEl = document.getElementById("userIcon");
-const balanceNumEl = document.getElementById("balanceNum");
-const balanceSubEl = document.getElementById("balanceSub");
-const energyNowEl = document.getElementById("energyNow");
-const energyMaxEl = document.getElementById("energyMax");
-const energyFillEl = document.getElementById("energyFill");
-const chipMoodEl = document.getElementById("chipMood");
-const chipTraitEl = document.getElementById("chipTrait");
-const chipTrustEl = document.getElementById("chipTrust");
-const aiMsgEl = document.getElementById("aiMsg");
-
-const sheet = document.getElementById("sheet");
-const sheetTitle = document.getElementById("sheetTitle");
-const sheetBody = document.getElementById("sheetBody");
-const sheetClose = document.getElementById("sheetClose");
-
-const walletBtn = document.getElementById("walletBtn");
-
-// --- Helpers ---
-function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
-
-function haptic(type = "light") {
-  // Telegram haptics (лучше всего работает внутри Telegram)
-  if (tg?.HapticFeedback) {
-    // impact: light/medium/heavy/rigid/soft
-    tg.HapticFeedback.impactOccurred(type);
-    return;
+  // fallback outside Telegram
+  let id = localStorage.getItem("zoo_uid");
+  if (!id) {
+    id = String(Math.floor(Math.random() * 1e12));
+    localStorage.setItem("zoo_uid", id);
   }
-  // fallback Android вибрация (в браузере иногда блокируется)
-  if (navigator.vibrate) navigator.vibrate(10);
+  return id;
 }
 
-function dogTapAnim() {
+function getUserName() {
+  const u = getTelegramUser();
+  if (u) {
+    const name = [u.first_name, u.last_name].filter(Boolean).join(" ").trim();
+    return name || `User ${u.id}`;
+  }
+  return "Игрок";
+}
+
+// хаптик/вибрация: Telegram HapticFeedback -> иначе navigator.vibrate
+function hapticLight() {
+  try {
+    if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred("light");
+    else if (navigator.vibrate) navigator.vibrate(20);
+  } catch {}
+}
+
+// легкая “визуальная вибрация” (wiggle) через класс .tap
+function dogTapAnim(dogEl) {
   dogEl.classList.remove("tap");
-  // force reflow
+  // reflow
   void dogEl.offsetWidth;
   dogEl.classList.add("tap");
-  setTimeout(() => dogEl.classList.remove("tap"), 260);
+  setTimeout(() => dogEl.classList.remove("tap"), 220);
 }
 
-function render(){
-  userNameEl.textContent = state.userName;
-  balanceNumEl.textContent = String(state.zoo);
-  balanceSubEl.textContent = `$ZOO ${state.zoo}`;
-
-  energyNowEl.textContent = String(state.energy);
-  energyMaxEl.textContent = String(state.energyMax);
-
-  const pct = (state.energy / state.energyMax) * 100;
-  energyFillEl.style.width = `${clamp(pct, 0, 100)}%`;
-
-  chipMoodEl.textContent = state.mood;
-  chipTraitEl.textContent = state.trait;
-  chipTrustEl.textContent = String(state.trust);
+function clamp(n, a, b) {
+  return Math.max(a, Math.min(b, n));
 }
 
-// --- Unique user from Telegram ---
-function initUser(){
-  const u = tg?.initDataUnsafe?.user;
-  if (u) {
-    state.userId = String(u.id);
-    state.userName = [u.first_name, u.last_name].filter(Boolean).join(" ").trim() || `User ${u.id}`;
-    // Иконку можно менять по полу/статусу; аватар напрямую Telegram WebApp не отдаёт URL
-    userIconEl.textContent = "🐶";
-  } else {
-    // fallback: уникальность по localStorage (если открывают вне Telegram)
-    let id = localStorage.getItem("zoo_uid");
-    if (!id) {
-      id = String(Math.floor(Math.random()*1e9));
-      localStorage.setItem("zoo_uid", id);
+// простое сохранение
+const SAVE_KEY = "zoo_save_v1";
+function loadSave(userId) {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return null;
+    const s = JSON.parse(raw);
+    if (!s || s.userId !== userId) return null;
+    return s;
+  } catch { return null; }
+}
+function saveSave(s) {
+  localStorage.setItem(SAVE_KEY, JSON.stringify(s));
+}
+
+function defaultSave(userId) {
+  return {
+    userId,
+    zoo: 0,
+    energy: 1000,
+    energyMax: 1000,
+    equipped: { glasses: "", hat: "", collar: "" }
+  };
+}
+
+(function init() {
+  if (tg) {
+    tg.ready();
+    tg.expand?.();
+    tg.disableVerticalSwipes?.();
+  }
+
+  const userId = getUserId();
+  const userName = getUserName();
+
+  // UI refs
+  const elUserName = document.getElementById("userName");
+  const elUserIdText = document.getElementById("userIdText");
+  const elZooBalance = document.getElementById("zooBalance");
+
+  const elEnergyNow = document.getElementById("energyNow");
+  const elEnergyMax = document.getElementById("energyMax");
+  const elEnergyFill = document.getElementById("energyFill");
+
+  const dog = document.getElementById("dogBase");
+  const tapHint = document.getElementById("tapHint");
+
+  // overlays (пока просто есть, потом подключим NFT)
+  const dogGlasses = document.getElementById("dogGlasses");
+  const dogHat = document.getElementById("dogHat");
+  const dogCollar = document.getElementById("dogCollar");
+
+  let state = loadSave(userId) || defaultSave(userId);
+  state.userId = userId;
+
+  // показать имя и ID
+  elUserName.textContent = userName;
+  elUserIdText.textContent = userId;
+
+  function render() {
+    elZooBalance.textContent = String(state.zoo);
+
+    elEnergyNow.textContent = String(state.energy);
+    elEnergyMax.textContent = String(state.energyMax);
+
+    const pct = clamp((state.energy / state.energyMax) * 100, 0, 100);
+    elEnergyFill.style.width = pct + "%";
+
+    // overlays (если пусто — скрываем)
+    setWear(dogGlasses, state.equipped.glasses);
+    setWear(dogHat, state.equipped.hat);
+    setWear(dogCollar, state.equipped.collar);
+  }
+
+  function setWear(imgEl, traitId) {
+    if (!traitId || traitId === "hat_none") {
+      imgEl.src = "";
+      imgEl.style.display = "none";
+      return;
     }
-    state.userId = id;
-    state.userName = localStorage.getItem("zoo_name") || `User ${id.slice(-4)}`;
-  }
-}
-
-// --- Tap logic ---
-function onDogTap(){
-  if (state.energy <= 0) {
-    aiMsgEl.textContent = "Собака устала 😴";
-    haptic("soft");
-    return;
+    imgEl.style.display = "block";
+    imgEl.src = `/assets/wear/${traitId}.png`;
   }
 
-  haptic("light");
-  dogTapAnim();
+  function doTap() {
+    if (state.energy <= 0) {
+      tapHint.textContent = "Собака устала 😴";
+      hapticLight();
+      return;
+    }
 
-  state.taps += 1;
-  state.zoo += 1;             // начисление за тап (поменяешь как надо)
-  state.energy -= 1;
+    // тактильная + анимация
+    hapticLight();
+    dogTapAnim(dog);
 
-  // маленькая “эмоция”
-  if (state.taps % 20 === 0) {
-    state.mood = ["happy","playful","tired"][Math.floor(Math.random()*3)];
-    aiMsgEl.textContent = state.mood === "tired" ? "Дай лапе отдохнуть 😅" : "Ещё! Ещё! 🐾";
-  }
+    // экономика (пока простая)
+    state.energy -= 1;
+    state.zoo += 1;
 
-  render();
-}
-
-// --- Energy regen ---
-setInterval(() => {
-  if (state.energy < state.energyMax) {
-    state.energy += 1;
+    tapHint.textContent = "Тап! 🐾";
+    saveSave(state);
     render();
   }
-}, 1200);
 
-// --- Bottom tabs ---
-document.querySelectorAll(".nav-btn").forEach(btn => {
-  btn.addEventListener("click", () => {
-    document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
+  // На Android Telegram click часто глючит -> pointerdown надежнее
+  dog.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    doTap();
+  }, { passive: false });
 
-    const tab = btn.dataset.tab;
-    openTab(tab);
-  });
-});
+  // реген энергии
+  setInterval(() => {
+    if (state.energy < state.energyMax) {
+      state.energy += 1;
+      saveSave(state);
+      render();
+    }
+  }, 1200);
 
-function openTab(tab){
-  if (tab === "tap"){
-    sheet.classList.add("hidden");
-    return;
-  }
-
-  sheet.classList.remove("hidden");
-
-  if (tab === "wallet"){
-    sheetTitle.textContent = "Кошелёк";
-    sheetBody.innerHTML = `
-      <div class="task">
-        <div class="task-title">TON / Balance</div>
-        <div class="task-sub">Подключим TON-кошелёк и покажем баланс.</div>
-      </div>
-      <div class="task">
-        <div class="task-title">Адрес</div>
-        <div class="task-sub">Сюда позже выведем активный адрес TON Connect.</div>
-      </div>
-    `;
-    return;
-  }
-
-  if (tab === "tasks"){
-    sheetTitle.textContent = "Задания";
-    // сюда перенесём рефералку (как ты хотел)
-    sheetBody.innerHTML = `
-      <div class="task">
-        <div class="task-title">Пригласи друзей</div>
-        <div class="task-sub">Прогресс: 0/5 • Награда: +500 $ZOO</div>
-      </div>
-      <div class="task">
-        <div class="task-title">Подпишись на канал</div>
-        <div class="task-sub">Награда: +200 $ZOO</div>
-      </div>
-    `;
-    return;
-  }
-
-  if (tab === "nft"){
-    sheetTitle.textContent = "NFT";
-    sheetBody.innerHTML = `
-      <div class="task">
-        <div class="task-title">Коллекция скоро</div>
-        <div class="task-sub">Тут будет минт/маркет/витрина.</div>
-      </div>
-    `;
-    return;
-  }
-}
-
-sheetClose.addEventListener("click", () => sheet.classList.add("hidden"));
-walletBtn.addEventListener("click", () => openTab("wallet"));
-
-// --- Bind dog tap ---
-dogEl.addEventListener("click", onDogTap);
-dogEl.addEventListener("touchstart", (e) => { e.preventDefault(); onDogTap(); }, { passive:false });
-
-// --- Start ---
-initUser();
-render();
+  // первичный рендер
+  saveSave(state);
+  render();
+})();

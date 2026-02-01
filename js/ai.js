@@ -1,112 +1,54 @@
-import { persistState } from "./state.js";
+// js/ai.js
+// Yandex AI Studio (OpenAI-compatible) — client-side quick test
+// WARNING: do NOT ship with a real API key in frontend. Use a backend proxy for production.
 
-export function initDogAI(state, workerBaseUrl, uiDogRefresh, onAiApplied) {
-  const tg = window.Telegram?.WebApp;
-  const userId = String(tg?.initDataUnsafe?.user?.id || state.userId || "guest");
+window.AI = (function () {
+  const BASE_URL = "https://ai.api.cloud.yandex.net/v1";
+  const FOLDER_ID = "b1g23m98hsu3kfpel6e3"; // твой folder id
+  const MODEL_NAME = "yandexgpt"; // можно заменить на другую модель из Model Gallery
+  const MODEL = `gpt://${FOLDER_ID}/${MODEL_NAME}`;
 
-  async function callAI(reason = "timer") {
-    const now = Date.now();
-
-    // не спамим AI
-    const minInterval = 90_000; // 90 секунд
-    if (reason === "timer" && now - (state.dog?.lastAiAt || 0) < minInterval) return;
-
-    const snapshot = buildSnapshot(state, reason);
-
-    try {
-      const r = await fetch(`${workerBaseUrl}/api/ai/dog`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ userId, snapshot }),
-      });
-
-      const data = await r.json().catch(() => null);
-      if (!r.ok || !data?.ok || !data?.result) return;
-
-      applyAiResult(state, data.result);
-      state.dog.lastAiAt = now;
-
-      persistState(state);
-      uiDogRefresh?.(state);
-      onAiApplied?.(state);
-
-      // показать короткое сообщение
-      if (data.result.message) {
-        tg?.showPopup?.({
-          title: "🐶",
-          message: data.result.message,
-          buttons: [{ id: "ok", type: "ok" }],
-        });
-      }
-    } catch {}
+  // Положи ключ в localStorage один раз:
+  // localStorage.setItem('YC_API_KEY', 'AQVN...');
+  function getApiKey() {
+    return localStorage.getItem("YC_API_KEY") || "";
   }
 
-  // таймерный тик
-  const t = setInterval(() => callAI("timer"), 15_000);
+  async function ask(prompt, opts = {}) {
+    const apiKey = getApiKey();
+    if (!apiKey) throw new Error("YC_API_KEY пуст. Установи: localStorage.setItem('YC_API_KEY','...')");
 
-  return {
-    stop: () => clearInterval(t),
-    onEnergyZero: () => callAI("energy_zero"),
-    onBigTapBurst: () => callAI("tap_burst"),
-    onNftEquip: () => callAI("nft_equip"),
-    forceAi: (reason = "manual") => callAI(reason),
-  };
-}
+    const body = {
+      model: MODEL,
+      input: String(prompt || "").slice(0, 8000),
+      temperature: typeof opts.temperature === "number" ? opts.temperature : 0.4,
+      max_output_tokens: typeof opts.maxTokens === "number" ? opts.maxTokens : 400,
+    };
 
-function buildSnapshot(state, reason) {
-  return {
-    reason,
-    zoo: state.zoo,
-    energy: state.energy,
-    energyMax: state.energyMax,
-    tapsToday: state.tapsToday || 0,
-    burst10s: state.tapsWindow?.n || 0,
-    lastAction: state.lastAction || "none",
-    dog: {
-      mood: state.dog?.mood || "happy",
-      trait: state.dog?.trait || "loyal",
-      trust: state.dog?.trust ?? 50,
-      effects: state.dog?.effects || { tapMultiplier: 1, regenMultiplier: 1 },
-    },
-    lastEvents: (state.dog?.history || []).slice(0, 3),
-  };
-}
+    const res = await fetch(`${BASE_URL}/responses`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Api-Key ${apiKey}`,
+      },
+      body: JSON.stringify(body),
+    });
 
-function applyAiResult(state, ai) {
-  if (!state.dog) state.dog = {};
-  if (!state.dog.effects) state.dog.effects = { tapMultiplier: 1, regenMultiplier: 1 };
-  if (!Array.isArray(state.dog.history)) state.dog.history = [];
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`AI error ${res.status}: ${text || res.statusText}`);
+    }
 
-  state.dog.mood = ai.mood;
-  state.dog.trait = ai.trait;
+    const data = await res.json();
 
-  const trust = Number(state.dog.trust ?? 50);
-  const delta = Number(ai.trustDelta || 0);
-  state.dog.trust = clamp(trust + delta, 0, 100);
+    // В OpenAI-compatible Responses API удобно брать output_text
+    // Но на всякий случай делаем fallback.
+    return (
+      data.output_text ||
+      (data.output?.[0]?.content?.[0]?.text) ||
+      ""
+    );
+  }
 
-  state.dog.effects.tapMultiplier = clampNum(ai?.effects?.tapMultiplier, 0.5, 2.0, 1);
-  state.dog.effects.regenMultiplier = clampNum(ai?.effects?.regenMultiplier, 0.5, 2.0, 1);
-
-  const now = Date.now();
-  const cd = clampInt(ai.cooldownSec, 0, 30);
-  state.dog.cooldownUntil = cd > 0 ? now + cd * 1000 : 0;
-
-  state.dog.history.unshift({
-    t: now,
-    event: ai.event || "none",
-    mood: state.dog.mood,
-    msg: ai.message || "",
-  });
-  state.dog.history = state.dog.history.slice(0, 5);
-}
-
-function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
-function clampInt(v, a, b) {
-  v = Math.floor(Number(v || 0));
-  return clamp(v, a, b);
-}
-function clampNum(v, a, b, d) {
-  v = Number(v);
-  if (!Number.isFinite(v)) v = d;
-  return clamp(v, a, b);
-}
+  return { ask };
+})();

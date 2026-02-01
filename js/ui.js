@@ -1,33 +1,52 @@
-export function setText(id, text) {
-  const el = document.getElementById(id);
-  if (el) el.textContent = String(text);
-}
+window.App = window.App || {};
 
-export function setEnergy(now, max) {
-  setText("energyNow", now);
-  setText("energyMax", max);
+App.ui = (() => {
+  let screenEl, splashEl, appEl;
 
-  const fill = document.getElementById("energyFill");
-  if (fill) {
-    const pct = max > 0 ? Math.max(0, Math.min(1, now / max)) : 0;
-    fill.style.width = `${pct * 100}%`;
-  }
-}
+  function init() {
+    splashEl = document.getElementById('splash');
+    appEl = document.getElementById('app');
+    screenEl = document.getElementById('screen');
 
-export function showPage(name) {
-  const pages = [
-    ["click", "page-click"],
-    ["nft", "page-nft"],
-    ["tasks", "page-tasks"],
-    ["wallet", "page-wallet"],
-  ];
+    document.querySelectorAll('.tab').forEach(btn => {
+      btn.addEventListener('click', () => openTab(btn.dataset.tab));
+    });
 
-  for (const [key, id] of pages) {
-    const el = document.getElementById(id);
-    if (el) el.classList.toggle("active", key === name);
+    // авто-обновление UI при изменении state
+    App.state.subscribe(renderTopbarMini);
   }
 
-  document.querySelectorAll(".navbtn").forEach((b) => {
-    b.classList.toggle("active", b.dataset.page === name);
-  });
-}
+  function showApp() {
+    splashEl?.classList?.add('hidden');
+    appEl?.classList?.remove('hidden');
+  }
+
+  function openSavedOrDefaultTab() {
+    const tab = App.state.get().tab || 'click';
+    openTab(tab);
+  }
+
+  function openTab(tab) {
+    App.state.set({ tab });
+    try { localStorage.setItem('active_tab', tab); } catch {}
+
+    document.querySelectorAll('.tab').forEach(b => {
+      b.classList.toggle('active', b.dataset.tab === tab);
+    });
+
+    // делегируем рендер модулю
+    if (tab === 'click') return App.clicker.render(screenEl);
+    if (tab === 'tasks') return App.tasks.render(screenEl);
+    if (tab === 'wallet') return App.wallet.render(screenEl);
+    if (tab === 'nft') return App.nft.render(screenEl);
+
+    screenEl.innerHTML = `<h3>${tab}</h3><p>Экран не найден</p>`;
+  }
+
+  function renderTopbarMini() {
+    // опционально: если хочешь, можно обновлять элементы в текущем экране
+    // сейчас не мешаем модульным render()
+  }
+
+  return { init, showApp, openTab, openSavedOrDefaultTab };
+})();

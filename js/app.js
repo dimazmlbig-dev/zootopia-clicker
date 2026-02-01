@@ -1,55 +1,77 @@
 // js/app.js
-(() => {
-  const APP = {
-    state: {
-      activeTab: "click",
-      user: { name: "Дмитрий" },
-      mood: "happy",
-      multiplier: 1.0,
-    },
+(function () {
+  function getTelegramUser() {
+    const tg = window.Telegram?.WebApp;
+    if (!tg) return null;
 
-    getState() {
-      // если у тебя есть state.js с State.get() — используем его
-      if (window.State && typeof window.State.get === "function") return window.State.get();
-      return this.state;
-    },
+    // важно: initDataUnsafe.user есть только когда реально запущено внутри Telegram
+    const u = tg.initDataUnsafe?.user;
+    if (!u || !u.id) return null;
 
-    setState(patch) {
-      if (window.State && typeof window.State.set === "function") {
-        window.State.set(patch);
-      } else {
-        this.state = { ...this.state, ...patch };
-        window.APP_STATE = this.state;
-      }
-    },
+    return {
+      id: String(u.id),
+      name: [u.first_name, u.last_name].filter(Boolean).join(" ").trim() || (u.username ? `@${u.username}` : "Игрок"),
+    };
+  }
 
-    onTabChange(tab) {
-      this.setState({ activeTab: tab });
-      if (window.UI && typeof UI.render === "function") UI.render(this.getState());
+  function start() {
+    // Telegram setup
+    const tg = window.Telegram?.WebApp;
+    try { tg?.ready?.(); } catch {}
+    try { tg?.expand?.(); } catch {}
 
-      // Подключаем “вкладочные” модули, если они есть
-      if (tab === "tasks" && window.Tasks && typeof Tasks.render === "function") Tasks.render();
-      if (tab === "nft" && window.NFT && typeof NFT.render === "function") NFT.render();
-      if (tab === "wallet" && window.Wallet && typeof Wallet.render === "function") Wallet.render();
-    },
+    // user
+    const tgUser = getTelegramUser();
+    const userId = tgUser?.id || window.StorageZOO.getStableDemoId();
+    const userName = tgUser?.name || "Игрок";
 
-    start() {
-      // Telegram WebApp safe init (не обязателен)
-      if (window.Telegram?.WebApp) {
-        Telegram.WebApp.ready();
-        Telegram.WebApp.expand();
-      }
+    window.State.update((s) => {
+      s.user.id = userId;
+      s.user.name = userName;
+    });
 
-      if (window.UI && typeof UI.init === "function") UI.init();
-      if (window.UI && typeof UI.render === "function") UI.render(this.getState());
+    // load saved
+    const saved = window.StorageZOO.load(userId);
+    if (saved) {
+      window.State.update((s) => {
+        // мержим безопасно
+        if (typeof saved.balance === "number") s.balance = saved.balance;
+        if (typeof saved.energy === "number") s.energy = saved.energy;
+        if (typeof saved.energyMax === "number") s.energyMax = saved.energyMax;
+        if (typeof saved.mood === "string") s.mood = saved.mood;
+        if (typeof saved.multiplier === "number") s.multiplier = saved.multiplier;
+        if (saved.nftEquipped && typeof saved.nftEquipped === "object") s.nftEquipped = saved.nftEquipped;
+        if (typeof saved.tab === "string") s.tab = saved.tab;
+      });
+    }
 
-      // стартуем остальные модули если у них есть init()
-      if (window.Energy && typeof Energy.init === "function") Energy.init();
-      if (window.Clicker && typeof Clicker.init === "function") Clicker.init();
-    },
-  };
+    // init UI
+    window.UI?.init?.();
 
-  window.APP = APP;
+    // bind clicker
+    window.Clicker?.bind?.();
 
-  document.addEventListener("DOMContentLoaded", () => APP.start());
+    // autosave (раз в 2 сек)
+    setInterval(() => {
+      const s = window.State.data;
+      window.StorageZOO.save(userId, {
+        tab: s.tab,
+        balance: s.balance,
+        energy: s.energy,
+        energyMax: s.energyMax,
+        mood: s.mood,
+        multiplier: s.multiplier,
+        nftEquipped: s.nftEquipped,
+      });
+    }, 2000);
+
+    // regen energy (простая)
+    setInterval(() => {
+      window.State.update((st) => {
+        if (st.energy < st.energyMax) st.energy = Math.min(st.energyMax, st.energy + 1);
+      });
+    }, 1500);
+  }
+
+  document.addEventListener("DOMContentLoaded", start);
 })();

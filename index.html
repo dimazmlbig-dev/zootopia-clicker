@@ -1,76 +1,54 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Zootopia Clicker</title>
+
+  <link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body>
+
+  <!-- SPLASH -->
+  <div id="splash" class="splash">
+    <img
+      class="splash__img"
+      src="assets/splash-poster.jpg"
+      alt="Loading"
+      onerror="this.onerror=null; this.src='assets/dog.png';"
+    />
+    <div class="splash__spinner"></div>
+  </div>
+
+  <!-- APP -->
+  <div id="app" class="app hidden">
+    <div id="screen" class="screen"></div>
+
+    <nav class="tabs">
+      <button class="tab" data-tab="click">Клик</button>
+      <button class="tab" data-tab="tasks">Задания</button>
+      <button class="tab" data-tab="nft">NFT</button>
+      <button class="tab" data-tab="wallet">Кошелёк</button>
+    </nav>
+  </div>
 
   <!-- Telegram WebApp SDK -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-  <!-- ВАЖНО: относительный путь (без / в начале) -->
-  <link rel="stylesheet" href="./css/styles.css" />
-</head>
+  <!-- CORE -->
+  <script src="js/state.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/ui.js"></script>
 
-<body>
-  <div class="app">
+  <!-- FEATURES -->
+  <script src="js/energy.js"></script>
+  <script src="js/clicker.js"></script>
+  <script src="js/tasks.js"></script>
+  <script src="js/nft.js"></script>
+  <script src="js/wallet.js"></script>
+  <script src="js/tonconnect.js"></script>
 
-    <header class="topbar">
-      <div class="pill user-pill">
-        <span class="user-ico">🐶</span>
-        <span id="userName" class="user-name">Игрок</span>
-      </div>
-
-      <div class="pill stat-pill">
-        <div class="muted">ID</div>
-        <div id="userIdText" class="strong">—</div>
-      </div>
-    </header>
-
-    <main class="main">
-      <section class="card big">
-        <div class="dog-wrap">
-          <div class="dog-layer">
-            <!-- ВАЖНО: относительные пути -->
-            <img id="dogBase" src="./assets/dog.png" alt="dog" draggable="false"/>
-            <img id="dogGlasses" class="wear" alt="glasses" draggable="false"/>
-            <img id="dogHat" class="wear" alt="hat" draggable="false"/>
-            <img id="dogCollar" class="wear" alt="collar" draggable="false"/>
-          </div>
-
-          <div class="tap-hint" id="tapHint">Тапай по собаке</div>
-        </div>
-
-        <div class="energy">
-          <div class="energy-top">
-            <div class="energy-title">ЭНЕРГИЯ</div>
-            <div class="energy-val"><span id="energyNow">1000</span> / <span id="energyMax">1000</span></div>
-          </div>
-          <div class="energy-bar">
-            <div class="energy-fill" id="energyFill"></div>
-          </div>
-        </div>
-
-        <div class="row">
-          <div class="pill wide">
-            <div class="muted">Баланс</div>
-            <div class="strong"><span id="zooBalance">0</span> $ZOO</div>
-          </div>
-        </div>
-
-      </section>
-    </main>
-
-    <nav class="bottom-nav">
-      <button class="nav-btn active" type="button">Клик</button>
-      <button class="nav-btn" type="button">NFT</button>
-      <button class="nav-btn" type="button">Задания</button>
-      <button class="nav-btn" type="button">Кошелёк</button>
-    </nav>
-
-  </div>
-
-  <!-- ВАЖНО: относительный путь -->
-  <script src="./js/app.js"></script>
+  <!-- BOOTSTRAP -->
+  <script src="js/app.js"></script>
 </body>
 </html>

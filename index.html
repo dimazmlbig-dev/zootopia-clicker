@@ -5,10 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Zootopia Clicker</title>
 
+  <!-- Telegram WebApp SDK -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-  <link rel="stylesheet" href="/css/styles.css" />
+  <!-- ВАЖНО: относительный путь (без / в начале) -->
+  <link rel="stylesheet" href="./css/styles.css" />
 </head>
+
 <body>
   <div class="app">
 
@@ -28,7 +31,8 @@
       <section class="card big">
         <div class="dog-wrap">
           <div class="dog-layer">
-            <img id="dogBase" src="/assets/dog.png" alt="dog" draggable="false"/>
+            <!-- ВАЖНО: относительные пути -->
+            <img id="dogBase" src="./assets/dog.png" alt="dog" draggable="false"/>
             <img id="dogGlasses" class="wear" alt="glasses" draggable="false"/>
             <img id="dogHat" class="wear" alt="hat" draggable="false"/>
             <img id="dogCollar" class="wear" alt="collar" draggable="false"/>
@@ -66,6 +70,7 @@
 
   </div>
 
-  <script src="/js/app.js"></script>
+  <!-- ВАЖНО: относительный путь -->
+  <script src="./js/app.js"></script>
 </body>
 </html>

@@ -23,4 +23,21 @@
 
             <div style="margin-top:12px;color:rgba(255,255,255,.65);font-size:12px;line-height:1.35">
               Файлы должны быть по путям:<br>
-              assets/nft/hat.png, assets/nft/glasses.png, assets
+              assets/nft/hat.png, assets/nft/glasses.png, assets/nft/collar.png
+            </div>
+          </div>
+        </div>
+      `;
+    }
+  };
+
+  document.addEventListener("click", (e)=>{
+    const btn = e.target.closest(".nftRow");
+    if(!btn) return;
+    const key = btn.dataset.key;
+    const g = window.STATE.game;
+    g.items[key] = !g.items[key];
+    window.StorageAPI.save();
+    window.UI.render();
+  }, true);
+})();

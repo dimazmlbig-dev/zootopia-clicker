@@ -86,3 +86,168 @@ body {
   background: #eaeaea;
   border-color: #d5d5d5;
 }
+/* ===== GLOBAL BACKGROUND ===== */
+html, body {
+  height: 100%;
+}
+body{
+  margin: 0;
+  min-height: 100vh;
+  background: radial-gradient(120% 120% at 50% 0%, #7b5cff 0%, #5a51ff 38%, #3e3aa8 100%);
+  color: #fff;
+}
+
+/* чтобы экран был по центру */
+.screen{
+  min-height: calc(100vh - 74px); /* ~ высота tabbar */
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  padding: 16px 12px 24px;
+  box-sizing:border-box;
+}
+
+/* ===== DOG CLICKER LAYOUT ===== */
+.dog-wrap{
+  width: 100%;
+  max-width: 420px;
+  display:flex;
+  flex-direction:column;
+  gap: 12px;
+}
+
+.card{
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 20px;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 18px 50px rgba(0,0,0,0.25);
+  padding: 14px;
+}
+
+.top-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+}
+
+.badge{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:10px 12px;
+  border-radius:999px;
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.14);
+  font-weight:700;
+}
+
+.pill{
+  padding:10px 12px;
+  border-radius:999px;
+  background: rgba(0,0,0,0.18);
+  border: 1px solid rgba(255,255,255,0.14);
+  font-weight:700;
+}
+
+.stats{
+  display:flex;
+  justify-content:space-between;
+  font-weight:800;
+  font-size: 34px;
+  line-height: 1;
+}
+.stats small{
+  display:block;
+  opacity:.8;
+  font-size: 13px;
+  font-weight:700;
+}
+
+/* dog visual */
+.dog-layer{
+  position:relative;
+  width: min(340px, 86vw);
+  margin: 0 auto;
+  user-select:none;
+  -webkit-tap-highlight-color: transparent;
+}
+.dog-base{
+  width:100%;
+  height:auto;
+  display:block;
+  filter: drop-shadow(0 22px 40px rgba(0,0,0,.35));
+}
+
+/* breathing idle */
+.dog-layer.idle{
+  animation: breathe 2.4s ease-in-out infinite;
+  transform-origin: 50% 75%;
+}
+@keyframes breathe{
+  0%,100%{transform:scale(1);}
+  50%{transform:scale(1.02);}
+}
+
+/* tap shake */
+.dog-layer.tap .dog-base{
+  animation: tapShake 140ms ease-in-out 1;
+  transform-origin: 50% 75%;
+}
+@keyframes tapShake{
+  0%{transform: translateY(0) scale(1);}
+  35%{transform: translateY(1px) scale(.995) rotate(-.6deg);}
+  70%{transform: translateY(0) scale(1.005) rotate(.6deg);}
+  100%{transform: translateY(0) scale(1) rotate(0);}
+}
+
+/* overlays (NFT) */
+.overlay{
+  position:absolute;
+  left:50%;
+  top:50%;
+  transform: translate(-50%,-50%);
+  pointer-events:none;
+  z-index:15;
+}
+.overlay-hat{
+  width:58%;
+  transform: translate(-50%,-118%);
+}
+.overlay-glasses{
+  width:55%;
+  transform: translate(-50%,-72%);
+}
+.hidden{display:none;}
+
+/* floating +$ZOO */
+.float-layer{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  z-index:20;
+}
+.float-plus{
+  position:absolute;
+  transform: translate(-50%, -50%);
+  font-weight:800;
+  font-size:16px;
+  padding:6px 10px;
+  border-radius:999px;
+  background: rgba(255,255,255,0.18);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+  animation: floatUp .9s ease-out forwards;
+  will-change: transform, opacity;
+}
+@keyframes floatUp{
+  0%{opacity:0; transform:translate(-50%,-10%) scale(.95);}
+  15%{opacity:1;}
+  100%{opacity:0; transform:translate(-50%,-140%) scale(1.08);}
+}
+
+/* moods */
+.mood-happy #dogBase{ filter: saturate(1.05) brightness(1.02) drop-shadow(0 22px 40px rgba(0,0,0,.35)); }
+.mood-tired #dogBase{ filter: saturate(.85) brightness(.92) drop-shadow(0 22px 40px rgba(0,0,0,.35)); }
+.mood-angry #dogBase{ filter: saturate(1.25) contrast(1.08) drop-shadow(0 22px 40px rgba(0,0,0,.35)); }

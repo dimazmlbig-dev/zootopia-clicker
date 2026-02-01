@@ -1,47 +1,61 @@
-(function(){
-  function initTelegram(){
+window.App = (() => {
+  let currentTab = "click";
+
+  function getTab(){ return currentTab; }
+
+  function initTelegramUser(){
     const tg = window.Telegram?.WebApp;
-    if(tg){
-      try{
-        tg.expand();
-        tg.ready();
-      }catch(e){}
-    }
+    try{ tg?.ready(); }catch(e){}
 
-    // главное: userId из Telegram
-    const u = tg?.initDataUnsafe?.user;
-    if(u?.id){
-      window.STATE.user.id = String(u.id);
-      window.STATE.user.name = u.first_name || u.username || "Игрок";
-    }else{
-      // fallback (если открыто не из Telegram)
-      window.STATE.user.id = "anon";
-      window.STATE.user.name = "Игрок";
+    const user = tg?.initDataUnsafe?.user;
+    const id = user?.id ? String(user.id) : String(Math.floor(Math.random()*1e9));
+    const name = user?.first_name || user?.username || "Игрок";
+
+    State.set({ user: { id, name } });
+  }
+
+  function initStorage(){
+    const saved = Storage.load();
+    if(saved && typeof saved === "object"){
+      // аккуратно мержим (без ломания структуры)
+      const base = State.get();
+      State.set({
+        ...base,
+        ...saved,
+        user: base.user, // user берем из Telegram
+      });
     }
   }
 
-  function boot(){
-    initTelegram();
-
-    // грузим состояние под конкретного пользователя
-    window.StorageAPI.load();
-
-    // дефолт idle
-    window.STATE.game.mood = window.STATE.game.mood || "happy";
-    window.STATE.game.energyMax = window.STATE.game.energyMax || 1000;
-    if(typeof window.STATE.game.energy !== "number") window.STATE.game.energy = 1000;
-
-    // первый рендер
-    window.UI.render();
-
-    // Splash: 900ms минимум
-    const splash = document.getElementById("splash");
-    const app = document.getElementById("app");
-    setTimeout(()=>{
-      splash.classList.add("hidden");
-      app.classList.remove("hidden");
-    }, 900);
+  function bindTabs(){
+    document.querySelectorAll(".tab").forEach(btn => {
+      btn.addEventListener("click", () => {
+        currentTab = btn.dataset.tab;
+        UI.render(currentTab);
+        bindAfterRender();
+      });
+    });
   }
 
-  window.addEventListener("load", boot);
+  function bindAfterRender(){
+    if(currentTab === "click") Clicker.bind();
+    if(currentTab === "nft") NFT.bind();
+    if(currentTab === "tasks") Tasks.bind();
+    if(currentTab === "wallet") Wallet.bind();
+  }
+
+  function start(){
+    initTelegramUser();
+    initStorage();
+
+    bindTabs();
+    UI.render(currentTab);
+    bindAfterRender();
+
+    Energy.start();
+  }
+
+  return { start, getTab };
 })();
+
+document.addEventListener("DOMContentLoaded", () => App.start());

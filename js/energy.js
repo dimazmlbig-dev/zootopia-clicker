@@ -1,24 +1,27 @@
-window.App = window.App || {};
+(function(){
+  // 1 тик = 1 секунда
+  const TICK_MS = 1000;
 
-App.energy = (() => {
-  function init() {
-    // реген энергии
-    setInterval(() => {
-      const s = App.state.get();
-      if (s.energy < s.energyMax) {
-        App.state.set({ energy: Math.min(s.energyMax, s.energy + 1) });
-      }
-    }, 250); // 4 ед/сек
+  function regen(){
+    const g = window.STATE.game;
+
+    // базовый реген
+    const base = 18;
+
+    // влияние настроения
+    const moodRegenMul = g.mood === "tired" ? 1.25 : (g.mood === "angry" ? 0.85 : 1.0);
+
+    const add = Math.round(base * moodRegenMul);
+    g.energy = Math.min(g.energyMax, g.energy + add);
+
+    // если энергия совсем низкая — становимся tired
+    if(g.energy < 160) g.mood = "tired";
+    // если энергия восстановилась — happy
+    if(g.energy > 520 && g.mood === "tired") g.mood = "happy";
+
+    window.StorageAPI.save();
+    window.UI.render();
   }
 
-  function canTap() {
-    return App.state.get().energy > 0;
-  }
-
-  function spend(amount) {
-    const s = App.state.get();
-    App.state.set({ energy: Math.max(0, s.energy - amount) });
-  }
-
-  return { init, canTap, spend };
+  setInterval(regen, TICK_MS);
 })();

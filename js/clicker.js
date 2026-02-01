@@ -1,69 +1,50 @@
-import { persistState } from "./state.js";
-import { setText, setEnergy } from "./ui.js";
+window.App = window.App || {};
 
-export function initClicker(state, aiTriggers, uiDogRefresh) {
-  render(state, uiDogRefresh);
+App.clicker = (() => {
+  function init() {
+    // пассивный доход (если захочешь CPS)
+    setInterval(() => {
+      const s = App.state.get();
+      if (s.cps > 0) App.state.set({ coins: s.coins + s.cps });
+    }, 1000);
+  }
 
-  const dog = document.getElementById("dogImg");
-  if (!dog) return;
+  function onTap() {
+    if (!App.energy.canTap()) return;
 
-  // Telegram Android: pointerdown/touchstart надежнее, чем click
-  const onTap = (e) => {
-    e.preventDefault?.();
+    const s = App.state.get();
+    App.energy.spend(1);
 
-    const now = Date.now();
+    App.state.set({
+      coins: s.coins + 1,
+      clicks: s.clicks + 1
+    });
+  }
 
-    // AI cooldown
-    if (state.dog?.cooldownUntil && now < state.dog.cooldownUntil) return;
+  function render(root) {
+    const s = App.state.get();
+    root.innerHTML = `
+      <div style="display:flex; gap:16px; align-items:center;">
+        <img src="assets/dog.png" style="width:140px; height:auto; border-radius:18px;" />
+        <div>
+          <div><b>Tap!</b></div>
+          <div>Энергия: <b id="energyTxt">${s.energy}</b> / ${s.energyMax}</div>
+          <div>Баланс: <b id="coinsTxt">${Math.floor(s.coins)}</b> $ZOO</div>
+          <div>Клики: <b id="clicksTxt">${s.clicks}</b></div>
+          <button id="tapBtn" style="margin-top:10px; padding:10px 14px; border-radius:14px;">Клик</button>
+        </div>
+      </div>
+    `;
 
-    if (state.energy <= 0) {
-      aiTriggers?.onEnergyZero?.();
-      return;
-    }
+    root.querySelector('#tapBtn').addEventListener('click', () => {
+      onTap();
+      // мини-обновление без полного ререндера
+      const ss = App.state.get();
+      root.querySelector('#energyTxt').textContent = ss.energy;
+      root.querySelector('#coinsTxt').textContent = Math.floor(ss.coins);
+      root.querySelector('#clicksTxt').textContent = ss.clicks;
+    });
+  }
 
-    // burst tracking (10 секунд окно)
-    const w = state.tapsWindow || { t: now, n: 0 };
-    if (now - w.t > 10_000) {
-      w.t = now; w.n = 0;
-    }
-    w.n += 1;
-    state.tapsWindow = w;
-
-    state.tapsToday = (state.tapsToday || 0) + 1;
-
-    const mult = state.dog?.effects?.tapMultiplier ?? 1;
-
-    state.energy -= 1;
-    state.zoo += Math.max(1, Math.floor(1 * mult));
-
-    state.lastAction = "tap";
-
-    persistState(state);
-    render(state, uiDogRefresh);
-
-    // если много тапов быстро — триггерим AI
-    if (w.n >= 35) aiTriggers?.onBigTapBurst?.();
-  };
-
-  dog.addEventListener("pointerdown", onTap, { passive: false });
-  dog.addEventListener("touchstart", onTap, { passive: false });
-
-  // реген энергии с AI множителем
-  setInterval(() => {
-    if (state.energy < state.energyMax) {
-      const regenMult = state.dog?.effects?.regenMultiplier ?? 1;
-      const inc = Math.max(1, Math.floor(1 * regenMult));
-
-      state.energy = Math.min(state.energyMax, state.energy + inc);
-      persistState(state);
-      render(state, uiDogRefresh);
-    }
-  }, 1200);
-}
-
-function render(state, uiDogRefresh) {
-  setText("balance", state.zoo);
-  setText("zooSub", state.zoo);
-  setEnergy(state.energy, state.energyMax);
-  uiDogRefresh?.(state);
-}
+  return { init, render };
+})();

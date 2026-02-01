@@ -1,175 +1,48 @@
-const tg = window.Telegram?.WebApp || null;
+(() => {
+  const log = (...a) => console.log('[APP]', ...a);
 
-function getTelegramUser() {
-  const u = tg?.initDataUnsafe?.user;
-  if (u?.id) return u;
-  return null;
-}
-
-// уникальный userId: Telegram user.id, иначе fallback
-function getUserId() {
-  const u = getTelegramUser();
-  if (u?.id) return String(u.id);
-
-  // fallback outside Telegram
-  let id = localStorage.getItem("zoo_uid");
-  if (!id) {
-    id = String(Math.floor(Math.random() * 1e12));
-    localStorage.setItem("zoo_uid", id);
-  }
-  return id;
-}
-
-function getUserName() {
-  const u = getTelegramUser();
-  if (u) {
-    const name = [u.first_name, u.last_name].filter(Boolean).join(" ").trim();
-    return name || `User ${u.id}`;
-  }
-  return "Игрок";
-}
-
-// хаптик/вибрация: Telegram HapticFeedback -> иначе navigator.vibrate
-function hapticLight() {
-  try {
-    if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred("light");
-    else if (navigator.vibrate) navigator.vibrate(20);
-  } catch {}
-}
-
-// легкая “визуальная вибрация” (wiggle) через класс .tap
-function dogTapAnim(dogEl) {
-  dogEl.classList.remove("tap");
-  // reflow
-  void dogEl.offsetWidth;
-  dogEl.classList.add("tap");
-  setTimeout(() => dogEl.classList.remove("tap"), 220);
-}
-
-function clamp(n, a, b) {
-  return Math.max(a, Math.min(b, n));
-}
-
-// простое сохранение
-const SAVE_KEY = "zoo_save_v1";
-function loadSave(userId) {
-  try {
-    const raw = localStorage.getItem(SAVE_KEY);
-    if (!raw) return null;
-    const s = JSON.parse(raw);
-    if (!s || s.userId !== userId) return null;
-    return s;
-  } catch { return null; }
-}
-function saveSave(s) {
-  localStorage.setItem(SAVE_KEY, JSON.stringify(s));
-}
-
-function defaultSave(userId) {
-  return {
-    userId,
-    zoo: 0,
-    energy: 1000,
-    energyMax: 1000,
-    equipped: { glasses: "", hat: "", collar: "" }
-  };
-}
-
-(function init() {
-  if (tg) {
-    tg.ready();
-    tg.expand?.();
-    tg.disableVerticalSwipes?.();
-  }
-
-  const userId = getUserId();
-  const userName = getUserName();
-
-  // UI refs
-  const elUserName = document.getElementById("userName");
-  const elUserIdText = document.getElementById("userIdText");
-  const elZooBalance = document.getElementById("zooBalance");
-
-  const elEnergyNow = document.getElementById("energyNow");
-  const elEnergyMax = document.getElementById("energyMax");
-  const elEnergyFill = document.getElementById("energyFill");
-
-  const dog = document.getElementById("dogBase");
-  const tapHint = document.getElementById("tapHint");
-
-  // overlays (пока просто есть, потом подключим NFT)
-  const dogGlasses = document.getElementById("dogGlasses");
-  const dogHat = document.getElementById("dogHat");
-  const dogCollar = document.getElementById("dogCollar");
-
-  let state = loadSave(userId) || defaultSave(userId);
-  state.userId = userId;
-
-  // показать имя и ID
-  elUserName.textContent = userName;
-  elUserIdText.textContent = userId;
-
-  function render() {
-    elZooBalance.textContent = String(state.zoo);
-
-    elEnergyNow.textContent = String(state.energy);
-    elEnergyMax.textContent = String(state.energyMax);
-
-    const pct = clamp((state.energy / state.energyMax) * 100, 0, 100);
-    elEnergyFill.style.width = pct + "%";
-
-    // overlays (если пусто — скрываем)
-    setWear(dogGlasses, state.equipped.glasses);
-    setWear(dogHat, state.equipped.hat);
-    setWear(dogCollar, state.equipped.collar);
-  }
-
-  function setWear(imgEl, traitId) {
-    if (!traitId || traitId === "hat_none") {
-      imgEl.src = "";
-      imgEl.style.display = "none";
-      return;
+  function tgReady() {
+    try {
+      if (window.Telegram?.WebApp) {
+        Telegram.WebApp.ready();
+        Telegram.WebApp.expand();
+      }
+    } catch (e) {
+      console.log('Telegram init error:', e);
     }
-    imgEl.style.display = "block";
-    imgEl.src = `/assets/wear/${traitId}.png`;
   }
 
-  function doTap() {
-    if (state.energy <= 0) {
-      tapHint.textContent = "Собака устала 😴";
-      hapticLight();
-      return;
-    }
-
-    // тактильная + анимация
-    hapticLight();
-    dogTapAnim(dog);
-
-    // экономика (пока простая)
-    state.energy -= 1;
-    state.zoo += 1;
-
-    tapHint.textContent = "Тап! 🐾";
-    saveSave(state);
-    render();
+  function safe(name, fn) {
+    try { return fn(); }
+    catch (e) { console.error(`[ERR ${name}]`, e); return null; }
   }
 
-  // На Android Telegram click часто глючит -> pointerdown надежнее
-  dog.addEventListener("pointerdown", (e) => {
-    e.preventDefault();
-    doTap();
-  }, { passive: false });
+  function start() {
+    tgReady();
 
-  // реген энергии
-  setInterval(() => {
-    if (state.energy < state.energyMax) {
-      state.energy += 1;
-      saveSave(state);
-      render();
-    }
-  }, 1200);
+    // 1) init core
+    safe('state.init', () => App.state.init());
+    safe('storage.init', () => App.storage.init());
 
-  // первичный рендер
-  saveSave(state);
-  render();
+    // 2) init feature modules (не обязаны существовать все сразу)
+    safe('energy.init', () => App.energy?.init?.());
+    safe('clicker.init', () => App.clicker?.init?.());
+    safe('tasks.init', () => App.tasks?.init?.());
+    safe('wallet.init', () => App.wallet?.init?.());
+    safe('nft.init', () => App.nft?.init?.());
+    safe('tonconnect.init', () => App.tonconnect?.init?.());
+
+    // 3) UI
+    safe('ui.init', () => App.ui.init());
+    safe('ui.showApp', () => App.ui.showApp());
+    safe('ui.openDefaultTab', () => App.ui.openSavedOrDefaultTab());
+
+    log('Started');
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', start);
+  } else {
+    start();
+  }
 })();

@@ -1,61 +1,55 @@
-window.App = (() => {
-  let currentTab = "click";
+// js/app.js
+(() => {
+  const APP = {
+    state: {
+      activeTab: "click",
+      user: { name: "Дмитрий" },
+      mood: "happy",
+      multiplier: 1.0,
+    },
 
-  function getTab(){ return currentTab; }
+    getState() {
+      // если у тебя есть state.js с State.get() — используем его
+      if (window.State && typeof window.State.get === "function") return window.State.get();
+      return this.state;
+    },
 
-  function initTelegramUser(){
-    const tg = window.Telegram?.WebApp;
-    try{ tg?.ready(); }catch(e){}
+    setState(patch) {
+      if (window.State && typeof window.State.set === "function") {
+        window.State.set(patch);
+      } else {
+        this.state = { ...this.state, ...patch };
+        window.APP_STATE = this.state;
+      }
+    },
 
-    const user = tg?.initDataUnsafe?.user;
-    const id = user?.id ? String(user.id) : String(Math.floor(Math.random()*1e9));
-    const name = user?.first_name || user?.username || "Игрок";
+    onTabChange(tab) {
+      this.setState({ activeTab: tab });
+      if (window.UI && typeof UI.render === "function") UI.render(this.getState());
 
-    State.set({ user: { id, name } });
-  }
+      // Подключаем “вкладочные” модули, если они есть
+      if (tab === "tasks" && window.Tasks && typeof Tasks.render === "function") Tasks.render();
+      if (tab === "nft" && window.NFT && typeof NFT.render === "function") NFT.render();
+      if (tab === "wallet" && window.Wallet && typeof Wallet.render === "function") Wallet.render();
+    },
 
-  function initStorage(){
-    const saved = Storage.load();
-    if(saved && typeof saved === "object"){
-      // аккуратно мержим (без ломания структуры)
-      const base = State.get();
-      State.set({
-        ...base,
-        ...saved,
-        user: base.user, // user берем из Telegram
-      });
-    }
-  }
+    start() {
+      // Telegram WebApp safe init (не обязателен)
+      if (window.Telegram?.WebApp) {
+        Telegram.WebApp.ready();
+        Telegram.WebApp.expand();
+      }
 
-  function bindTabs(){
-    document.querySelectorAll(".tab").forEach(btn => {
-      btn.addEventListener("click", () => {
-        currentTab = btn.dataset.tab;
-        UI.render(currentTab);
-        bindAfterRender();
-      });
-    });
-  }
+      if (window.UI && typeof UI.init === "function") UI.init();
+      if (window.UI && typeof UI.render === "function") UI.render(this.getState());
 
-  function bindAfterRender(){
-    if(currentTab === "click") Clicker.bind();
-    if(currentTab === "nft") NFT.bind();
-    if(currentTab === "tasks") Tasks.bind();
-    if(currentTab === "wallet") Wallet.bind();
-  }
+      // стартуем остальные модули если у них есть init()
+      if (window.Energy && typeof Energy.init === "function") Energy.init();
+      if (window.Clicker && typeof Clicker.init === "function") Clicker.init();
+    },
+  };
 
-  function start(){
-    initTelegramUser();
-    initStorage();
+  window.APP = APP;
 
-    bindTabs();
-    UI.render(currentTab);
-    bindAfterRender();
-
-    Energy.start();
-  }
-
-  return { start, getTab };
+  document.addEventListener("DOMContentLoaded", () => APP.start());
 })();
-
-document.addEventListener("DOMContentLoaded", () => App.start());

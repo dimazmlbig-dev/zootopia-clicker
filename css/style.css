@@ -387,3 +387,151 @@ body{
   background: rgba(255,255,255,.18);
   outline: 1px solid rgba(255,255,255,.22);
 }
+/* ===== UI blocks for screen content (append) ===== */
+
+.topbar{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  align-items:center;
+  justify-content:flex-start;
+}
+
+.pill{
+  padding:10px 14px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.10);
+  border: 1px solid rgba(255,255,255,.14);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  font-weight: 700;
+}
+
+.user-pill{
+  gap:10px;
+}
+
+.subtitle{
+  margin-top:10px;
+  font-size: 16px;
+  font-weight: 600;
+  opacity: .9;
+}
+
+.card{
+  margin-top: 6px;
+  padding: 16px;
+  border-radius: 24px;
+  background: rgba(255,255,255,.10);
+  border: 1px solid rgba(255,255,255,.14);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+}
+
+.label{
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: .02em;
+}
+
+.value{
+  font-size: 16px;
+  font-weight: 800;
+  opacity: .95;
+}
+
+.bar{
+  margin-top: 12px;
+  height: 14px;
+  border-radius: 999px;
+  background: rgba(0,0,0,.18);
+  overflow:hidden;
+}
+
+.bar__fill{
+  height:100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #ffd36a, #ff8a6a);
+  width:50%;
+}
+
+.chips{
+  margin-top: 14px;
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+.chip{
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: rgba(0,0,0,.16);
+  border: 1px solid rgba(255,255,255,.10);
+  font-weight: 800;
+}
+
+/* активная кнопка таба (у тебя is-active) */
+.tabs .tab.is-active{
+  background: rgba(255,255,255,.18);
+  outline: 1px solid rgba(255,255,255,.22);
+}
+
+/* overlay container (под NFT одежду позже) */
+.dog-overlay{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+}
+
+/* idle breathing */
+.dog-base{
+  animation: dogBreathe 3.2s ease-in-out infinite;
+  transform-origin: 50% 70%;
+}
+
+@keyframes dogBreathe{
+  0%,100%{ transform: scale(1) translateY(0); }
+  50%{ transform: scale(1.018) translateY(-2px); }
+}
+
+/* tap vibration */
+.dog-stage.tapping .dog-base{
+  animation: dogTap .18s ease-out 1, dogBreathe 3.2s ease-in-out infinite;
+}
+
+@keyframes dogTap{
+  0%{ transform: scale(1) translateY(0); }
+  40%{ transform: scale(0.985) translateY(1px); }
+  100%{ transform: scale(1.01) translateY(-1px); }
+}
+
+/* floating +$ZOO */
+.float-zoo{
+  position:absolute;
+  transform: translate(-50%, -50%);
+  font-weight: 900;
+  font-size: 18px;
+  padding: 6px 10px;
+  border-radius: 14px;
+  background: rgba(0,0,0,.22);
+  border: 1px solid rgba(255,255,255,.14);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  animation: floatUp .9s ease-out forwards;
+  user-select:none;
+  pointer-events:none;
+  white-space: nowrap;
+}
+
+@keyframes floatUp{
+  0%{ opacity:0; transform: translate(-50%, -30%) scale(.9); }
+  10%{ opacity:1; }
+  100%{ opacity:0; transform: translate(-50%, -140%) scale(1.05); }
+}

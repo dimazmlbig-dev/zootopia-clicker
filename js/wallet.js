@@ -1,42 +1,22 @@
-import { setText } from "./ui.js";
+window.App = window.App || {};
 
-export function initWallet(workerBaseUrl) {
-  const input = document.getElementById("tonAddressInput");
-  const btn = document.getElementById("refreshTonBtn");
+App.wallet = (() => {
+  function init() {}
 
-  if (!input || !btn) return;
+  function render(root) {
+    const s = App.state.get();
+    root.innerHTML = `
+      <h3>Кошелёк</h3>
+      <div>Статус: <b>${s.wallet.connected ? 'подключен' : 'не подключен'}</b></div>
+      <button id="connectBtn" style="margin-top:10px; padding:10px 14px; border-radius:14px;">
+        Подключить (позже через TonConnect)
+      </button>
+    `;
 
-  const saved = localStorage.getItem("ton_address");
-  if (saved) input.value = saved;
+    root.querySelector('#connectBtn').addEventListener('click', () => {
+      alert('TonConnect подключим следующим шагом');
+    });
+  }
 
-  btn.addEventListener("click", async () => {
-    const address = (input.value || "").trim();
-    if (!address) {
-      alert("Вставь TON адрес (обычно начинается с EQ...)");
-      return;
-    }
-
-    localStorage.setItem("ton_address", address);
-    setText("tonBalance", "…");
-
-    try {
-      const url = `${workerBaseUrl}/api/ton/balance?address=${encodeURIComponent(address)}`;
-      const r = await fetch(url);
-      const data = await r.json().catch(() => null);
-
-      if (!r.ok || !data?.ok) {
-        setText("tonBalance", "Ошибка");
-        console.log("TON balance error:", r.status, data);
-        alert("Не удалось получить баланс (см. console).");
-        return;
-      }
-
-      const ton = (Number(data.balanceNano || 0) / 1e9).toFixed(4);
-      setText("tonBalance", `${ton} TON`);
-    } catch (e) {
-      console.log(e);
-      setText("tonBalance", "Ошибка");
-      alert("Ошибка сети или Worker.");
-    }
-  });
-}
+  return { init, render };
+})();

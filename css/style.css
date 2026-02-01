@@ -535,3 +535,88 @@ body{
   10%{ opacity:1; }
   100%{ opacity:0; transform: translate(-50%, -140%) scale(1.05); }
 }
+/* --- fixes/animations --- */
+.dog-stage{
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 18px 0 6px;
+}
+
+.dog-wrap{
+  position: relative;
+  width: min(320px, 78vw);
+  aspect-ratio: 1/1.2;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  transform-origin: 50% 70%;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+.dog-img{
+  width: 100%;
+  height: auto;
+  display:block;
+  filter: drop-shadow(0 18px 40px rgba(0,0,0,.25));
+}
+
+.dog-idle{
+  animation: dogBreath 2.8s ease-in-out infinite;
+}
+
+@keyframes dogBreath{
+  0%,100%{ transform: translateY(0) scale(1); }
+  50%{ transform: translateY(2px) scale(1.015); }
+}
+
+.dog-tap{
+  animation: dogTap 180ms ease-out;
+}
+@keyframes dogTap{
+  0%{ transform: translateY(0) scale(1); }
+  50%{ transform: translateY(0) scale(0.985) rotate(-1deg); }
+  100%{ transform: translateY(0) scale(1); }
+}
+
+/* mood tint (очень мягко) */
+.dog-wrap[data-mood="tired"] .dog-img{ opacity: .95; filter: drop-shadow(0 18px 40px rgba(0,0,0,.25)) saturate(.9); }
+.dog-wrap[data-mood="angry"] .dog-img{ opacity: .95; filter: drop-shadow(0 18px 40px rgba(0,0,0,.25)) contrast(1.05) saturate(1.05); }
+
+/* floating +$ZOO */
+.float-zoo{
+  position:absolute;
+  transform: translate(-50%, -50%);
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-weight: 800;
+  letter-spacing: .5px;
+  background: rgba(30, 30, 40, .28);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,.12);
+  color: rgba(255,255,255,.95);
+  animation: floatUp 900ms ease-out forwards;
+  pointer-events: none;
+}
+@keyframes floatUp{
+  0%{ opacity: 0; transform: translate(-50%, -20%) scale(.95); }
+  10%{ opacity: 1; }
+  100%{ opacity: 0; transform: translate(-50%, -120%) scale(1.05); }
+}
+
+/* NFT layers */
+.nft-layer{
+  position:absolute;
+  pointer-events:none;
+  user-select:none;
+  -webkit-user-select:none;
+  display:none;
+}
+
+.nft-glasses{ width: 55%; top: 26%; left: 50%; transform: translateX(-50%); }
+.nft-hat{ width: 58%; top: 4%; left: 50%; transform: translateX(-50%); }
+.nft-collar{ width: 60%; top: 52%; left: 50%; transform: translateX(-50%); }

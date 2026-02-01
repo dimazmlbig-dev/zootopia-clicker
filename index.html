@@ -1,82 +1,71 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>ZootopAI Clicker</title>
-  <link rel="stylesheet" href="./styles.css" />
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-</head>
+  <title>Zootopia Clicker</title>
 
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+  <link rel="stylesheet" href="/css/styles.css" />
+</head>
 <body>
   <div class="app">
-    <!-- TOP BAR -->
+
     <header class="topbar">
-      <button class="pill user-pill" id="userPill">
-        <span class="user-icon" id="userIcon">🐶</span>
-        <span class="user-name" id="userName">Пользователь</span>
-      </button>
-
-      <button class="pill wallet-pill" id="walletBtn">Кошелёк</button>
-    </header>
-
-    <!-- MAIN -->
-    <main class="main">
-      <div class="balance-card">
-        <div class="balance-num" id="balanceNum">911</div>
-        <div class="balance-sub" id="balanceSub">$ZOO 911</div>
+      <div class="pill user-pill">
+        <span class="user-ico">🐶</span>
+        <span id="userName" class="user-name">Игрок</span>
       </div>
 
-      <section class="dog-card">
-        <div class="dog-frame">
-          <!-- поставь свой путь к картинке/видео -->
-          <img
-            id="dog"
-            class="dog"
-            src="./assets/dog.png"
-            alt="dog"
-            draggable="false"
-          />
+      <div class="pill stat-pill">
+        <div class="muted">ID</div>
+        <div id="userIdText" class="strong">—</div>
+      </div>
+    </header>
+
+    <main class="main">
+      <section class="card big">
+        <div class="dog-wrap">
+          <div class="dog-layer">
+            <img id="dogBase" src="/assets/dog.png" alt="dog" draggable="false"/>
+            <img id="dogGlasses" class="wear" alt="glasses" draggable="false"/>
+            <img id="dogHat" class="wear" alt="hat" draggable="false"/>
+            <img id="dogCollar" class="wear" alt="collar" draggable="false"/>
+          </div>
+
+          <div class="tap-hint" id="tapHint">Тапай по собаке</div>
         </div>
 
         <div class="energy">
           <div class="energy-top">
             <div class="energy-title">ЭНЕРГИЯ</div>
-            <div class="energy-val"><span id="energyNow">712</span> / <span id="energyMax">1000</span></div>
+            <div class="energy-val"><span id="energyNow">1000</span> / <span id="energyMax">1000</span></div>
           </div>
           <div class="energy-bar">
             <div class="energy-fill" id="energyFill"></div>
           </div>
-
-          <div class="chips">
-            <div class="chip"><span class="dot">🙂</span> <span id="chipMood">happy</span></div>
-            <div class="chip"><span class="dot">🧠</span> <span id="chipTrait">loyal</span></div>
-            <div class="chip"><span class="dot">🤝</span> <span id="chipTrust">50</span></div>
-          </div>
-
-          <div class="ai-msg" id="aiMsg">Тапай по собаке ✨</div>
         </div>
+
+        <div class="row">
+          <div class="pill wide">
+            <div class="muted">Баланс</div>
+            <div class="strong"><span id="zooBalance">0</span> $ZOO</div>
+          </div>
+        </div>
+
       </section>
     </main>
 
-    <!-- BOTTOM NAV -->
     <nav class="bottom-nav">
-      <button class="nav-btn active" data-tab="tap">Клик</button>
-      <button class="nav-btn" data-tab="nft">NFT</button>
-      <button class="nav-btn" data-tab="tasks">Задания</button>
-      <button class="nav-btn" data-tab="wallet">Кошелёк</button>
+      <button class="nav-btn active" type="button">Клик</button>
+      <button class="nav-btn" type="button">NFT</button>
+      <button class="nav-btn" type="button">Задания</button>
+      <button class="nav-btn" type="button">Кошелёк</button>
     </nav>
 
-    <!-- PAGES -->
-    <div class="sheet hidden" id="sheet">
-      <div class="sheet-header">
-        <div class="sheet-title" id="sheetTitle">Задания</div>
-        <button class="sheet-close" id="sheetClose">✕</button>
-      </div>
-      <div class="sheet-body" id="sheetBody"></div>
-    </div>
   </div>
 
-  <script src="./app.js"></script>
+  <script src="/js/app.js"></script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-window.Tasks = (() => {
+window.Match3 = (() => {
   const boardSize = 6;
   const animals = ["🐶", "🐱", "🦊", "🐼", "🐵", "🐯"];
   const powerEmoji = "🐾";
@@ -12,6 +12,7 @@ window.Tasks = (() => {
     combo: 1,
     rewardBase: 60,
   };
+  let fullscreenBound = false;
 
   function randomAnimal() {
     return animals[Math.floor(Math.random() * animals.length)];
@@ -322,35 +323,39 @@ window.Tasks = (() => {
     window.AudioFX?.playShuffle?.();
   }
 
-  function initAI() {
-    const askBtn = document.getElementById("aiAsk");
-    const promptEl = document.getElementById("aiPrompt");
-    const responseEl = document.getElementById("aiResponse");
-    const statusEl = document.getElementById("aiStatus");
-    if (!askBtn || !promptEl || !responseEl) return;
+  function updateFullscreenLabel() {
+    const fullscreenBtn = document.getElementById("matchFullscreen");
+    if (!fullscreenBtn) return;
+    fullscreenBtn.textContent = document.fullscreenElement ? "Выйти из фуллскрина" : "На весь экран";
+  }
 
-    if (statusEl) {
-      statusEl.textContent = localStorage.getItem("YC_API_KEY")
-        ? "Ключ найден в браузере, можно спрашивать."
-        : "Добавьте ключ: localStorage.setItem('YC_API_KEY','...')";
-    }
+  function initFullscreen() {
+    const fullscreenBtn = document.getElementById("matchFullscreen");
+    const container = document.getElementById("match3Game");
+    if (!fullscreenBtn || !container) return;
 
-    askBtn.addEventListener("click", async () => {
-      const prompt = promptEl.value.trim();
-      if (!prompt) return;
-      askBtn.disabled = true;
-      askBtn.textContent = "Думаю...";
-      responseEl.textContent = "";
-      try {
-        const reply = await window.AI?.ask?.(prompt, { temperature: 0.5 });
-        responseEl.textContent = reply || "Пустой ответ от модели.";
-      } catch (err) {
-        responseEl.textContent = err?.message || "Ошибка запроса.";
-      } finally {
-        askBtn.disabled = false;
-        askBtn.textContent = "Спросить";
+    fullscreenBtn.addEventListener("click", async () => {
+      if (!document.fullscreenElement) {
+        try {
+          await container.requestFullscreen();
+        } catch (err) {
+          console.error(err);
+        }
+      } else {
+        try {
+          await document.exitFullscreen();
+        } catch (err) {
+          console.error(err);
+        }
       }
+      updateFullscreenLabel();
     });
+
+    if (!fullscreenBound) {
+      document.addEventListener("fullscreenchange", updateFullscreenLabel);
+      fullscreenBound = true;
+    }
+    updateFullscreenLabel();
   }
 
   function init() {
@@ -372,7 +377,7 @@ window.Tasks = (() => {
     setScore(0);
     resolveBoard();
     renderBoard();
-    initAI();
+    initFullscreen();
   }
 
   return { init };

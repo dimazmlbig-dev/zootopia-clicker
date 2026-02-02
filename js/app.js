@@ -20,6 +20,15 @@
     try { tg?.ready?.(); } catch {}
     try { tg?.expand?.(); } catch {}
 
+    let audioStarted = false;
+    const startAudio = () => {
+      if (audioStarted) return;
+      audioStarted = true;
+      window.AudioFX?.init?.();
+    };
+    document.addEventListener("pointerdown", startAudio, { once: true });
+    document.addEventListener("keydown", startAudio, { once: true });
+
     // user
     const tgUser = getTelegramUser();
     const userId = tgUser?.id || window.StorageZOO.getStableDemoId();

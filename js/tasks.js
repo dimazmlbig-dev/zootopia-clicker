@@ -62,6 +62,7 @@ window.Tasks = (() => {
     window.State?.update?.((s) => {
       s.balance += reward;
     });
+    window.AudioFX?.playLevelUp?.();
     updateMeta();
     setScore(0);
   }
@@ -84,6 +85,41 @@ window.Tasks = (() => {
         btn.textContent = tile.emoji;
         boardEl.appendChild(btn);
       });
+    });
+  }
+
+  function pulseBoard(effectClass) {
+    const boardEl = document.getElementById("matchBoard");
+    if (!boardEl) return;
+    boardEl.classList.remove("is-clearing", "is-power");
+    void boardEl.offsetWidth;
+    boardEl.classList.add(effectClass);
+  }
+
+  function spawnMatchEffects(positions, intensity = 1) {
+    const boardEl = document.getElementById("matchBoard");
+    if (!boardEl || !positions?.length) return;
+    const rect = boardEl.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    const cellSize = rect.width / boardSize;
+    const particlesPerCell = Math.min(8, 4 + intensity);
+
+    positions.forEach(({ r, c }) => {
+      const centerX = c * cellSize + cellSize / 2;
+      const centerY = r * cellSize + cellSize / 2;
+      for (let i = 0; i < particlesPerCell; i += 1) {
+        const spark = document.createElement("span");
+        spark.className = "match3-spark";
+        const angle = Math.random() * Math.PI * 2;
+        const distance = 8 + Math.random() * 16;
+        spark.style.left = `${centerX}px`;
+        spark.style.top = `${centerY}px`;
+        spark.style.setProperty("--dx", `${Math.cos(angle) * distance}px`);
+        spark.style.setProperty("--dy", `${Math.sin(angle) * distance}px`);
+        spark.style.setProperty("--hue", `${Math.floor(140 + Math.random() * 80)}`);
+        boardEl.appendChild(spark);
+        spark.addEventListener("animationend", () => spark.remove());
+      }
     });
   }
 
@@ -162,7 +198,11 @@ window.Tasks = (() => {
       const [r, c] = key.split(":").map(Number);
       gameState.board[r][c] = null;
     });
-    return toClear.size;
+    const positions = Array.from(toClear).map((key) => {
+      const [r, c] = key.split(":").map(Number);
+      return { r, c };
+    });
+    return { cleared: toClear.size, positions };
   }
 
   function collapseBoard() {
@@ -187,12 +227,15 @@ window.Tasks = (() => {
     let chain = 0;
     while (matches.length) {
       chain += 1;
-      const cleared = applyMatches(matches);
-      if (cleared > 0) {
+      const result = applyMatches(matches);
+      if (result.cleared > 0) {
         const bonus = 1 + (chain - 1) * 0.25;
-        const points = Math.round(cleared * 10 * bonus);
+        const points = Math.round(result.cleared * 10 * bonus);
         gameState.combo = Math.min(4, 1 + chain - 1);
         setScore(points);
+        spawnMatchEffects(result.positions, chain);
+        pulseBoard("is-clearing");
+        window.AudioFX?.playMatch?.(chain, result.cleared);
       }
       collapseBoard();
       matches = findMatches();
@@ -203,17 +246,23 @@ window.Tasks = (() => {
 
   function activatePower(r, c) {
     let cleared = 0;
+    const positions = [];
     for (let i = 0; i < boardSize; i += 1) {
       if (gameState.board[r][i]) {
         gameState.board[r][i] = null;
         cleared += 1;
+        positions.push({ r, c: i });
       }
       if (gameState.board[i][c]) {
         gameState.board[i][c] = null;
         cleared += 1;
+        positions.push({ r: i, c });
       }
     }
     setScore(cleared * 12);
+    spawnMatchEffects(positions, 3);
+    pulseBoard("is-power");
+    window.AudioFX?.playPower?.();
     collapseBoard();
     resolveBoard();
   }
@@ -257,8 +306,10 @@ window.Tasks = (() => {
     if (!matches.length) {
       swapTiles(prev, { r, c });
       renderBoard();
+      window.AudioFX?.playSwap?.(false);
       return;
     }
+    window.AudioFX?.playSwap?.(true);
     resolveBoard();
     renderBoard();
   }
@@ -268,6 +319,38 @@ window.Tasks = (() => {
     gameState.selected = null;
     resolveBoard();
     renderBoard();
+    window.AudioFX?.playShuffle?.();
+  }
+
+  function initAI() {
+    const askBtn = document.getElementById("aiAsk");
+    const promptEl = document.getElementById("aiPrompt");
+    const responseEl = document.getElementById("aiResponse");
+    const statusEl = document.getElementById("aiStatus");
+    if (!askBtn || !promptEl || !responseEl) return;
+
+    if (statusEl) {
+      statusEl.textContent = localStorage.getItem("YC_API_KEY")
+        ? "Ключ найден в браузере, можно спрашивать."
+        : "Добавьте ключ: localStorage.setItem('YC_API_KEY','...')";
+    }
+
+    askBtn.addEventListener("click", async () => {
+      const prompt = promptEl.value.trim();
+      if (!prompt) return;
+      askBtn.disabled = true;
+      askBtn.textContent = "Думаю...";
+      responseEl.textContent = "";
+      try {
+        const reply = await window.AI?.ask?.(prompt, { temperature: 0.5 });
+        responseEl.textContent = reply || "Пустой ответ от модели.";
+      } catch (err) {
+        responseEl.textContent = err?.message || "Ошибка запроса.";
+      } finally {
+        askBtn.disabled = false;
+        askBtn.textContent = "Спросить";
+      }
+    });
   }
 
   function init() {
@@ -289,6 +372,7 @@ window.Tasks = (() => {
     setScore(0);
     resolveBoard();
     renderBoard();
+    initAI();
   }
 
   return { init };

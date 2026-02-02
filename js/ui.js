@@ -45,7 +45,7 @@
           </div>
         </div>
 
-        <div class="bars">
+        <div class="bars bars--bottom">
           <div class="bar-block">
             <div class="bar-row">
               <span>Энергия</span>
@@ -98,6 +98,29 @@
               <div class="list-sub">ИИ проверит приглашение по ссылке.</div>
             </div>
             <div class="list-meta">Новый</div>
+          </div>
+        </div>
+        <div class="match3-card">
+          <div class="match3-header">
+            <div>
+              <div class="match3-title">Zoo Match • 3 в ряд</div>
+              <div class="match3-sub">Собирайте зверушек, получайте комбо и зоокоины.</div>
+            </div>
+            <div class="match3-level">Уровень <span id="matchLevel">1</span></div>
+          </div>
+          <div class="match3-progress">
+            <div class="progress-bar is-level">
+              <i id="matchProgress" style="width:0%;"></i>
+            </div>
+            <div class="match3-progress-text">
+              Очки: <span id="matchScore">0</span>/<span id="matchTarget">120</span>
+              <span class="match3-combo" id="matchCombo">Комбо x1</span>
+            </div>
+          </div>
+          <div id="matchBoard" class="match3-board" aria-label="Поле 3 в ряд"></div>
+          <div class="match3-footer">
+            <div class="match3-reward">Награда: <span id="matchReward">60</span> ZOO</div>
+            <button class="match3-reset" id="matchReset" type="button">Перемешать</button>
           </div>
         </div>
       </div>
@@ -256,6 +279,7 @@
       setDogMood(s.mood);
     } else if (s.tab === "tasks") {
       screen.innerHTML = tasksScreenHTML();
+      window.Tasks?.init?.();
     } else if (s.tab === "nft") {
       screen.innerHTML = nftScreenHTML();
     } else if (s.tab === "wallet") {

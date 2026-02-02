@@ -31,6 +31,7 @@
             <div class="info-label">Zoo Coins</div>
             <div class="info-value"><span id="uiBalance">${Math.floor(s.balance)}</span> ZOO</div>
           </div>
+          <button class="audio-toggle" id="audioToggle" type="button">Музыка: Вкл</button>
         </div>
 
         <div class="dog-center">
@@ -75,7 +76,8 @@
       <div class="section">
         <div class="section__head">
           <h2>Задания</h2>
-          <p>Назначаются и проверяются ИИ (позже подключим Y.Cloud).</p>
+          <p>Назначаются и проверяются ИИ Y.Cloud.</p>
+          <button class="audio-toggle" id="audioToggle" type="button">Музыка: Вкл</button>
         </div>
         <div class="list">
           <div class="list-item">
@@ -121,6 +123,22 @@
           <div class="match3-footer">
             <div class="match3-reward">Награда: <span id="matchReward">60</span> ZOO</div>
             <button class="match3-reset" id="matchReset" type="button">Перемешать</button>
+          </div>
+        </div>
+        <div class="ai-card">
+          <div class="ai-header">
+            <div>
+              <div class="ai-title">Zoo AI • Y.Cloud</div>
+              <div class="ai-sub">Спросите у ИИ идею для задания или подсказку по игре.</div>
+            </div>
+          </div>
+          <div class="ai-body">
+            <textarea id="aiPrompt" class="ai-input" rows="3" placeholder="Например: придумай ежедневное задание для игроков"></textarea>
+            <div class="ai-actions">
+              <button class="ai-btn" id="aiAsk" type="button">Спросить</button>
+              <div class="ai-status" id="aiStatus">Добавьте ключ для запросов.</div>
+            </div>
+            <div class="ai-response" id="aiResponse"></div>
           </div>
         </div>
       </div>
@@ -287,6 +305,8 @@
     } else {
       screen.innerHTML = tasksScreenHTML();
     }
+
+    window.AudioFX?.bindToggle?.();
   }
 
   function setTab(tab) {

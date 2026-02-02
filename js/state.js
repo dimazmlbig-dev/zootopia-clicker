@@ -7,8 +7,11 @@
     tab: "click",
 
     balance: 0,
+    tonBalance: 0,
     energy: 1000,
     energyMax: 1000,
+    level: 1,
+    levelProgress: 0.35,
 
     mood: "happy",       // happy | tired | angry
     multiplier: 1.0,

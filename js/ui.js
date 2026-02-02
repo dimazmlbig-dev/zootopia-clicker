@@ -6,11 +6,11 @@
     return (Math.round(n * 100) / 100).toString();
   }
 
-  function moodLabel(m) {
-    if (m === "happy") return "happy";
-    if (m === "tired") return "tired";
-    if (m === "angry") return "angry";
-    return m || "happy";
+  function shortId(id) {
+    if (!id) return "-";
+    const str = String(id);
+    if (str.length <= 6) return str;
+    return `…${str.slice(-6)}`;
   }
 
   function setImgOrHide(imgEl, src) {
@@ -21,54 +21,147 @@
 
   function clickScreenHTML(s) {
     return `
-      <div class="hud">
-        <div class="hud__top">
-          <div class="pill pill--user">
-            <span class="pill__emoji">🐶</span>
-            <span id="uiPlayerName">${s.user.name || "Игрок"}</span>
+      <div class="click-layout">
+        <div class="click-top">
+          <div class="info-card">
+            <div class="info-label">ID игрока</div>
+            <div class="info-value" id="uiPlayerId">${shortId(s.user.id)}</div>
           </div>
-          <div class="pill pill--id">ID: <span id="uiPlayerId">${s.user.id ?? "-"}</span></div>
+          <div class="info-card info-card--balance">
+            <div class="info-label">Zoo Coins</div>
+            <div class="info-value"><span id="uiBalance">${Math.floor(s.balance)}</span> ZOO</div>
+          </div>
         </div>
 
-        <div class="hud__sub">
-          Настроение: <b id="uiMood">${moodLabel(s.mood)}</b> • Множитель: <b id="uiMult">x${format(s.multiplier)}</b>
+        <div class="dog-center">
+          <div class="dog-stage" id="dogStage">
+            <div class="dog-wrap dog-idle" id="dogWrap" data-mood="${s.mood}">
+              <img class="dog-img" id="dogImg" src="assets/dog.png" alt="dog" draggable="false"/>
+
+              <img class="nft-layer nft-glasses" id="nftGlasses" alt="glasses" draggable="false"/>
+              <img class="nft-layer nft-hat" id="nftHat" alt="hat" draggable="false"/>
+              <img class="nft-layer nft-collar" id="nftCollar" alt="collar" draggable="false"/>
+            </div>
+          </div>
+        </div>
+
+        <div class="bars">
+          <div class="bar-block">
+            <div class="bar-row">
+              <span>Энергия</span>
+              <span><span id="uiEnergy">${Math.floor(s.energy)}</span> / <span id="uiEnergyMax">${Math.floor(s.energyMax)}</span></span>
+            </div>
+            <div class="progress-bar">
+              <i id="uiEnergyFill" style="width:${Math.max(0, Math.min(100, (s.energy / s.energyMax) * 100))}%;"></i>
+            </div>
+          </div>
+
+          <div class="bar-block">
+            <div class="bar-row">
+              <span>Уровень</span>
+              <span id="uiLevelText">${s.level}</span>
+            </div>
+            <div class="progress-bar is-level">
+              <i id="uiLevelFill" style="width:${Math.max(0, Math.min(100, (s.levelProgress || 0) * 100))}%;"></i>
+            </div>
+          </div>
         </div>
       </div>
-
-      <div class="dog-stage" id="dogStage">
-        <div class="dog-wrap dog-idle" id="dogWrap" data-mood="${s.mood}">
-          <img class="dog-img" id="dogImg" src="assets/dog.png" alt="dog" draggable="false"/>
-
-          <img class="nft-layer nft-glasses" id="nftGlasses" alt="glasses" draggable="false"/>
-          <img class="nft-layer nft-hat" id="nftHat" alt="hat" draggable="false"/>
-          <img class="nft-layer nft-collar" id="nftCollar" alt="collar" draggable="false"/>
+    `;
+  }
+  
+  function tasksScreenHTML() {
+    return `
+      <div class="section">
+        <div class="section__head">
+          <h2>Задания</h2>
+          <p>Назначаются и проверяются ИИ (позже подключим Y.Cloud).</p>
         </div>
-      </div>
-
-      <div class="card energy-card">
-        <div class="energy-head">
-          <div class="energy-title">ЭНЕРГИЯ</div>
-          <div class="energy-val"><span id="uiEnergy">${Math.floor(s.energy)}</span> / <span id="uiEnergyMax">${Math.floor(s.energyMax)}</span></div>
-        </div>
-
-        <div class="energy-bar">
-          <div class="energy-fill" id="uiEnergyFill" style="width:${Math.max(0, Math.min(100, (s.energy / s.energyMax) * 100))}%;"></div>
-        </div>
-
-        <div class="chips">
-          <div class="chip"><span class="chip__emoji">🙂</span> <span id="uiMoodChip">${moodLabel(s.mood)}</span></div>
-          <div class="chip"><span class="chip__emoji">🧠</span> <span>loyal</span></div>
-          <div class="chip"><span class="chip__emoji">🪙</span> <span id="uiBalance">${Math.floor(s.balance)} $ZOO</span></div>
+        <div class="list">
+          <div class="list-item">
+            <div>
+              <div class="list-title">Ежедневный вход</div>
+              <div class="list-sub">Заберите бонус за активность.</div>
+            </div>
+            <div class="list-meta">Ожидает ИИ</div>
+          </div>
+          <div class="list-item">
+            <div>
+              <div class="list-title">Поделиться кликами</div>
+              <div class="list-sub">Сделайте 50 кликов за день.</div>
+            </div>
+            <div class="list-meta">В очереди</div>
+          </div>
+          <div class="list-item">
+            <div>
+              <div class="list-title">Пригласить друга</div>
+              <div class="list-sub">ИИ проверит приглашение по ссылке.</div>
+            </div>
+            <div class="list-meta">Новый</div>
+          </div>
         </div>
       </div>
     `;
   }
 
-  function placeholderScreenHTML(title) {
+  function nftScreenHTML() {
     return `
-      <div class="card" style="margin-top:18px;">
-        <div style="font-size:20px; font-weight:800; margin-bottom:6px;">${title}</div>
-        <div style="opacity:.75;">Пока заглушка. Сделаем после клика/AI.</div>
+      <div class="section">
+        <div class="section__head">
+          <h2>NFT</h2>
+          <p>Уникальные NFT можно выставлять и покупать между участниками.</p>
+        </div>
+        <div class="list">
+          <div class="list-item">
+            <div>
+              <div class="list-title">Мой инвентарь</div>
+              <div class="list-sub">Покажем ваши активы и редкость.</div>
+            </div>
+            <div class="list-meta">0 шт.</div>
+          </div>
+          <div class="list-item">
+            <div>
+              <div class="list-title">Рынок NFT</div>
+              <div class="list-sub">Последние продажи и предложения.</div>
+            </div>
+            <div class="list-meta">Открыть</div>
+          </div>
+          <div class="list-item">
+            <div>
+              <div class="list-title">Создать листинг</div>
+              <div class="list-sub">Выставить NFT за Zoo Coins.</div>
+            </div>
+            <div class="list-meta">Скоро</div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function walletScreenHTML(s) {
+    return `
+      <div class="section">
+        <div class="section__head">
+          <h2>Кошелёк</h2>
+          <p>Баланс, TON и обмен Zoo Coins.</p>
+        </div>
+        <div class="wallet-grid">
+          <div class="wallet-card">
+            <div class="wallet-label">Zoo Coins</div>
+            <div class="wallet-value"><span id="uiWalletZoo">${Math.floor(s.balance)}</span> ZOO</div>
+          </div>
+          <div class="wallet-card">
+            <div class="wallet-label">TON</div>
+            <div class="wallet-value"><span id="uiWalletTon">${format(s.tonBalance)}</span> TON</div>
+          </div>
+        </div>
+        <div class="exchange">
+          <div>
+            <div class="exchange-title">Обменять ZOO</div>
+            <div class="exchange-sub">Курс и комиссии настроим позже.</div>
+          </div>
+          <button class="exchange-btn" type="button">Сделать обмен</button>
+        </div>
       </div>
     `;
   }
@@ -103,17 +196,19 @@
     const em = $("#uiEnergyMax");
     const ef = $("#uiEnergyFill");
     const b = $("#uiBalance");
-    const mood = $("#uiMood");
-    const moodChip = $("#uiMoodChip");
-    const mult = $("#uiMult");
+    const levelText = $("#uiLevelText");
+    const levelFill = $("#uiLevelFill");
+    const walletZoo = $("#uiWalletZoo");
+    const walletTon = $("#uiWalletTon");
 
     if (e) e.textContent = Math.floor(s.energy);
     if (em) em.textContent = Math.floor(s.energyMax);
     if (ef) ef.style.width = `${Math.max(0, Math.min(100, (s.energy / s.energyMax) * 100))}%`;
-    if (b) b.textContent = `${Math.floor(s.balance)} $ZOO`;
-    if (mood) mood.textContent = moodLabel(s.mood);
-    if (moodChip) moodChip.textContent = moodLabel(s.mood);
-    if (mult) mult.textContent = `x${format(s.multiplier)}`;
+    if (b) b.textContent = `${Math.floor(s.balance)}`;
+    if (levelText) levelText.textContent = `${s.level}`;
+    if (levelFill) levelFill.style.width = `${Math.max(0, Math.min(100, (s.levelProgress || 0) * 100))}%`;
+    if (walletZoo) walletZoo.textContent = `${Math.floor(s.balance)}`;
+    if (walletTon) walletTon.textContent = format(s.tonBalance || 0);
     setDogMood(s.mood);
   }
 
@@ -160,13 +255,13 @@
       applyNftLayers(s);
       setDogMood(s.mood);
     } else if (s.tab === "tasks") {
-      screen.innerHTML = placeholderScreenHTML("Задания");
+      screen.innerHTML = tasksScreenHTML();
     } else if (s.tab === "nft") {
-      screen.innerHTML = placeholderScreenHTML("NFT");
+      screen.innerHTML = nftScreenHTML();
     } else if (s.tab === "wallet") {
-      screen.innerHTML = placeholderScreenHTML("Кошелёк");
+      screen.innerHTML = walletScreenHTML(s);
     } else {
-      screen.innerHTML = placeholderScreenHTML("Экран");
+      screen.innerHTML = tasksScreenHTML();
     }
   }
 
@@ -202,7 +297,7 @@
   if (window.State?.on) {
     window.State.on((s) => {
       // если мы на click-экране и он уже отрендерен — обновляем без полной перерисовки
-      if (s.tab === "click" && $("#uiEnergyFill")) {
+      if ((s.tab === "click" && $("#uiEnergyFill")) || (s.tab === "wallet" && $("#uiWalletZoo"))) {
         updateCountersOnly(s);
         applyNftLayers(s);
       }

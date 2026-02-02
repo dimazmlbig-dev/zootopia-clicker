@@ -36,8 +36,11 @@
       window.State.update((s) => {
         // мержим безопасно
         if (typeof saved.balance === "number") s.balance = saved.balance;
+        if (typeof saved.tonBalance === "number") s.tonBalance = saved.tonBalance;
         if (typeof saved.energy === "number") s.energy = saved.energy;
         if (typeof saved.energyMax === "number") s.energyMax = saved.energyMax;
+        if (typeof saved.level === "number") s.level = saved.level;
+        if (typeof saved.levelProgress === "number") s.levelProgress = saved.levelProgress;
         if (typeof saved.mood === "string") s.mood = saved.mood;
         if (typeof saved.multiplier === "number") s.multiplier = saved.multiplier;
         if (saved.nftEquipped && typeof saved.nftEquipped === "object") s.nftEquipped = saved.nftEquipped;
@@ -57,8 +60,11 @@
       window.StorageZOO.save(userId, {
         tab: s.tab,
         balance: s.balance,
+        tonBalance: s.tonBalance,
         energy: s.energy,
         energyMax: s.energyMax,
+        level: s.level,
+        levelProgress: s.levelProgress,
         mood: s.mood,
         multiplier: s.multiplier,
         nftEquipped: s.nftEquipped,

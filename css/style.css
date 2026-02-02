@@ -1358,3 +1358,77 @@ body{
   font-size: 13px;
   line-height: 1.4;
 }
+
+.ai-modal{
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1200;
+}
+
+.ai-modal.is-open{
+  display: flex;
+}
+
+.ai-modal__backdrop{
+  position: absolute;
+  inset: 0;
+  background: rgba(5, 8, 20, .68);
+  backdrop-filter: blur(4px);
+}
+
+.ai-modal__panel{
+  position: relative;
+  width: min(520px, calc(100% - 32px));
+  border-radius: 24px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: linear-gradient(180deg, var(--glass), var(--glass2));
+  border: 1px solid var(--stroke);
+  box-shadow: var(--shadow);
+  z-index: 1;
+}
+
+.ai-modal__header{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ai-modal__title{
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.ai-modal__sub{
+  font-size: 12px;
+  opacity: .7;
+  margin-top: 4px;
+}
+
+.ai-modal__actions{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ai-loading{
+  font-size: 12px;
+  opacity: .75;
+}
+
+.ai-close{
+  border: 0;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.14);
+  color: #fff;
+  font-weight: 700;
+}

@@ -19,6 +19,166 @@
     imgEl.onload = () => { imgEl.style.display = ""; };
   }
 
+  const AI_SYSTEM_PROMPT = "Ты помощник внутри игры-кликера. Отвечай коротко и по делу, без воды. Не выдумывай значения, если их нет.";
+  const AI_MAX_CHARS = 500;
+
+  function formatUpgrades(upgrades) {
+    if (!upgrades) return "";
+    if (Array.isArray(upgrades)) {
+      return upgrades.map((item) => String(item)).filter(Boolean).join(", ");
+    }
+    if (typeof upgrades === "object") {
+      const items = [];
+      Object.entries(upgrades).forEach(([key, value]) => {
+        if (value === null || value === undefined) return;
+        if (typeof value === "boolean") {
+          if (value) items.push(key);
+          return;
+        }
+        if (typeof value === "object") {
+          if (typeof value.level === "number") {
+            items.push(`${key}: ур. ${value.level}`);
+            return;
+          }
+          if (typeof value.value === "number") {
+            items.push(`${key}: ${value.value}`);
+            return;
+          }
+          if (typeof value.amount === "number") {
+            items.push(`${key}: ${value.amount}`);
+            return;
+          }
+        }
+        items.push(`${key}: ${value}`);
+      });
+      return items.join(", ");
+    }
+    return String(upgrades);
+  }
+
+  function buildAiPrompt(question) {
+    const s = window.State?.data;
+    const contextLines = [];
+
+    if (s) {
+      if (typeof s.balance === "number") {
+        contextLines.push(`Баланс: ${Math.floor(s.balance)} ZOO`);
+      }
+      if (typeof s.energy === "number" && typeof s.energyMax === "number") {
+        contextLines.push(`Энергия: ${Math.floor(s.energy)} / ${Math.floor(s.energyMax)}`);
+      }
+      if (typeof s.level === "number") {
+        let levelLine = `Уровень: ${s.level}`;
+        if (typeof s.levelProgress === "number") {
+          levelLine += ` (прогресс ${Math.round(s.levelProgress * 100)}%)`;
+        }
+        contextLines.push(levelLine);
+      }
+      if (s.upgrades) {
+        const upgrades = formatUpgrades(s.upgrades);
+        if (upgrades) contextLines.push(`Апгрейды: ${upgrades}`);
+      }
+    }
+
+    const contextText = contextLines.length ? contextLines.join("\n") : "нет данных";
+    return `${AI_SYSTEM_PROMPT}\n\nКонтекст игры:\n${contextText}\n\nВопрос игрока:\n${question}\n\nОтветь кратко и применимо к игре.`;
+  }
+
+  function setupAiModal() {
+    if (document.getElementById("aiModal")) return;
+
+    const modal = document.createElement("div");
+    modal.className = "ai-modal";
+    modal.id = "aiModal";
+    modal.setAttribute("aria-hidden", "true");
+    modal.innerHTML = `
+      <div class="ai-modal__backdrop" data-ai-close="true"></div>
+      <div class="ai-modal__panel" role="dialog" aria-modal="true" aria-labelledby="aiModalTitle">
+        <div class="ai-modal__header">
+          <div>
+            <div class="ai-modal__title" id="aiModalTitle">AI</div>
+            <div class="ai-modal__sub">Спроси у ИИ…</div>
+          </div>
+          <button class="ai-close" type="button" data-ai-close="true">Закрыть</button>
+        </div>
+        <textarea class="ai-input" id="aiPromptModal" rows="4" placeholder="Спроси у ИИ…"></textarea>
+        <div class="ai-modal__actions">
+          <button class="ai-btn" id="aiSend" type="button">Отправить</button>
+          <div class="ai-loading" id="aiLoading" hidden>Думаю…</div>
+        </div>
+        <div class="ai-response" id="aiResponseModal"></div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+
+    const promptEl = modal.querySelector("#aiPromptModal");
+    const sendBtn = modal.querySelector("#aiSend");
+    const responseEl = modal.querySelector("#aiResponseModal");
+    const loadingEl = modal.querySelector("#aiLoading");
+    let isLoading = false;
+
+    function setLoading(loading) {
+      isLoading = loading;
+      if (sendBtn) sendBtn.disabled = loading;
+      if (loadingEl) loadingEl.hidden = !loading;
+    }
+
+    function open() {
+      modal.classList.add("is-open");
+      modal.setAttribute("aria-hidden", "false");
+      requestAnimationFrame(() => {
+        promptEl?.focus();
+      });
+    }
+
+    function close() {
+      modal.classList.remove("is-open");
+      modal.setAttribute("aria-hidden", "true");
+    }
+
+    modal.querySelectorAll("[data-ai-close]").forEach((el) => {
+      el.addEventListener("click", close);
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && modal.classList.contains("is-open")) {
+        close();
+      }
+    });
+
+    sendBtn?.addEventListener("click", async () => {
+      if (isLoading) return;
+      const raw = String(promptEl?.value || "");
+      const question = raw.trim();
+      if (!question) {
+        if (responseEl) responseEl.textContent = "Введите вопрос.";
+        return;
+      }
+      if (question.length > AI_MAX_CHARS) {
+        if (responseEl) responseEl.textContent = `Слишком длинный вопрос (макс ${AI_MAX_CHARS} символов).`;
+        return;
+      }
+      if (promptEl) promptEl.value = question;
+      if (responseEl) responseEl.textContent = "";
+      setLoading(true);
+      try {
+        const prompt = buildAiPrompt(question);
+        const reply = await window.AI?.askAI?.(prompt);
+        if (responseEl) {
+          responseEl.textContent = reply || "Пустой ответ от ИИ.";
+        }
+      } catch (err) {
+        if (responseEl) {
+          responseEl.textContent = err?.message || "Ошибка запроса.";
+        }
+      } finally {
+        setLoading(false);
+      }
+    });
+
+    return { open };
+  }
+
   function clickScreenHTML(s) {
     return `
       <div class="click-layout">
@@ -106,22 +266,6 @@
                 <div class="list-sub">ИИ проверит приглашение по ссылке.</div>
               </div>
               <div class="list-meta">Новый</div>
-            </div>
-          </div>
-          <div class="ai-card">
-            <div class="ai-header">
-              <div>
-                <div class="ai-title">Zoo AI • Y.Cloud</div>
-                <div class="ai-sub">Спросите у ИИ идею для задания или подсказку по игре.</div>
-              </div>
-            </div>
-            <div class="ai-body">
-              <textarea id="aiPrompt" class="ai-input" rows="3" placeholder="Например: придумай ежедневное задание для игроков"></textarea>
-              <div class="ai-actions">
-                <button class="ai-btn" id="aiAsk" type="button">Спросить</button>
-                <div class="ai-status" id="aiStatus">Добавьте ключ для запросов.</div>
-              </div>
-              <div class="ai-response" id="aiResponse"></div>
             </div>
           </div>
         </div>
@@ -245,8 +389,14 @@
     `;
   }
 
+  let aiModalApi = null;
+
   function renderTabs(active) {
     document.querySelectorAll(".tab").forEach((btn) => {
+      if (btn.dataset.tab === "ai") {
+        btn.classList.remove("is-active");
+        return;
+      }
       btn.classList.toggle("is-active", btn.dataset.tab === active);
     });
   }
@@ -354,12 +504,20 @@
 
   function bindTabs() {
     document.querySelectorAll(".tab").forEach((btn) => {
-      btn.addEventListener("click", () => setTab(btn.dataset.tab));
+      btn.addEventListener("click", () => {
+        const tab = btn.dataset.tab;
+        if (tab === "ai") {
+          aiModalApi?.open?.();
+          return;
+        }
+        if (tab) setTab(tab);
+      });
     });
   }
 
   window.UI = {
     init() {
+      aiModalApi = setupAiModal();
       bindTabs();
       render();
     },

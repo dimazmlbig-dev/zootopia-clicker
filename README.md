@@ -28,3 +28,9 @@ Telegram Mini App (TON + Telegram WebApp) с единой авторизацие
 node backend/tests/auth.test.js
 node backend/tests/state.test.js
 ```
+
+## Release checklist
+- [ ] Telegram auth ok (initData → JWT, общий прогресс на всех устройствах).
+- [ ] TonConnect ok (локальная библиотека, стабильная инициализация).
+- [ ] Menu ok (4 таба + bottom sheet).
+- [ ] Mint → list ok (после минта выбор: коллекция или Market).

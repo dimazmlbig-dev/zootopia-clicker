@@ -361,6 +361,17 @@
     `;
   }
 
+  function marketScreenHTML() {
+    return `
+      <div class="section">
+        <div class="section__head">
+          <h2>Market</h2>
+          <p>Загрузка маркетплейса…</p>
+        </div>
+      </div>
+    `;
+  }
+
   function walletScreenHTML(s) {
     return `
       <div class="section">
@@ -488,6 +499,9 @@
       window.Bonuses?.init?.();
     } else if (s.tab === "nft") {
       screen.innerHTML = nftScreenHTML();
+    } else if (s.tab === "market") {
+      screen.innerHTML = marketScreenHTML();
+      window.Market?.mount?.(screen);
     } else if (s.tab === "wallet") {
       screen.innerHTML = walletScreenHTML(s);
     } else {

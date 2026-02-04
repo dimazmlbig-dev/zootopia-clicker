@@ -59,6 +59,7 @@
 
     // init UI
     window.UI?.init?.();
+    window.Market?.init?.();
 
     // bind clicker
     window.Clicker?.bind?.();

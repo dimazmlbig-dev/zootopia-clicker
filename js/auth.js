@@ -9,6 +9,10 @@
     return window.Telegram?.WebApp?.initData || "";
   }
 
+  function isLocalhost() {
+    return ["localhost", "127.0.0.1"].includes(window.location.hostname);
+  }
+
   function getUserFallback() {
     const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
     if (!tgUser) return null;
@@ -23,14 +27,32 @@
   async function authenticate() {
     const initData = getInitData();
     if (!initData) {
-      authState.user = getUserFallback();
-      return authState;
+      if (isLocalhost()) {
+        authState.user =
+          getUserFallback() || { id: "local-dev", username: "dev", first_name: "Dev" };
+        return authState;
+      }
+      const error = new Error("initData missing");
+      error.code = "init_data_missing";
+      throw error;
     }
 
-    const response = await window.App.apiFetch("/auth/telegram", {
-      method: "POST",
-      body: JSON.stringify({ initData }),
-    });
+    let response;
+    try {
+      response = await window.App.apiFetch("/auth/telegram", {
+        method: "POST",
+        body: JSON.stringify({ initData }),
+      });
+    } catch (error) {
+      if (error?.status === 400 || error?.status === 401) {
+        clearToken();
+        const authError = new Error("auth_failed");
+        authError.code = "auth_failed";
+        authError.status = error.status;
+        throw authError;
+      }
+      throw error;
+    }
 
     authState.token = response.token;
     authState.user = response.user;
@@ -52,6 +74,7 @@
 
   function clearToken() {
     authState.token = null;
+    authState.user = null;
     localStorage.removeItem(TOKEN_KEY);
   }
 

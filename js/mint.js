@@ -1,5 +1,6 @@
 window.Mint = (() => {
   const STORAGE_KEY = "zoo_mint_request";
+
   let tonConnectUI;
   let pollTimer;
   let rootEl;
@@ -24,14 +25,54 @@ window.Mint = (() => {
     error: null,
   };
 
-  function getTonConnect() {
-    if (!window.TonConnectUI) return null;
-    if (!tonConnectUI) {
-      tonConnectUI = new window.TonConnectUI({
-        manifestUrl: new URL("tonconnect-manifest.json", window.location.href).toString(),
-      });
+  function getManifestUrl() {
+    // Важно: относительный путь, чтобы работало и в GH Pages, и в Telegram WebView
+    return new URL("./tonconnect-manifest.json", window.location.href).toString();
+  }
+
+  function resolveTonConnectCtor() {
+    // Вариант 1: кто-то использует window.TonConnectUI
+    if (typeof window.TonConnectUI === "function") return window.TonConnectUI;
+
+    // Вариант 2: UMD сборка часто кладёт в window.TON_CONNECT_UI.TonConnectUI
+    if (window.TON_CONNECT_UI && typeof window.TON_CONNECT_UI.TonConnectUI === "function") {
+      return window.TON_CONNECT_UI.TonConnectUI;
     }
-    return tonConnectUI;
+
+    // Иногда встречается window.tonConnectUI / window.TonConnect (на всякий)
+    if (window.tonConnectUI && typeof window.tonConnectUI.TonConnectUI === "function") {
+      return window.tonConnectUI.TonConnectUI;
+    }
+
+    return null;
+  }
+
+  async function waitForTonConnectUiReady(timeoutMs = 5000) {
+    const started = Date.now();
+    while (Date.now() - started < timeoutMs) {
+      const Ctor = resolveTonConnectCtor();
+      if (Ctor) return Ctor;
+      await new Promise((r) => setTimeout(r, 50));
+    }
+    return null;
+  }
+
+  async function getTonConnectAsync() {
+    // Singleton, чтобы не плодить экземпляры
+    if (tonConnectUI) return tonConnectUI;
+
+    const Ctor = await waitForTonConnectUiReady(5000);
+    if (!Ctor) return null;
+
+    try {
+      tonConnectUI = new Ctor({
+        manifestUrl: getManifestUrl(),
+      });
+      return tonConnectUI;
+    } catch (e) {
+      console.error("TonConnect init error:", e);
+      return null;
+    }
   }
 
   function saveRequestId(requestId) {
@@ -59,31 +100,57 @@ window.Mint = (() => {
   }
 
   async function connectWallet() {
-    const tc = getTonConnect();
+    const tc = await getTonConnectAsync();
     if (!tc) {
-      alert("TonConnect UI не загружен.");
+      alert("TonConnect UI не загружен. Проверь подключение tonconnect-ui.min.js в index.html.");
       return;
     }
-    await tc.openModal();
+    try {
+      await tc.openModal();
+    } catch (e) {
+      console.error(e);
+      setState({ error: e?.message || "Не удалось открыть TonConnect" });
+    }
   }
 
   async function sendTx(tx) {
-    const tc = getTonConnect();
+    const tc = await getTonConnectAsync();
     if (!tc) {
-      alert("TonConnect UI не загружен.");
+      alert("TonConnect UI не загружен. Проверь подключение tonconnect-ui.min.js в index.html.");
       return;
     }
-    await tc.sendTransaction(tx);
+    try {
+      await tc.sendTransaction(tx);
+    } catch (e) {
+      console.error(e);
+      setState({ error: e?.message || "Ошибка отправки транзакции" });
+    }
   }
 
-  function bindTonConnect() {
-    const tc = getTonConnect();
+  async function bindTonConnect() {
+    const tc = await getTonConnectAsync();
     if (!tc) return;
-    tc.onStatusChange((walletInfo) => {
-      const address = walletInfo?.account?.address || null;
-      setState({ wallet: address });
-      if (address) window.Auth?.linkWallet?.(address);
-    });
+
+    // Чтобы не плодить подписки при повторных init
+    if (bindTonConnect._bound) return;
+    bindTonConnect._bound = true;
+
+    try {
+      tc.onStatusChange((walletInfo) => {
+        const address = walletInfo?.account?.address || null;
+        setState({ wallet: address });
+        if (address) window.Auth?.linkWallet?.(address);
+      });
+    } catch (e) {
+      console.error("onStatusChange error:", e);
+    }
+
+    // Если кошелёк уже подключен — подтянуть адрес
+    try {
+      const account = tc?.wallet?.account;
+      const address = account?.address || null;
+      if (address) setState({ wallet: address });
+    } catch (_) {}
   }
 
   function isSeeded(status) {
@@ -92,11 +159,13 @@ window.Mint = (() => {
 
   async function pollStatus(requestId) {
     if (!requestId) return;
+
     const data = await window.MintAPI.getStatus(requestId);
-    if (!data.ok) {
-      setState({ error: data.error || "Ошибка статуса" });
+    if (!data?.ok) {
+      setState({ error: data?.error || "Ошибка статуса" });
       return;
     }
+
     setState({
       status: data.status,
       overallProgress: data.overall_progress,
@@ -131,11 +200,11 @@ window.Mint = (() => {
   function startPolling() {
     stopPolling();
     if (!state.requestId) return;
+
     pollTimer = setInterval(() => {
-      pollStatus(state.requestId).catch((err) => {
-        console.error(err);
-      });
+      pollStatus(state.requestId).catch((err) => console.error(err));
     }, 2000);
+
     pollStatus(state.requestId).catch((err) => console.error(err));
   }
 
@@ -155,25 +224,32 @@ window.Mint = (() => {
       alert("Выберите стиль Forge.");
       return;
     }
+
     setState({ error: null });
+
     const res = await window.MintAPI.prepareMint({
       wallet: state.wallet,
       mode: state.mode,
       style: state.mode === "forge" ? state.style : null,
     });
-    if (!res.ok) {
-      setState({ error: res.error || "Ошибка подготовки" });
+
+    if (!res?.ok) {
+      setState({ error: res?.error || "Ошибка подготовки" });
       return;
     }
+
     setState({ requestId: res.request_id });
     saveRequestId(res.request_id);
+
     await sendTx(res.tonconnect_tx);
     startPolling();
   }
 
   function render() {
     if (!rootEl) return;
+
     rootEl.innerHTML = window.MintUI.screenHTML(state);
+
     window.MintUI.bindActions(rootEl, {
       onMode: (mode) => {
         setState({ mode, style: mode === "forge" ? state.style || "neon" : null });
@@ -197,8 +273,10 @@ window.Mint = (() => {
     render();
   }
 
-  function init() {
-    bindTonConnect();
+  async function init() {
+    // В Telegram SDK может быть готов не сразу — но это не критично.
+    await bindTonConnect();
+
     const requestId = loadRequestId();
     if (requestId) {
       setState({ requestId });

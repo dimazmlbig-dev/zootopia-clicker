@@ -372,6 +372,17 @@
     `;
   }
 
+  function mintScreenHTML() {
+    return `
+      <div class="section">
+        <div class="section__head">
+          <h2>Mint</h2>
+          <p>Загрузка минта…</p>
+        </div>
+      </div>
+    `;
+  }
+
   function walletScreenHTML(s) {
     return `
       <div class="section">
@@ -502,6 +513,9 @@
     } else if (s.tab === "market") {
       screen.innerHTML = marketScreenHTML();
       window.Market?.mount?.(screen);
+    } else if (s.tab === "mint") {
+      screen.innerHTML = mintScreenHTML();
+      window.Mint?.mount?.(screen);
     } else if (s.tab === "wallet") {
       screen.innerHTML = walletScreenHTML(s);
     } else {

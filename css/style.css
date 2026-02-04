@@ -1502,7 +1502,166 @@ body{
   color: #ffd1d1;
   font-size: 13px;
 }
+.btn{
+  border: 0;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.2);
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+.btn.is-active{
+  background: rgba(255,255,255,.32);
+}
 .btn.ghost{
   background: rgba(0,0,0,.16);
   border: 1px solid rgba(255,255,255,.18);
+}
+
+/* Mint */
+.mint-section{
+  width: min(560px, 100%);
+  margin: 0 auto;
+}
+
+.mint-controls{
+  display:flex;
+  flex-direction:column;
+  gap: 12px;
+}
+
+.mint-modes{
+  display:flex;
+  gap: 10px;
+  flex-wrap:wrap;
+}
+
+.mint-styles{
+  padding: 12px;
+  border-radius: var(--r16);
+  background: rgba(255,255,255,.08);
+  border: 1px solid var(--stroke);
+}
+
+.mint-styles.is-hidden{
+  display:none;
+}
+
+.mint-label{
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+
+.mint-style-grid{
+  display:flex;
+  gap: 8px;
+  flex-wrap:wrap;
+}
+
+.mint-actions{
+  display:flex;
+  gap: 10px;
+  flex-wrap:wrap;
+}
+
+.mint-error{
+  color:#ffd1d1;
+  font-size:13px;
+}
+
+.mint-visual{
+  margin-top: 16px;
+  display:flex;
+  flex-direction:column;
+  gap: 12px;
+}
+
+.mint-canvas-wrap{
+  position:relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: var(--r20);
+  overflow:hidden;
+  border: 1px solid var(--stroke);
+  background: rgba(0,0,0,.15);
+}
+
+#mintCanvas{
+  width:100%;
+  height:100%;
+  display:block;
+}
+
+.mint-preview{
+  position:absolute;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  opacity:0;
+  transition: opacity 0.3s ease;
+  pointer-events:none;
+  background: rgba(0,0,0,.15);
+}
+
+.mint-preview.is-visible{
+  opacity:1;
+}
+
+.mint-preview img{
+  width: 80%;
+  height: 80%;
+  object-fit: contain;
+  filter: drop-shadow(0 12px 30px rgba(0,0,0,.4));
+}
+
+.mint-status{
+  padding: 12px;
+  border-radius: var(--r16);
+  background: rgba(255,255,255,.08);
+  border: 1px solid var(--stroke);
+  display:flex;
+  flex-direction:column;
+  gap: 8px;
+}
+
+.mint-status__row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.mint-progress__bar{
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(0,0,0,.2);
+  overflow:hidden;
+}
+
+.mint-progress__bar i{
+  display:block;
+  height:100%;
+  background: linear-gradient(90deg, #74f0ff, #c38bff);
+}
+
+.mint-progress__meta{
+  margin-top: 6px;
+  display:flex;
+  justify-content:space-between;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.mint-empty{
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.mint-result{
+  font-size: 13px;
+  color: #c9ffda;
+  word-break: break-all;
 }

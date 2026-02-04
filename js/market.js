@@ -29,6 +29,7 @@ window.Market = (() => {
       const address = walletInfo?.account?.address || null;
       window.MarketState.setWallet(address);
       if (address) window.MarketState.loadMyNfts();
+      if (address) window.Auth?.linkWallet?.(address);
     });
   }
 

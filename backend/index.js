@@ -1,8 +1,21 @@
 const { Pool } = require("pg");
+const crypto = require("crypto");
 
 const MARKET_FEE_BPS = 300;
 const MARKET_FEE_ADDRESS = "UQCJRRRYnrs_qsA2AgIE71dPsHf_-AKaZV9UMeT4vBbh6Yes";
 const TONCENTER_BASE = "https://toncenter.com/api/v3";
+const MINT_FACTORY_ADDRESS = process.env.MINT_FACTORY_ADDRESS;
+const QUICK_MINT_PRICE = "500000000";
+const FORGE_MINT_PRICE = "5000000000";
+const MINT_STAGE_MESSAGES = {
+  paid: "Оплата подтверждена",
+  queued: "Очередь на Forge",
+  seeded: "Фиксация seed",
+  rendering: "Проявление пикселей",
+  uploading: "Загрузка в хранилище",
+  minting: "Минтим NFT",
+  minted: "NFT готов",
+};
 
 let pool;
 
@@ -64,6 +77,50 @@ function buildTransferComment(comment) {
   const text = Buffer.from(comment, "utf-8");
   const zero = Buffer.from([0, 0, 0, 0]);
   return Buffer.concat([zero, text]).toString("base64");
+}
+
+function buildMintComment(payload) {
+  return buildTransferComment(`MINT:${payload}`);
+}
+
+function makeRequestId() {
+  if (crypto.randomUUID) return crypto.randomUUID();
+  return crypto.randomBytes(16).toString("hex");
+}
+
+function normalizeStyle(style) {
+  if (!style) return null;
+  const raw = String(style).trim().toLowerCase();
+  if (!raw) return null;
+  return raw;
+}
+
+function validateMintMode(mode) {
+  const raw = String(mode || "").trim().toLowerCase();
+  if (!["quick", "forge"].includes(raw)) throw new Error("Invalid mint mode");
+  return raw;
+}
+
+function validateMintStyle(style) {
+  const raw = normalizeStyle(style);
+  if (!raw) return null;
+  if (!["neon", "nature", "cyber"].includes(raw)) throw new Error("Invalid mint style");
+  return raw;
+}
+
+function buildMintTx({ requestId, mode, style }) {
+  if (!MINT_FACTORY_ADDRESS) throw new Error("MINT_FACTORY_ADDRESS is required");
+  const amount = mode === "forge" ? FORGE_MINT_PRICE : QUICK_MINT_PRICE;
+  const comment = JSON.stringify({ request_id: requestId, mode, style });
+  return buildTonConnectTx({
+    messages: [
+      {
+        address: MINT_FACTORY_ADDRESS,
+        amount,
+        payload: buildMintComment(comment),
+      },
+    ],
+  });
 }
 
 async function handleGetListings(event) {
@@ -240,6 +297,59 @@ async function handlePrepareAcceptOffer(event) {
   return jsonResponse(200, { ok: true, offer, tx });
 }
 
+async function handleMintPrepare(event) {
+  const poolInstance = getPool();
+  const payload = parseJson(event.body);
+  requireFields(payload, ["wallet", "mode"]);
+
+  const mode = validateMintMode(payload.mode);
+  const style = validateMintStyle(payload.style);
+  if (mode === "forge" && !style) {
+    throw new Error("style is required for forge mode");
+  }
+  if (mode === "quick" && style) {
+    throw new Error("style is only allowed for forge mode");
+  }
+
+  const requestId = makeRequestId();
+  const paidNanoton = mode === "forge" ? FORGE_MINT_PRICE : QUICK_MINT_PRICE;
+
+  await poolInstance.query(
+    `INSERT INTO mint_requests
+     (request_id, wallet, mode, style, paid_nanoton, status, overall_progress, stage_progress)
+     VALUES ($1, $2, $3, $4, $5, 'paid', 0, 0)`,
+    [requestId, payload.wallet, mode, style, paidNanoton]
+  );
+
+  const tx = buildMintTx({ requestId, mode, style });
+  return jsonResponse(200, { ok: true, request_id: requestId, tonconnect_tx: tx });
+}
+
+async function handleMintStatus(event) {
+  const poolInstance = getPool();
+  const requestId = event.queryStringParameters?.request_id;
+  if (!requestId) throw new Error("request_id is required");
+
+  const { rows } = await poolInstance.query("SELECT * FROM mint_requests WHERE request_id = $1", [requestId]);
+  const row = rows[0];
+  if (!row) return jsonResponse(404, { ok: false, error: "Request not found" });
+
+  return jsonResponse(200, {
+    ok: true,
+    request_id: row.request_id,
+    status: row.status,
+    overall_progress: row.overall_progress,
+    stage_progress: row.stage_progress,
+    eta_seconds: row.eta_seconds,
+    message: MINT_STAGE_MESSAGES[row.status] || "Обработка",
+    preview_url: row.preview_url,
+    image_url: row.image_url,
+    animation_url: row.animation_url,
+    metadata_url: row.metadata_url,
+    nft_address: row.nft_address,
+  });
+}
+
 async function handler(event) {
   try {
     const { httpMethod, path } = event;
@@ -251,6 +361,8 @@ async function handler(event) {
     if (httpMethod === "POST" && path === "/tx/prepare-buy") return await handlePrepareBuy(event);
     if (httpMethod === "POST" && path === "/tx/prepare-offer") return await handlePrepareOffer(event);
     if (httpMethod === "POST" && path === "/tx/prepare-accept-offer") return await handlePrepareAcceptOffer(event);
+    if (httpMethod === "POST" && path === "/mint/prepare") return await handleMintPrepare(event);
+    if (httpMethod === "GET" && path === "/mint/status") return await handleMintStatus(event);
 
     return jsonResponse(404, { ok: false, error: "Not found" });
   } catch (err) {

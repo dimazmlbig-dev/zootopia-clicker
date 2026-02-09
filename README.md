@@ -34,3 +34,14 @@ node backend/tests/state.test.js
 - [ ] TonConnect ok (локальная библиотека, стабильная инициализация).
 - [ ] Menu ok (4 таба + bottom sheet).
 - [ ] Mint → list ok (после минта выбор: коллекция или Market).
+
+## Play-to-Earn modernization scaffold
+
+Добавлена новая модульная структура `src/features/*` для постепенного перевода фронтенда на React/TypeScript и Web3-функции:
+
+- Telegram auth через `@telegram-webapps/sdk` (`src/features/telegram/auth.ts`)
+- TON wallet service (Tonkeeper/Tonhub) на базе `tonweb` (`src/features/ton/wallet.ts`)
+- Рефералки Telegram-бота (`src/features/referrals/referral.service.ts`)
+- ZooToken (Jetton) сервис + конвертация очков `1_000_000 = 1 ZooToken` (`src/features/token/zootoken.ts`)
+- NFT mint/transfer/breed API + базовые контракты в `contracts/*.fc`
+- UI-компоненты профиля и маркетплейса (`src/features/profile`, `src/features/marketplace`)

@@ -1,0 +1,15 @@
+;; Simplified FunC skeleton for ZooAnimal NFT.
+
+(int) recv_internal(int msg_value, cell in_msg_full, slice in_msg_body) impure {
+  ;; op::mint_nft
+  if (in_msg_body~load_uint(32) == 31) {
+    return 0;
+  }
+
+  ;; op::transfer_nft
+  if (in_msg_body~load_uint(32) == 0x5fcc3d14) {
+    return 0;
+  }
+
+  return 0;
+}

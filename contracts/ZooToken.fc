@@ -1,0 +1,17 @@
+;; Simplified FunC skeleton for ZooToken Jetton.
+
+(int) recv_internal(int msg_value, cell in_msg_full, slice in_msg_body) impure {
+  ;; op::mint
+  if (in_msg_body~load_uint(32) == 21) {
+    ;; mint(to, amount)
+    return 0;
+  }
+
+  ;; op::transfer
+  if (in_msg_body~load_uint(32) == 0x0f8a7ea5) {
+    ;; transfer(to, amount)
+    return 0;
+  }
+
+  return 0;
+}
